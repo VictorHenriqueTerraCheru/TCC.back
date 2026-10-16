@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Ocorrencias.Api.Infra.Geocodificacao;
@@ -6,17 +5,33 @@ using Ocorrencias.Api.Tests.Infra;
 
 namespace Ocorrencias.Api.Tests.Geocodificacao;
 
-public sealed class ServicoGeocodificacaoTests
+public sealed class ServicoGeocodificacaoTests : IDisposable
 {
     private readonly NominatimFalso _nominatim = new();
     private readonly ServicoGeocodificacao _servico;
 
-    public ServicoGeocodificacaoTests() =>
-        _servico = new ServicoGeocodificacao(
-            _nominatim,
-            new MemoryCache(new MemoryCacheOptions()),
-            Options.Create(new NominatimOptions { Email = "contato@example.com" }),
+    public ServicoGeocodificacaoTests() => _servico = Criar(_nominatim);
+
+    public void Dispose() => _servico.Dispose();
+
+    private static ServicoGeocodificacao Criar(NominatimFalso nominatim, int limiteCache = 50_000) =>
+        new(
+            nominatim,
+            Options.Create(new NominatimOptions { Email = "contato@example.com", LimiteEntradasCache = limiteCache }),
             NullLogger<ServicoGeocodificacao>.Instance);
+
+    [Fact]
+    public async Task Cache_respeita_o_limite_de_entradas()
+    {
+        using var servico = Criar(new NominatimFalso(), limiteCache: 2);
+
+        for (var i = 0; i < 5; i++)
+        {
+            await servico.ReversaAsync(-22.95 - i * 0.001, -43.18, CancellationToken.None);
+        }
+
+        servico.EntradasEmCache.Should().BeLessThanOrEqualTo(2);
+    }
 
     [Fact]
     public async Task Duas_chamadas_ao_mesmo_ponto_fazem_uma_unica_requisicao()

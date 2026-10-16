@@ -22,5 +22,9 @@ public sealed class NominatimOptions
 
     public TimeSpan DuracaoCache { get; set; } = TimeSpan.FromDays(7);
 
+    /// <summary>Máximo de endereços em cache (cada um ocupa poucas centenas de bytes).</summary>
+    [Range(1, 1_000_000)]
+    public int LimiteEntradasCache { get; set; } = 50_000;
+
     public string UserAgent => $"OcorrenciasUrbanasTCC/1.0 ({Email})";
 }

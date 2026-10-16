@@ -15,14 +15,20 @@ public interface IServicoGeocodificacao
 /// <summary>
 /// Geocodificação reversa com cache em memória por coordenada arredondada em 4 casas (~11 m).
 /// Chamadas simultâneas para a mesma chave compartilham uma única requisição ao Nominatim.
+/// O cache é próprio e limitado em <see cref="NominatimOptions.LimiteEntradasCache"/>: o endpoint é anônimo
+/// e aceita qualquer coordenada, então sem limite um cliente poderia encher a memória.
 /// </summary>
 public sealed class ServicoGeocodificacao(
     INominatimClient nominatim,
-    IMemoryCache cache,
     IOptions<NominatimOptions> opcoes,
-    ILogger<ServicoGeocodificacao> logger) : IServicoGeocodificacao
+    ILogger<ServicoGeocodificacao> logger) : IServicoGeocodificacao, IDisposable
 {
+    private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = opcoes.Value.LimiteEntradasCache });
     private readonly ConcurrentDictionary<string, Lazy<Task<EnderecoGeocodificado?>>> _emAndamento = new();
+
+    internal int EntradasEmCache => _cache.Count;
+
+    public void Dispose() => _cache.Dispose();
 
     public async Task<EnderecoGeocodificado> ReversaAsync(double lat, double lng, CancellationToken ct)
     {
@@ -30,7 +36,7 @@ public sealed class ServicoGeocodificacao(
         var lngChave = Math.Round(lng, 4, MidpointRounding.AwayFromZero);
         var chave = string.Create(CultureInfo.InvariantCulture, $"geo:{latChave:F4}:{lngChave:F4}");
 
-        if (cache.TryGetValue(chave, out EnderecoGeocodificado? emCache))
+        if (_cache.TryGetValue(chave, out EnderecoGeocodificado? emCache))
         {
             return emCache!;
         }
@@ -48,9 +54,20 @@ public sealed class ServicoGeocodificacao(
     {
         try
         {
+            // Um chamador pode ter visto o cache vazio logo antes de a consulta anterior gravar e sair de
+            // _emAndamento; rechecar aqui evita uma segunda requisição para a mesma chave.
+            if (_cache.TryGetValue(chave, out EnderecoGeocodificado? emCache))
+            {
+                return emCache;
+            }
+
             var resposta = await nominatim.ReversaAsync(lat, lng, CancellationToken.None);
             var endereco = EnderecoGeocodificado.Montar(resposta, lat, lng);
-            cache.Set(chave, endereco, opcoes.Value.DuracaoCache);
+            _cache.Set(chave, endereco, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = opcoes.Value.DuracaoCache,
+                Size = 1,
+            });
             return endereco;
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or TimeoutException or JsonException)

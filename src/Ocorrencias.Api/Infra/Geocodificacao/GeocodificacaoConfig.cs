@@ -11,8 +11,6 @@ public static class GeocodificacaoConfig
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        services.AddMemoryCache();
-
         services.AddHttpClient(NominatimClient.NomeHttpClient, (sp, http) =>
             {
                 var opcoes = sp.GetRequiredService<IOptions<NominatimOptions>>().Value;
