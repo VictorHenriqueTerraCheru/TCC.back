@@ -1,10 +1,10 @@
 using FluentValidation;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Features;
-using Ocorrencias.Api.Infra.Auth;
-using Ocorrencias.Api.Infra.Confianca;
-using Ocorrencias.Api.Infra.Data;
-using Ocorrencias.Api.Infra.Geocodificacao;
+using Ocorrencias.Api.Infrastructure;
+using Ocorrencias.Api.Confianca;
+using Ocorrencias.Api.Persistence;
+using Ocorrencias.Api.Geocodificacao;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);

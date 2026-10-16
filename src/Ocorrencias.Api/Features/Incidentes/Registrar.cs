@@ -3,9 +3,8 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infra.Data;
-using Ocorrencias.Api.Infra.Data.Entidades;
-using Ocorrencias.Api.Infra.Geocodificacao;
+using Ocorrencias.Api.Persistence;
+using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Features.Incidentes;

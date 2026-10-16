@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using Ocorrencias.Api.Infra.Geocodificacao;
+using Ocorrencias.Api.Geocodificacao;
 
 namespace Ocorrencias.Api.Tests.Infra;
 

@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infra.Data;
-using Ocorrencias.Api.Infra.Geocodificacao;
+using Ocorrencias.Api.Persistence;
+using Ocorrencias.Api.Geocodificacao;
 using Testcontainers.PostgreSql;
 
 namespace Ocorrencias.Api.Tests.Infra;

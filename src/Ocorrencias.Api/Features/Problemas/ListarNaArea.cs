@@ -1,7 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infra.Data;
+using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 using Ocorrencias.Domain.Confianca;
 

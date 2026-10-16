@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
-using Ocorrencias.Api.Infra.Auth;
-using Ocorrencias.Api.Infra.Data;
+using Ocorrencias.Api.Infrastructure;
+using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Features.Admin;

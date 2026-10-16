@@ -2,8 +2,8 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infra.Auth;
-using Ocorrencias.Api.Infra.Data.Entidades;
+using Ocorrencias.Api.Auth;
+using Ocorrencias.Api.Persistence;
 
 namespace Ocorrencias.Api.Features.Auth;
 

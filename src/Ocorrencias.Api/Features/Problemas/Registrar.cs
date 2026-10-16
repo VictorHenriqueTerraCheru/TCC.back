@@ -2,9 +2,8 @@ using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infra.Data;
-using Ocorrencias.Api.Infra.Data.Entidades;
-using Ocorrencias.Api.Infra.Geocodificacao;
+using Ocorrencias.Api.Persistence;
+using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Domain;
 using Ocorrencias.Domain.Confianca;
 

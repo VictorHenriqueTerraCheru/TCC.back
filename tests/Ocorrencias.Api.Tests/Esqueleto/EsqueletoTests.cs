@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Infrastructure;
 using Ocorrencias.Api.Tests.Infra;
 
 namespace Ocorrencias.Api.Tests.Esqueleto;

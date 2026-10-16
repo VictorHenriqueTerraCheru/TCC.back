@@ -3,9 +3,8 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Features.Problemas;
-using Ocorrencias.Api.Infra.Confianca;
-using Ocorrencias.Api.Infra.Data;
-using Ocorrencias.Api.Infra.Data.Entidades;
+using Ocorrencias.Api.Confianca;
+using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 using Ocorrencias.Domain.Confianca;
 

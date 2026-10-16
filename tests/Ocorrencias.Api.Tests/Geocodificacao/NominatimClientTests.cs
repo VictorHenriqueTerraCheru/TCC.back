@@ -3,7 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Ocorrencias.Api.Infra.Geocodificacao;
+using Ocorrencias.Api.Geocodificacao;
 
 namespace Ocorrencias.Api.Tests.Geocodificacao;
 

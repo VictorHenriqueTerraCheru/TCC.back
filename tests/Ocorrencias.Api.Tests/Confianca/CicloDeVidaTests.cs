@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Ocorrencias.Api.Features.Problemas;
-using Ocorrencias.Api.Infra.Confianca;
+using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
 

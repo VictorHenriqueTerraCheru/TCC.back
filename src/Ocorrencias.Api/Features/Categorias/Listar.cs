@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Ocorrencias.Api.Infra.Data;
+using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Features.Categorias;

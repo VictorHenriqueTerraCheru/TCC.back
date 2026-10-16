@@ -7,7 +7,7 @@ using Ocorrencias.Api.Features.Problemas;
 using Ocorrencias.Api.Features.Usuarios;
 using Ocorrencias.Api.Features.Verificacao;
 using Ocorrencias.Api.Features.Votos;
-using Ocorrencias.Api.Infra.Auth;
+using Ocorrencias.Api.Infrastructure;
 
 namespace Ocorrencias.Api.Features;
 

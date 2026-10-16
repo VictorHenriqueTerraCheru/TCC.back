@@ -3,7 +3,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Features.Problemas;
-using Ocorrencias.Api.Infra.Data;
+using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 using Ocorrencias.Domain.Confianca;
 

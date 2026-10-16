@@ -3,7 +3,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infra.Data;
+using Ocorrencias.Api.Persistence;
 
 namespace Ocorrencias.Api.Features.Usuarios;
 

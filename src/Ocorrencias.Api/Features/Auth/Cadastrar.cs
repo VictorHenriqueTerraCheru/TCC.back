@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infra.Auth;
-using Ocorrencias.Api.Infra.Data.Entidades;
+using Ocorrencias.Api.Auth;
+using Ocorrencias.Api.Persistence;
 
 namespace Ocorrencias.Api.Features.Auth;
 

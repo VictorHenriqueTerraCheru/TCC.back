@@ -1,5 +1,5 @@
-using Ocorrencias.Api.Infra.Auth;
-using Ocorrencias.Api.Infra.Data.Entidades;
+using Ocorrencias.Api.Auth;
+using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Features.Auth;
