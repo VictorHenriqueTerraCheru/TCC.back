@@ -1,6 +1,5 @@
 using Ocorrencias.Api.Features.Admin;
 using Ocorrencias.Api.Features.Auth;
-using Ocorrencias.Api.Features.Categorias;
 using Ocorrencias.Api.Features.Geocodificacao;
 using Ocorrencias.Api.Features.Incidentes;
 using Ocorrencias.Api.Features.Problemas;
@@ -21,8 +20,6 @@ public static class Endpoints
         api.MapObterMe();
         api.MapAtualizarMe();
         api.MapObterHistorico();
-
-        api.MapListarCategorias();
 
         api.MapReversa();
 

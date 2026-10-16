@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Api.Persistence;
@@ -96,6 +97,7 @@ public static class DependencyInjection
     /// <summary>Services das features, um por área.</summary>
     private static IServiceCollection AddServicos(this IServiceCollection services)
     {
+        services.AddScoped<ICategoriaService, CategoriaService>();
         return services;
     }
 }

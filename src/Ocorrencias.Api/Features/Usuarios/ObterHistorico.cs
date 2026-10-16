@@ -3,7 +3,7 @@ using System.Security.Claims;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features.Categorias;
+using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 

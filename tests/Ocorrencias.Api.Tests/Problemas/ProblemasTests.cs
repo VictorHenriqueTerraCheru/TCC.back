@@ -1,3 +1,4 @@
+using Ocorrencias.Api.Categorias;
 using System.Globalization;
 using System.Net;
 using Ocorrencias.Api.Common;
@@ -24,7 +25,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         resposta.Headers.Location!.ToString().Should().Be($"/api/v1/problemas/{detalhe.Id}");
         detalhe.Status.Should().Be(StatusProblema.Nova);
-        detalhe.Categoria.Should().Be(new Features.Categorias.CategoriaResumo(1, "Buraco na via", "viaPublica", "buraco"));
+        detalhe.Categoria.Should().Be(new CategoriaResumo(1, "Buraco na via", "viaPublica", "buraco"));
         detalhe.Descricao.Should().Be("Buraco grande");
         detalhe.Endereco.Should().Be("Rua Voluntários da Pátria, 170 — Botafogo");
         detalhe.Lat.Should().BeApproximately(lat, 1e-9);
