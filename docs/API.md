@@ -5,13 +5,14 @@ Contrato único entre a API (.NET) e o front (React + TypeScript). **Qualquer mu
 ## Convenções
 
 - Base URL: `/api/v1`
-- JSON em `camelCase`. Datas em ISO 8601 UTC (`2026-10-06T22:19:00Z`). Coordenadas em graus decimais WGS 84 (`lat`, `lng`).
+- JSON em `camelCase`. Datas em ISO 8601 UTC, sempre com `Z` (`2026-10-06T22:19:00Z`, com até 6 casas de fração de segundo). Coordenadas em graus decimais WGS 84 (`lat` ∈ [−90, 90], `lng` ∈ [−180, 180]). Números trafegam sempre como número (`"12"` é recusado).
+- Parâmetros de query em `camelCase` (`raioKm`, `minLat`). Listas em query são separadas por vírgula (`grupos=viaPublica,eletrica`); valor desconhecido → `400`.
 - Enums trafegam como **string camelCase** (ex.: `"possivelmenteResolvida"`).
 - Autenticação: `Authorization: Bearer <jwt>`. Endpoints marcados com 🔓 aceitam visitante (sem token).
-- Erros: ProblemDetails (RFC 9457). Validação → `400` com `errors: { campo: [mensagens] }`. Regra de negócio violada → `409` ou `422` com `type` estável (ver tabela no fim).
+- Erros: ProblemDetails (RFC 9457). Validação → `400` com `errors: { campo: [mensagens] }` (campos em camelCase, mensagens em português). Regra de negócio violada → `409`, `422` ou `429` com `type` estável (ver tabela no fim). Sem `type` estável: `401` (sem token, token inválido ou expirado, credenciais erradas), `403` (rota de admin sem perfil `administrador`) e `404` (id inexistente).
 - CORS: a API só aceita as origens configuradas em `Cors:Origens` (em dev, `http://localhost:5173`).
 - Tipos do front: gerados a partir do OpenAPI da API (`/openapi/v1.json`) com `openapi-typescript`. Este arquivo continua sendo a referência humana; o OpenAPI, a de máquina.
-- Paginação: `?pagina=1&tamanho=20` → resposta `{ itens: [...], pagina, tamanho, total }`.
+- Paginação: `?pagina=1&tamanho=20` → resposta `{ itens: [...], pagina, tamanho, total }`. `pagina` ∈ [1, 10 000]; `tamanho` ∈ [1, 100], padrão 20.
 
 ## Enums
 
@@ -45,6 +46,8 @@ Senha ≥ 8 caracteres; `aceitouTermos` precisa ser `true`. → `201`
 ```
 → `200` mesmo corpo do cadastro. `401` credenciais inválidas. JWT válido por 7 dias (sem refresh token — escopo de TCC).
 
+O token carrega `sub`, `email`, `nome` e `perfil` **do momento do login**. Depois de uma aprovação de verificação, o perfil atual vem de `GET /me`: a API já pesa os votos pelo perfil do banco, mas a claim só muda num novo login. Use `GET /me` para decidir o que mostrar.
+
 ## Usuário
 
 ### `GET /me`
@@ -56,12 +59,13 @@ Senha ≥ 8 caracteres; `aceitouTermos` precisa ser `true`. → `201`
   "verificacao": { "status": "aprovada", "tipoVinculo": "moradorRegiao", "motivoRecusa": null, "criadaEm": "..." }
 }
 ```
-`verificacao` é a solicitação mais recente ou `null`.
+`verificacao` é a solicitação mais recente ou `null`. `totalRegistros` = problemas + incidentes registrados.
 
 ### `PATCH /me`
 ```json
 { "nome": "Mariana S." }
 ```
+`nome` com 1 a 120 caracteres (espaços nas pontas são removidos). → `200` com o mesmo corpo de `GET /me`.
 
 ### `GET /me/historico?filtro=tudo|registros|votos&pagina&tamanho`
 Itens em ordem decrescente de data:
@@ -76,7 +80,7 @@ Itens em ordem decrescente de data:
   "data": "2026-10-06T09:41:00Z"
 }
 ```
-Para `registroIncidente`, `endereco` é o rótulo da área (ex.: "Praia de Botafogo, Botafogo") e `ocorrenciaId` é `null` (o incidente não é navegável).
+Para `registroIncidente`, `endereco` é o rótulo da área (ex.: "Praia de Botafogo, Botafogo") — ou `null`, se a geocodificação estava indisponível no registro — e `ocorrenciaId` é `null` (o incidente não é navegável). `data` é o instante do registro (problema/incidente) ou do voto. Os votos aparecem pelo valor atual (votar de novo substitui). Itens no mesmo instante têm ordem estável entre páginas.
 
 ## Categorias
 
@@ -100,7 +104,7 @@ Seed fixo:
 ## Problemas
 
 ### `GET /problemas?minLat&minLng&maxLat&maxLng&grupos=viaPublica,eletrica&status=nova,ativa,possivelmenteResolvida` 🔓
-Marcadores da área visível. Nunca retorna `resolvida`. Limite de 500 itens (os de maior confiança primeiro).
+Marcadores da área visível. Nunca retorna `resolvida` (pedir só `status=resolvida` devolve `[]`). Limite de 500 itens (os de maior confiança primeiro; `nova` por último). O retângulo é recortado em lat/lng (planar). Exige `minLat < maxLat` e `minLng < maxLng` dentro dos limites de coordenada: **o front precisa limitar o `getBounds()` do Leaflet**, que passa de ±180 ao afastar o zoom ou cruzar o antimeridiano.
 ```json
 [ { "id": "uuid", "categoriaId": 1, "lat": -22.9519, "lng": -43.1866, "status": "ativa", "confianca": 82.0, "faixa": "alta" } ]
 ```
@@ -127,10 +131,12 @@ Em `nova`, `confianca` e `faixa` vêm `null`.
 - Contadores são **contagens de pessoas** (não pesos) — é o que a tela mostra.
 - `avaliacao` só vem preenchido em `nova`.
 - `meusVotos`/`souAutor` só com token; para visitante vêm `null`/`false`.
+- `confianca` vem com 1 casa decimal; `faixa` é calculada sobre o valor gravado (2 casas). Em `nova`, ambos `null`.
+- `404` se o id não existe.
 - A distância "você está a X m" é calculada **no front** com a posição atual do navegador.
 
 ### `GET /problemas/duplicatas?categoriaId&lat&lng`
-Problemas da mesma categoria, não resolvidos, a até 50 m. Ordenados por distância.
+Problemas da mesma categoria, não resolvidos, a até 50 m. Ordenados por distância (até 20). Exige token (o fluxo de registro já exige login). `faixa` é `null` para problemas em `nova`.
 ```json
 [ { "id": "uuid", "categoria": {...}, "endereco": "...", "criadoEm": "...", "distanciaMetros": 30, "faixa": "alta", "confirmacoes": 15 } ]
 ```
@@ -139,10 +145,10 @@ Problemas da mesma categoria, não resolvidos, a até 50 m. Ordenados por distâ
 ```json
 { "categoriaId": 1, "lat": -22.9521, "lng": -43.1868, "descricao": "opcional, até 280" }
 ```
-O endereço **não** vem do cliente: a API o obtém pela geocodificação reversa (normalmente acerto de cache, porque o front acabou de consultar o mesmo ponto). → `201` com o detalhe (`GET /problemas/{id}`). `422 categoria-nao-e-problema`.
+O endereço **não** vem do cliente: a API o obtém pela geocodificação reversa (normalmente acerto de cache, porque o front acabou de consultar o mesmo ponto). → `201` com o detalhe (`GET /problemas/{id}`) e `Location`. `422 categoria-nao-e-problema`; categoria inexistente → `400` em `errors.categoriaId`.
 
 ### `GET /problemas/recentes?lat&lng&raioKm=10&grupos&pagina&tamanho` 🔓
-Problemas não resolvidos no raio, mais recentes primeiro.
+Problemas não resolvidos no raio, mais recentes primeiro. `raioKm` ∈ (0, 50], padrão 10.
 ```json
 { "itens": [ { "id": "uuid", "categoria": {...}, "endereco": "...", "criadoEm": "...", "status": "ativa", "faixa": "alta" } ], "pagina": 1, "tamanho": 20, "total": 37 }
 ```
@@ -153,7 +159,7 @@ Problemas não resolvidos no raio, mais recentes primeiro.
 ```json
 { "valor": "confirma", "lat": -22.9520, "lng": -43.1867 }
 ```
-`lat`/`lng` opcionais (sem permissão de localização → peso de proximidade 1). → `200` com o detalhe atualizado.
+`lat`/`lng` opcionais, mas **juntos ou nenhum** (só um deles → `400`; sem permissão de localização → peso de proximidade 1). → `200` com o detalhe atualizado. `404` se o problema não existe. O autor pode votar persistência.
 Erros: `422 autor-nao-vota-existencia`, `422 problema-resolvido`.
 
 ### `PUT /problemas/{id}/votos/persistencia`
@@ -170,11 +176,11 @@ Erros: `422 autor-nao-vota-existencia`, `422 problema-resolvido`.
 ```json
 { "categoriaId": 7, "lat": -22.9465, "lng": -43.1820, "ocorridoEm": "2026-09-26T08:30:00Z" }
 ```
-`ocorridoEm` entre agora − 24 h e agora. A API arredonda `lat`/`lng` para 3 casas decimais antes de gravar e guarda o `rotuloArea` da geocodificação do ponto arredondado. → `201` com o resumo da área (`GET /incidentes/area`).
-Erros: `422 categoria-nao-e-incidente`, `422 horario-fora-da-janela`, `429 limite-diario-incidentes`.
+`ocorridoEm` entre agora − 24 h e agora, **sem tolerância**: um horário alguns segundos no futuro (relógio do celular adiantado) é recusado. No front, "Agora" deve enviar o instante atual menos 1 minuto, e "Outro horário" deve parar em 23 h 45 atrás. A API arredonda `lat`/`lng` para 3 casas decimais antes de gravar e guarda o `rotuloArea` da geocodificação do ponto arredondado. → `201` com o resumo da área (`GET /incidentes/area`).
+Erros: `422 categoria-nao-e-incidente`, `422 horario-fora-da-janela`, `429 limite-diario-incidentes` (janela móvel de 24 h por conta).
 
 ### `GET /incidentes/calor?minLat&minLng&maxLat&maxLng&dias=7&grupos=seguranca,transito` 🔓
-Células agregadas (o ponto já é arredondado na gravação):
+Células agregadas (o ponto já é arredondado na gravação). `dias` ∈ [1, 30], por `ocorrido_em`. Mesmas regras de retângulo de `GET /problemas`.
 ```json
 [ { "lat": -22.947, "lng": -43.182, "quantidade": 4 } ]
 ```
@@ -188,12 +194,12 @@ Raio fixo de 400 m.
   "contagens": [ { "categoriaId": 7, "nome": "Roubo", "dias7": 12, "dias30": 41 }, { "categoriaId": 8, "nome": "Acidente de trânsito", "dias7": 3, "dias30": 11 } ]
 }
 ```
-O título da área é o `rotuloArea` de `GET /geocodificacao/reversa` para o mesmo ponto; o front faz as duas chamadas em paralelo.
+O título da área é o `rotuloArea` de `GET /geocodificacao/reversa` para o mesmo ponto; o front faz as duas chamadas em paralelo. `contagens` traz **todas** as categorias de incidente (inclusive zeradas), em ordem de id; janelas por `ocorrido_em`.
 
 ## Geocodificação
 
 ### `GET /geocodificacao/reversa?lat&lng` 🔓
-Converte coordenadas em endereço usando o Nominatim (OpenStreetMap), **sempre pela API**. Cache em memória por coordenada arredondada em 4 casas (~11 m), TTL de 7 dias; no máximo 1 requisição por segundo ao Nominatim (fila); `User-Agent` identificando a aplicação e e-mail de contato; `accept-language=pt-BR`. Limite por IP: 30 requisições/min → `429`.
+Converte coordenadas em endereço usando o Nominatim (OpenStreetMap), **sempre pela API**. Cache em memória por coordenada arredondada em 4 casas (~11 m), TTL de 7 dias; no máximo 1 requisição por segundo ao Nominatim (fila); `User-Agent` identificando a aplicação (e-mail de contato opcional); `accept-language=pt-BR`. Limite por IP: 30 requisições/min → `429 limite-requisicoes` com `Retry-After` (trate como endereço indisponível).
 ```json
 { "disponivel": true, "endereco": "Rua Voluntários da Pátria, 170 — Botafogo", "logradouro": "Rua Voluntários da Pátria", "numero": "170", "bairro": "Botafogo", "cidade": "Rio de Janeiro", "uf": "RJ", "rotuloArea": "Rua Voluntários da Pátria, Botafogo" }
 ```
@@ -206,21 +212,27 @@ Se o Nominatim falhar e não houver cache: `200` com `disponivel: false` e `ende
 ```json
 { "tipoVinculo": "moradorRegiao", "justificativa": "30 a 500 caracteres" }
 ```
-→ `201`. Erros: `409 verificacao-pendente-existente`, `422 ja-verificado`.
+`justificativa` com 30 a 500 caracteres após remover espaços nas pontas. → `201`:
+```json
+{ "id": "uuid", "tipoVinculo": "moradorRegiao", "justificativa": "...", "status": "pendente", "criadaEm": "..." }
+```
+Erros: `409 verificacao-pendente-existente`, `422 ja-verificado` (perfil `cidadaoVerificado` ou `administrador`). Depois de uma recusa, pode solicitar de novo.
 
 ## Admin (perfil `administrador`)
 
 ### `GET /admin/verificacoes?status=pendente|aprovada|recusada&pagina&tamanho`
+`status` opcional (ausente = todas). Pendentes vêm da mais antiga para a mais nova (fila); as demais, da mais nova para a mais antiga.
 ```json
 { "itens": [ { "id": "uuid", "usuario": { "id": "uuid", "nome": "Carlos Menezes", "iniciais": "CM" }, "tipoVinculo": "moradorRegiao", "justificativa": "...", "status": "pendente", "criadaEm": "...", "motivoRecusa": null } ], "pagina": 1, "tamanho": 20, "total": 4 }
 ```
 
 ### `POST /admin/verificacoes/{id}/aprovar` → `204`
+O solicitante passa a `cidadaoVerificado` (vale para os votos seguintes). `409 verificacao-ja-analisada`; `404` se o id não existe.
 ### `POST /admin/verificacoes/{id}/recusar`
 ```json
 { "motivo": "obrigatório, até 500" }
 ```
-→ `204`. `409 verificacao-ja-analisada`.
+→ `204`. `409 verificacao-ja-analisada`; `404` se o id não existe.
 
 ## Códigos de erro (`type`)
 
