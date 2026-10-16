@@ -1,5 +1,4 @@
 using Ocorrencias.Api.Features.Admin;
-using Ocorrencias.Api.Features.Auth;
 using Ocorrencias.Api.Features.Geocodificacao;
 using Ocorrencias.Api.Features.Incidentes;
 using Ocorrencias.Api.Features.Problemas;
@@ -14,9 +13,6 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapFeaturesLegadas(this RouteGroupBuilder api)
     {
-        api.MapCadastrar();
-        api.MapEntrar();
-
         api.MapObterMe();
         api.MapAtualizarMe();
         api.MapObterHistorico();

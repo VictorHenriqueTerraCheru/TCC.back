@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
+using Ocorrencias.Api.Auth;
 using Ocorrencias.Api.Features.Problemas;
 using Ocorrencias.Domain;
 
@@ -31,7 +32,7 @@ public static class Cenarios
             // Novo login: a claim "perfil" do token (usada pela policy de admin) precisa refletir o banco.
             var login = await cliente.PostAsJsonAsync("/api/v1/auth/login", new { email = auth.Usuario.Email, senha = "senha-forte" }, ClienteApi.Json);
             login.EnsureSuccessStatusCode();
-            cliente.Autenticado((await login.LerAsync<Features.Auth.RespostaAuth>()).Token);
+            cliente.Autenticado((await login.LerAsync<RespostaAuth>()).Token);
         }
 
         return new Pessoa(auth.Usuario.Id, cliente);

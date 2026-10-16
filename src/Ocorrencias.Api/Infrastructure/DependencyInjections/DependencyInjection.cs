@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Auth;
 using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Geocodificacao;
@@ -98,6 +99,7 @@ public static class DependencyInjection
     private static IServiceCollection AddServicos(this IServiceCollection services)
     {
         services.AddScoped<ICategoriaService, CategoriaService>();
+        services.AddScoped<IAuthService, AuthService>();
         return services;
     }
 }
