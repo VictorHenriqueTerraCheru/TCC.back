@@ -31,7 +31,7 @@ public static class Reversa
     {
         app.MapGet("/geocodificacao/reversa", Handle)
             .Validar<Request>()
-            .RequireRateLimiting(LimitesDeRequisicao.Geocodificacao)
+            .RequireRateLimiting(PoliticasLimite.Geocodificacao)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .AllowAnonymous()
             .WithTags("Geocodificação");

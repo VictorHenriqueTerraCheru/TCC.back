@@ -2,7 +2,6 @@ using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infrastructure;
 using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 
@@ -24,7 +23,7 @@ public static class RecusarVerificacao
     {
         app.MapPost("/admin/verificacoes/{id:guid}/recusar", Handle)
             .Validar<Request>()
-            .RequireAuthorization(AuthConfig.Administrador)
+            .RequireAuthorization(PoliticasAutorizacao.Administrador)
             .WithTags("Admin");
         return app;
     }

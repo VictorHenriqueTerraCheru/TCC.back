@@ -1,33 +1,21 @@
-using FluentValidation;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features;
 using Ocorrencias.Api.Infrastructure;
-using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Persistence;
-using Ocorrencias.Api.Geocodificacao;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Validacao.ConfigurarGlobal();
-
-builder.Services.AddProblemDetails();
-builder.Services.AddOpenApiConfigurado();
-builder.Services.AddSingleton<TimeProvider>(new RelogioPostgres());
-builder.Services.ConfigureHttpJsonOptions(o => JsonConfig.Configurar(o.SerializerOptions));
-builder.Services.AddCorsPorConfiguracao(builder.Configuration);
-builder.Services.AddDados(builder.Configuration);
-builder.Services.AddAutenticacao();
-builder.Services.AddGeocodificacao();
-builder.Services.AddConfianca(builder.Configuration);
-builder.Services.AddLimitesDeRequisicao(builder.Configuration);
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddAplicacao(builder.Configuration)
+    .AddCorsConfigurado(builder.Configuration)
+    .AddOpenApiConfigurado()
+    .AddAutenticacao()
+    .AddLimitesDeRequisicao(builder.Configuration);
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-app.UseCors(CorsConfig.Politica);
+app.UseCors(PoliticasCors.Front);
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
@@ -35,7 +23,7 @@ app.UseRateLimiter();
 app.MapOpenApi();
 app.MapScalarApiReference();
 app.MapHealthChecks("/health");
-app.MapFeatures();
+app.MapEndpoints();
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,7 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Infrastructure;
 using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 
@@ -41,7 +40,7 @@ public static class ListarVerificacoes
     {
         app.MapGet("/admin/verificacoes", Handle)
             .Validar<Request>()
-            .RequireAuthorization(AuthConfig.Administrador)
+            .RequireAuthorization(PoliticasAutorizacao.Administrador)
             .WithTags("Admin");
         return app;
     }

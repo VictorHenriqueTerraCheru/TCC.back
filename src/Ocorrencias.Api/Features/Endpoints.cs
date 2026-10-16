@@ -7,20 +7,14 @@ using Ocorrencias.Api.Features.Problemas;
 using Ocorrencias.Api.Features.Usuarios;
 using Ocorrencias.Api.Features.Verificacao;
 using Ocorrencias.Api.Features.Votos;
-using Ocorrencias.Api.Infrastructure;
 
 namespace Ocorrencias.Api.Features;
 
+/// <summary>Features ainda não migradas para <c>Modules/</c>. Removido quando a última área migrar.</summary>
 public static class Endpoints
 {
-    /// <summary>
-    /// Registra todas as features sob <c>/api/v1</c>. Por padrão exige autenticação; endpoints de visitante
-    /// (🔓 em docs/API.md) chamam <c>AllowAnonymous()</c>.
-    /// </summary>
-    public static IEndpointRouteBuilder MapFeatures(this IEndpointRouteBuilder app)
+    public static RouteGroupBuilder MapFeaturesLegadas(this RouteGroupBuilder api)
     {
-        var api = app.MapGroup("/api/v1").RequireAuthorization(AuthConfig.Autenticado);
-
         api.MapCadastrar();
         api.MapEntrar();
 
@@ -51,6 +45,6 @@ public static class Endpoints
         api.MapAprovarVerificacao();
         api.MapRecusarVerificacao();
 
-        return app;
+        return api;
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ocorrencias.Api.Geocodificacao;
+using Ocorrencias.Api.Infrastructure;
 
 namespace Ocorrencias.Api.Tests.Geocodificacao;
 

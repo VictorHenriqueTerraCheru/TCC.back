@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
-using Ocorrencias.Api.Infrastructure;
+using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 
@@ -12,7 +12,7 @@ public static class AprovarVerificacao
     public static IEndpointRouteBuilder MapAprovarVerificacao(this IEndpointRouteBuilder app)
     {
         app.MapPost("/admin/verificacoes/{id:guid}/aprovar", Handle)
-            .RequireAuthorization(AuthConfig.Administrador)
+            .RequireAuthorization(PoliticasAutorizacao.Administrador)
             .WithTags("Admin");
         return app;
     }
