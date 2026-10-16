@@ -19,6 +19,7 @@ public sealed class NominatimClient(IHttpClientFactory fabrica, IOptions<Nominat
 {
     public const string NomeHttpClient = "Nominatim";
 
+    private readonly string? _email = opcoes.Value.Email;
     private readonly LimitadorDeTaxa _limitador = new(relogio, opcoes.Value.IntervaloMinimo, opcoes.Value.EsperaMaximaNaFila);
 
     public Task<NominatimResposta?> ReversaAsync(double lat, double lng, CancellationToken ct) =>
@@ -26,6 +27,10 @@ public sealed class NominatimClient(IHttpClientFactory fabrica, IOptions<Nominat
         {
             var url = string.Create(CultureInfo.InvariantCulture,
                 $"reverse?format=jsonv2&lat={lat:0.#######}&lon={lng:0.#######}&zoom=18&addressdetails=1");
+            if (!string.IsNullOrWhiteSpace(_email))
+            {
+                url += "&email=" + Uri.EscapeDataString(_email);
+            }
 
             var http = fabrica.CreateClient(NomeHttpClient);
             using var resposta = await http.GetAsync(url, token);

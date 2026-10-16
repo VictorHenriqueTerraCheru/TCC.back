@@ -20,10 +20,10 @@ public sealed class NominatimClientTests
         }
     }
 
-    private static INominatimClient Criar(HandlerGravador handler)
+    private static INominatimClient Criar(HandlerGravador handler, string? email = null)
     {
         var configuracao = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Nominatim:Email"] = "contato@example.com" })
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Nominatim:Email"] = email })
             .Build();
 
         var services = new ServiceCollection()
@@ -58,8 +58,20 @@ public sealed class NominatimClientTests
         var req = handler.Requisicao!;
         req.RequestUri!.ToString().Should().Be(
             "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=-22.9521&lon=-43.1868&zoom=18&addressdetails=1");
-        req.Headers.UserAgent.ToString().Should().Be("OcorrenciasUrbanasTCC/1.0 (contato@example.com)");
+        req.Headers.UserAgent.ToString().Should().Be("OcorrenciasUrbanasTCC/1.0 (+https://github.com/VictorHenriqueTerraCheru/TCC.back)");
         req.Headers.AcceptLanguage.ToString().Should().Be("pt-BR");
+    }
+
+    [Fact]
+    public async Task Com_email_configurado_ele_vai_no_user_agent_e_no_parametro()
+    {
+        var handler = new HandlerGravador(HttpStatusCode.OK, "{}");
+
+        await Criar(handler, "contato@tcc.org").ReversaAsync(-22.9521, -43.1868, CancellationToken.None);
+
+        handler.Requisicao!.RequestUri!.Query.Should().EndWith("&email=contato%40tcc.org");
+        handler.Requisicao.Headers.UserAgent.ToString().Should()
+            .Be("OcorrenciasUrbanasTCC/1.0 (+https://github.com/VictorHenriqueTerraCheru/TCC.back; contato@tcc.org)");
     }
 
     [Fact]
