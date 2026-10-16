@@ -37,6 +37,49 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
         documento.Should().NotContainEquivalentOf("autorId");
     }
 
+    [Fact]
+    public async Task Openapi_gera_tipos_precisos_para_o_front()
+    {
+        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();
+
+        documento.GetRawText().Should().NotContain("\"pattern\"", "números não devem aceitar string (integer|string)");
+        foreach (var schema in documento.GetProperty("components").GetProperty("schemas").EnumerateObject())
+        {
+            if (schema.Value.TryGetProperty("enum", out var valores))
+            {
+                valores.EnumerateArray().Should().NotContain(v => v.ValueKind == JsonValueKind.Null, $"enum {schema.Name} não deve incluir null");
+            }
+        }
+
+        foreach (var caminho in documento.GetProperty("paths").EnumerateObject())
+        {
+            foreach (var operacao in caminho.Value.EnumerateObject())
+            {
+                if (!operacao.Value.TryGetProperty("parameters", out var parametros))
+                {
+                    continue;
+                }
+
+                foreach (var parametro in parametros.EnumerateArray().Where(p => p.GetProperty("in").GetString() == "query"))
+                {
+                    var nome = parametro.GetProperty("name").GetString()!;
+                    char.IsLower(nome[0]).Should().BeTrue($"parâmetro {nome} em {caminho.Name} deve ser camelCase");
+                }
+            }
+        }
+    }
+
+    private sealed record Envelope<T>(T Valor);
+
+    private static class Feature
+    {
+        public sealed record Item(int Id);
+    }
+
+    [Fact]
+    public void Nome_de_schema_generico_inclui_o_argumento_qualificado() =>
+        OpenApiConfig.NomeSchema(typeof(Envelope<Feature.Item>)).Should().Be("EsqueletoTestsEnvelopeFeatureItem");
+
     [Theory]
     [InlineData("/api/v1/auth/login", "post", false)]
     [InlineData("/api/v1/auth/cadastro", "post", false)]
