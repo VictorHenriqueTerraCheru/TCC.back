@@ -66,7 +66,7 @@ Cada arquivo de feature contém: `record Request`, `record Response`, `Validator
 6. Unicidade de voto: índice único `(problema_id, usuario_id, tipo)`; votar de novo faz UPSERT (substitui valor, perfil, distância e `registrado_em`).
 7. Toda mudança de voto recalcula `confianca` e avalia o ciclo de vida **na mesma transação**.
 8. Enums trafegam como string camelCase (`JsonStringEnumConverter(JsonNamingPolicy.CamelCase)`).
-9. **Geocodificação só pela API** (`IServicoGeocodificacao`): Nominatim com `User-Agent` próprio (`OcorrenciasUrbanasTCC/1.0 (<email de contato>)`), `accept-language=pt-BR`, no máximo **1 requisição/s** (um `SemaphoreSlim` + intervalo mínimo, ou `System.Threading.RateLimiting`), cache por coordenada em 4 casas por 7 dias. O endereço de problemas e o rótulo de incidentes são calculados **no servidor**, nunca aceitos do cliente. Falha do Nominatim nunca derruba um registro (ver `API.md`).
+9. **Geocodificação só pela API** (`IServicoGeocodificacao`): Nominatim com `User-Agent` próprio (`OcorrenciasUrbanasTCC/1.0 (+<url do projeto>[; <email>])` — sem User-Agent a resposta é 403; e-mail opcional via `Nominatim__Email`), `accept-language=pt-BR`, no máximo **1 requisição/s** (um `SemaphoreSlim` + intervalo mínimo, ou `System.Threading.RateLimiting`), cache por coordenada em 4 casas por 7 dias. O endereço de problemas e o rótulo de incidentes são calculados **no servidor**, nunca aceitos do cliente. Falha do Nominatim nunca derruba um registro (ver `API.md`).
 10. **CORS** restrito às origens de `Cors:Origens` (dev: `http://localhost:5173`; prod: o domínio do front). O front roda em HTTPS, porque o navegador só libera a localização em contexto seguro.
 
 ## Convenções
@@ -75,7 +75,7 @@ Cada arquivo de feature contém: `record Request`, `record Response`, `Validator
 - `record` para DTOs; `sealed` por padrão; nullable habilitado; `TreatWarningsAsErrors` no Domain.
 - Commits em Conventional Commits, em português (`feat(votos): ...`). Uma branch `etapa-N` + PR por etapa do `PLAN.md`.
 - Versões de pacotes centralizadas em `Directory.Packages.props`; SDK fixado em `global.json`.
-- Nada de segredos no repo: `appsettings.Development.json` usa Docker local; produção via variáveis de ambiente (`ConnectionStrings__Default`, `Jwt__Chave`, `Cors__Origens__0`, `Nominatim__Email`).
+- Nada de segredos no repo: `appsettings.Development.json` usa Docker local; produção via variáveis de ambiente (`ConnectionStrings__Default`, `Jwt__Chave`, `Cors__Origens__0`, `Nominatim__Email` opcional).
 
 ## Comandos
 
