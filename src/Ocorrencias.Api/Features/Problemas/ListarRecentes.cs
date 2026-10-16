@@ -36,7 +36,7 @@ public static class ListarProblemasRecentes
             RuleFor(r => r.Lng).Longitude();
             RuleFor(r => r.RaioKm).GreaterThan(0).LessThanOrEqualTo(RaioMaximoKm);
             RuleFor(r => r.Grupos).ListaDeGrupos();
-            RuleFor(r => r.Pagina).GreaterThanOrEqualTo(1);
+            RuleFor(r => r.Pagina).InclusiveBetween(1, Paginacao.PaginaMaxima);
             RuleFor(r => r.Tamanho).InclusiveBetween(1, Paginacao.TamanhoMaximo);
         }
     }

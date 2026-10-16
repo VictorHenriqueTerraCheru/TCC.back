@@ -5,6 +5,9 @@ namespace Ocorrencias.Api.Common;
 
 public static class RegrasValidacao
 {
+    /// <summary>Só nomes (camelCase ou não); <c>Enum.TryParse</c> aceitaria números como "1" ou "999".</summary>
+    private static readonly HashSet<string> NomesStatus = new(Enum.GetNames<StatusProblema>(), StringComparer.OrdinalIgnoreCase);
+
     public static IRuleBuilderOptions<T, double> Latitude<T>(this IRuleBuilder<T, double> regra) =>
         regra.InclusiveBetween(-90, 90);
 
@@ -24,7 +27,7 @@ public static class RegrasValidacao
 
     /// <summary>Lista separada por vírgula de status em camelCase (ex.: <c>nova,ativa</c>).</summary>
     public static IRuleBuilderOptions<T, string?> ListaDeStatus<T>(this IRuleBuilder<T, string?> regra) =>
-        regra.Must(s => Listas.Separar(s).All(v => Enum.TryParse<StatusProblema>(v, ignoreCase: true, out _)))
+        regra.Must(s => Listas.Separar(s).All(v => NomesStatus.Contains(v)))
             .WithMessage("Status desconhecido. Valores aceitos: nova, ativa, possivelmenteResolvida, resolvida.");
 }
 

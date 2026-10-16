@@ -185,12 +185,39 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         lista.Should().NotContain(p => p.Id == problema.Id);
     }
 
+    [Fact]
+    public async Task Listar_na_area_pedindo_so_resolvida_devolve_vazio()
+    {
+        var pessoa = await fabrica.NovaPessoaAsync();
+        var (lat, lng) = ApiFactory.PontoUnico();
+        await pessoa.RegistrarProblemaAsync(lat, lng);
+
+        var area = Inv($"minLat={lat - 0.001}&minLng={lng - 0.001}&maxLat={lat + 0.001}&maxLng={lng + 0.001}");
+        var lista = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}&status=resolvida"))
+            .LerAsync<List<ListarProblemasNaArea.Response>>();
+
+        lista.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData("grupos=inexistente")]
     [InlineData("status=quebrado")]
+    [InlineData("status=1")]
+    [InlineData("status=999")]
     public async Task Listar_na_area_com_filtro_invalido_devolve_400(string filtro)
     {
         var resposta = await fabrica.CreateClient().GetAsync($"/api/v1/problemas?minLat=-23&minLng=-44&maxLat=-22&maxLng=-43&{filtro}");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Theory]
+    [InlineData("pagina=0")]
+    [InlineData("pagina=2147483647&tamanho=100")]
+    [InlineData("tamanho=101")]
+    public async Task Recentes_com_paginacao_invalida_devolve_400(string paginacao)
+    {
+        var resposta = await fabrica.CreateClient().GetAsync($"/api/v1/problemas/recentes?lat=-22.95&lng=-43.18&{paginacao}");
 
         resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }

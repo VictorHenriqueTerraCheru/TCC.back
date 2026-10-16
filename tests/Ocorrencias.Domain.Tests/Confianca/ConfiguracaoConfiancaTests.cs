@@ -29,6 +29,9 @@ public sealed class ConfiguracaoConfiancaTests
     [InlineData("B-v")]
     [InlineData("B-vx")]
     [InlineData("B-v0")]
+    [InlineData("B-vInfinity")]
+    [InlineData("B-v1e400")]
+    [InlineData("B-vNaN")]
     public void PorNome_rejeita_nomes_invalidos(string nome)
     {
         var acao = () => ConfiguracaoConfianca.PorNome(nome);
