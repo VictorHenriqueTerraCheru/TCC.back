@@ -44,7 +44,6 @@ public static class ListarProblemasNaArea
     public static async Task<List<Response>> Handle(
         [AsParameters] Request request, AppDbContext db, ConfiguracaoConfianca cfg, CancellationToken ct)
     {
-        var area = Geo.Retangulo(request.MinLat, request.MinLng, request.MaxLat, request.MaxLng);
         var grupos = Listas.Separar(request.Grupos);
         var pedidos = Listas.Separar(request.Status).Select(s => Enum.Parse<StatusProblema>(s, ignoreCase: true)).ToArray();
         StatusProblema[] status = pedidos.Length == 0
@@ -55,7 +54,15 @@ public static class ListarProblemasNaArea
             return []; // só "resolvida" foi pedido, e o mapa nunca mostra resolvidos
         }
 
-        var consulta = db.Problemas.Where(p => status.Contains(p.Status) && p.Localizacao.Intersects(area));
+        // Recorte planar em lat/lng (geometry), não geodésico: em geography as arestas do retângulo seriam
+        // geodésicas e, em viewport largo, incluiriam pontos de fora e excluiriam pontos de dentro.
+        // Usa o índice GIST de expressão ix_problemas_localizacao_geometry.
+        var consulta = db.Problemas
+            .FromSql($"""
+                SELECT * FROM problemas
+                WHERE localizacao::geometry && ST_MakeEnvelope({request.MinLng}, {request.MinLat}, {request.MaxLng}, {request.MaxLat}, 4326)
+                """)
+            .Where(p => status.Contains(p.Status));
         if (grupos.Length > 0)
         {
             consulta = consulta.Where(p => grupos.Contains(p.Categoria.Grupo));
