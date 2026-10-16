@@ -186,6 +186,21 @@ public sealed class ProblemasTests(ApiFactory fabrica)
     }
 
     [Fact]
+    public async Task Listar_na_area_respeita_o_retangulo_exato_em_viewport_largo()
+    {
+        var pessoa = await fabrica.NovaPessoaAsync();
+        // Em geography as arestas do retângulo seriam geodésicas (a de lat 61 sobe até ~74° N em lng 0):
+        // 70° N entraria e 60,5° N / 10° E ficaria de fora. O recorte precisa ser o retângulo de lat/lng.
+        var fora = await pessoa.RegistrarProblemaAsync(70, 0);
+        var dentro = await pessoa.RegistrarProblemaAsync(60.5, 10);
+
+        var lista = await (await fabrica.CreateClient().GetAsync("/api/v1/problemas?minLat=60&minLng=-60&maxLat=61&maxLng=60"))
+            .LerAsync<List<ListarProblemasNaArea.Response>>();
+
+        lista.Select(p => p.Id).Should().Contain(dentro.Id).And.NotContain(fora.Id);
+    }
+
+    [Fact]
     public async Task Listar_na_area_pedindo_so_resolvida_devolve_vazio()
     {
         var pessoa = await fabrica.NovaPessoaAsync();
