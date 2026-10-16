@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features.Admin;
+using Ocorrencias.Api.Admin;
 using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Verificacao;
 using Ocorrencias.Api.Tests.Infra;
@@ -125,12 +125,12 @@ public sealed class AdminTests(ApiFactory fabrica)
         var segunda = await SolicitarAsync(await fabrica.NovaPessoaAsync());
 
         var pagina = await (await admin.Cliente.GetAsync($"/api/v1/admin/verificacoes?status=pendente&tamanho={Paginacao.TamanhoMaximo}"))
-            .LerAsync<Paginado<ListarVerificacoes.Item>>();
+            .LerAsync<Paginado<ListarVerificacoesItem>>();
         var minhas = pagina.Itens.Where(i => i.Id == primeira || i.Id == segunda).ToList();
 
         pagina.Itens.Should().AllSatisfy(i => i.Status.Should().Be(StatusVerificacao.Pendente));
         minhas.Select(i => i.Id).Should().Equal(primeira, segunda);
-        minhas[0].Usuario.Should().Be(new ListarVerificacoes.UsuarioResumo(a.Id, "carlos de menezes", "CM"));
+        minhas[0].Usuario.Should().Be(new ListarVerificacoesUsuarioResumo(a.Id, "carlos de menezes", "CM"));
         minhas[0].TipoVinculo.Should().Be(TipoVinculo.TrabalhaRegiao);
     }
 
@@ -139,7 +139,7 @@ public sealed class AdminTests(ApiFactory fabrica)
     [InlineData("Ana", "A")]
     [InlineData("  maria  da  silva ", "MS")]
     public void Iniciais(string nome, string esperado) =>
-        ListarVerificacoes.Iniciais(nome).Should().Be(esperado);
+        AdminService.Iniciais(nome).Should().Be(esperado);
 
     /// <summary>Aceite da Etapa 6: a aprovação vale só para os votos SEGUINTES.</summary>
     [Fact]

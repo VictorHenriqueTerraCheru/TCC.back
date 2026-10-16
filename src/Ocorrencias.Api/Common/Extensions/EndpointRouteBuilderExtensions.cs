@@ -1,5 +1,4 @@
 using System.Reflection;
-using Ocorrencias.Api.Features;
 
 namespace Ocorrencias.Api.Common;
 
@@ -17,8 +16,6 @@ public static class EndpointRouteBuilderExtensions
         {
             modulo.GetMethod(nameof(IEndpointModule.Map), BindingFlags.Public | BindingFlags.Static)!.Invoke(null, [api]);
         }
-
-        api.MapFeaturesLegadas();
 
         return app;
     }

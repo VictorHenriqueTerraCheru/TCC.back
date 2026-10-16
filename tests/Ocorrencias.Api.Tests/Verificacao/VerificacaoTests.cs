@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
-using Ocorrencias.Api.Features.Admin;
+using Ocorrencias.Api.Admin;
 using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Verificacao;
 using Ocorrencias.Api.Tests.Infra;
