@@ -66,6 +66,8 @@ public static class ObterHistorico
     /// <summary>Linha crua da união (registros de problema, de incidente e votos).</summary>
     public sealed class Linha
     {
+        /// <summary>Id da linha de origem (problema, incidente ou voto): desempate único da paginação, não exposto.</summary>
+        [Column("chave")] public Guid Chave { get; init; }
         [Column("tipo")] public int Tipo { get; init; }
         [Column("ocorrencia_id")] public Guid? OcorrenciaId { get; init; }
         [Column("categoria_id")] public short CategoriaId { get; init; }
@@ -87,17 +89,17 @@ public static class ObterHistorico
         var votos = request.Filtro is "tudo" or "votos";
 
         var uniao = db.Database.SqlQuery<Linha>($"""
-            SELECT 1 AS tipo, p.id AS ocorrencia_id, c.id AS categoria_id, c.nome AS categoria_nome, c.grupo, c.icone,
+            SELECT p.id AS chave, 1 AS tipo, p.id AS ocorrencia_id, c.id AS categoria_id, c.nome AS categoria_nome, c.grupo, c.icone,
                    p.endereco_aproximado AS endereco, NULL::smallint AS valor, p.status AS status_problema, p.criado_em AS data
             FROM problemas p JOIN categorias c ON c.id = p.categoria_id
             WHERE p.autor_id = {usuarioId} AND {registros}
             UNION ALL
-            SELECT 2, NULL::uuid, c.id, c.nome, c.grupo, c.icone,
+            SELECT i.id, 2, NULL::uuid, c.id, c.nome, c.grupo, c.icone,
                    i.rotulo_area, NULL::smallint, NULL::smallint, i.registrado_em
             FROM incidentes i JOIN categorias c ON c.id = i.categoria_id
             WHERE i.autor_id = {usuarioId} AND {registros}
             UNION ALL
-            SELECT CASE v.tipo WHEN 1 THEN 3 ELSE 4 END, p.id, c.id, c.nome, c.grupo, c.icone,
+            SELECT v.id, CASE v.tipo WHEN 1 THEN 3 ELSE 4 END, p.id, c.id, c.nome, c.grupo, c.icone,
                    p.endereco_aproximado, v.valor, p.status, v.registrado_em
             FROM votos v JOIN problemas p ON p.id = v.problema_id JOIN categorias c ON c.id = p.categoria_id
             WHERE v.usuario_id = {usuarioId} AND {votos}
@@ -106,8 +108,7 @@ public static class ObterHistorico
         var total = await uniao.CountAsync(ct);
         var linhas = await uniao
             .OrderByDescending(l => l.Data)
-            .ThenBy(l => l.Tipo)
-            .ThenBy(l => l.OcorrenciaId)
+            .ThenBy(l => l.Chave)
             .Skip(Paginacao.Pular(request.Pagina, request.Tamanho))
             .Take(request.Tamanho)
             .ToListAsync(ct);

@@ -55,6 +55,17 @@ public sealed class VerificacaoTests(ApiFactory fabrica)
     }
 
     [Fact]
+    public async Task Justificativa_nula_devolve_400()
+    {
+        var pessoa = await fabrica.NovaPessoaAsync();
+
+        var resposta = await pessoa.Cliente.PostAsJsonAsync("/api/v1/verificacoes",
+            new { tipoVinculo = "moradorRegiao", justificativa = (string?)null }, ClienteApi.Json);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Segunda_pendente_devolve_409()
     {
         var pessoa = await fabrica.NovaPessoaAsync();
