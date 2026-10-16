@@ -68,7 +68,10 @@ public sealed record Cenario
         Exigir(Usuarios > 0 && Problemas > 0, "usuários e problemas devem ser positivos");
         Exigir(ProbabilidadePassagemEfetiva is > 0 and <= 1, "probabilidade de passagem deve estar em (0, 1]");
         Exigir(KMaximo >= 1, "kMaximo deve ser ≥ 1");
-        Exigir(DiaAtaque >= 0 && DiaAtaque * 24 + InicioAtaqueAposCriacaoHoras + DuracaoAtaqueHoras < Horas, "o ataque precisa terminar antes do horizonte");
+        Exigir(DiaAtaque >= 0 && InicioAtaqueAposCriacaoHoras >= 0 && DuracaoAtaqueHoras > 0,
+            "o ataque começa depois da criação do alvo (início ≥ 0) e dura mais que zero");
+        Exigir(DiaAtaque * 24 + InicioAtaqueAposCriacaoHoras + DuracaoAtaqueHoras < Horas, "o ataque precisa terminar antes do horizonte");
+        Exigir(DistanciaMaximaGpsFalsoMetros >= 0 && RaioPassagemMetros > 0 && RaioCirculacaoMetros > 0, "distâncias devem ser positivas");
         foreach (var p in new[] { FracaoVerificados, FracaoVerdadeiros, ProbConfirmar, ProbNaoVi, ProbResolvido, ProbContinua, ProbRuido })
         {
             Exigir(p is >= 0 and <= 1, "probabilidades e frações devem estar em [0, 1]");

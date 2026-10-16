@@ -52,6 +52,7 @@ Para cada semente, o mundo honesto é gerado **uma vez** e avaliado em todas as 
 
 O plano deixa estes pontos em aberto; estas são as definições usadas:
 
+- **Arredondamento:** o índice é arredondado em 2 casas antes de classificar a faixa, como a API faz ao gravar em `numeric(5,2)`.
 - **Faixa exibida:** só existe para problemas em Ativa ou PossivelmenteResolvida, porque em Nova a confiança não aparece para ninguém. FP e "atingir Alta" usam a faixa exibida.
 - **FP:** entre os falsos já criados, a fração com faixa Alta exibida, medida no fim de cada dia.
 - **FN:** entre os verdadeiros já criados, ainda não resolvidos de fato e em Ativa ou PossivelmenteResolvida, a fração com faixa Baixa. Os marcados Resolvida antes da resolução real aparecem à parte (`verdadeiros_resolvidos_indevidamente`).
@@ -95,7 +96,7 @@ CSV com vírgula, ponto decimal, fim de linha `\n` e UTF-8 sem BOM. Campos vazio
 | `atingiu_alta` | 1 = o alvo teve faixa Alta exibida em algum fim de hora |
 | `primeira_alta_h` | Primeiro fim de hora com Alta exibida (vazio se nunca) |
 | `status_fim_ataque` | Status do alvo no primeiro fim de hora após o fim do ataque |
-| `indice_fim_ataque` | Índice de confiança do alvo nesse momento |
+| `indice_fim_ataque` | Índice de confiança do alvo nesse momento, com 2 casas como a API grava |
 | `recuperacao_h` | Horas do fim do ataque até o índice cair abaixo de 40 (se censurado, até o fim) |
 | `censurado` | 1 = não caiu para Baixa até o fim dos 30 dias |
 
@@ -104,7 +105,7 @@ CSV com vírgula, ponto decimal, fim de linha `\n` e UTF-8 sem BOM. Campos vazio
 | Coluna | Significado |
 |---|---|
 | `sementes` | Sementes agregadas |
-| `fp_medio`, `fn_medio` | Média, entre sementes, da média diária de FP/FN (dias sem denominador são ignorados) |
+| `fp_medio`, `fn_medio` | Média, entre sementes, da média diária de FP/FN. Dias sem denominador e sementes sem nenhum dia medido são ignorados; vazio = nenhuma medição |
 | `resolvidos_indevidamente_medio` | Média análoga da fração de verdadeiros marcados Resolvida antes da hora |
 | `resolucao_mediana_h` | Mediana de `tempo_h` entre as resoluções não censuradas |
 | `resolucao_censurados` | Fração de resoluções censuradas |

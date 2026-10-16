@@ -39,7 +39,7 @@ Console.WriteLine("configuracao  fp_medio  fn_medio  resolucao_mediana_h");
 foreach (var r in Resumo.PorConfiguracao(resultado))
 {
     Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-        $"{r.Configuracao,-12}  {r.FpMedio,8:F4}  {r.FnMedio,8:F4}  {r.ResolucaoMedianaHoras,19:F1}"));
+        $"{r.Configuracao,-12}  {Texto(r.FpMedio, "F4"),8}  {Texto(r.FnMedio, "F4"),8}  {Texto(r.ResolucaoMedianaHoras, "F1"),19}"));
 }
 
 Console.WriteLine();
@@ -52,3 +52,5 @@ foreach (var k in Resumo.KMinimos(Resumo.PorAtaque(resultado)))
 Console.WriteLine();
 Console.WriteLine($"{arquivos.Count} arquivos em {Path.GetFullPath(opcoes.Saida)} ({cronometro.Elapsed.TotalSeconds:F1} s).");
 return 0;
+
+static string Texto(double? valor, string formato) => valor?.ToString(formato, CultureInfo.InvariantCulture) ?? "-";

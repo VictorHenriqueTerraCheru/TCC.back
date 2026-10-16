@@ -3,9 +3,9 @@ namespace Ocorrencias.Simulator.Experimento;
 public sealed record ResumoConfiguracao(
     string Configuracao,
     int Sementes,
-    double FpMedio,
-    double FnMedio,
-    double IndevidosMedio,
+    double? FpMedio,
+    double? FnMedio,
+    double? IndevidosMedio,
     double? ResolucaoMedianaHoras,
     double ResolucaoCensurados);
 
@@ -19,7 +19,10 @@ public static class Resumo
 {
     public const double LimiarKMinimo = 0.5;
 
-    /// <summary>FP/FN: média, entre sementes, da média diária (dias sem denominador são ignorados).</summary>
+    /// <summary>
+    /// FP/FN: média, entre sementes, da média diária. Dias sem denominador são ignorados, sementes sem nenhum
+    /// dia medido também; sem nenhuma medição, o resultado é nulo (e não uma taxa perfeita de 0).
+    /// </summary>
     public static List<ResumoConfiguracao> PorConfiguracao(ResultadoExperimento r) =>
         r.Diario
             .GroupBy(l => l.Configuracao)
@@ -32,11 +35,11 @@ public static class Resumo
                 return new ResumoConfiguracao(
                     g.Key,
                     porSemente.Count,
-                    porSemente.Average(s => MediaOuZero(s.Select(l => l.Fp))),
-                    porSemente.Average(s => MediaOuZero(s.Select(l => l.Fn))),
-                    porSemente.Average(s => MediaOuZero(s.Select(l => l.VerdadeirosResolvidosIndevidamente == 0 && l.VerdadeirosAvaliados == 0
+                    Media(porSemente.Select(s => Media(s.Select(l => l.Fp)))),
+                    Media(porSemente.Select(s => Media(s.Select(l => l.Fn)))),
+                    Media(porSemente.Select(s => Media(s.Select(l => l.VerdadeirosResolvidosIndevidamente == 0 && l.VerdadeirosAvaliados == 0
                         ? (double?)null
-                        : (double)l.VerdadeirosResolvidosIndevidamente / (l.VerdadeirosAvaliados + l.VerdadeirosResolvidosIndevidamente)))),
+                        : (double)l.VerdadeirosResolvidosIndevidamente / (l.VerdadeirosAvaliados + l.VerdadeirosResolvidosIndevidamente))))),
                     concluidas.Count == 0 ? null : Mediana(concluidas),
                     resolucoes.Count == 0 ? 0 : (double)resolucoes.Count(x => x.Censurado) / resolucoes.Count);
             })
@@ -63,10 +66,11 @@ public static class Resumo
                 g.OrderBy(a => a.K).FirstOrDefault(a => a.TaxaAlta >= LimiarKMinimo)?.K))
             .ToList();
 
-    private static double MediaOuZero(IEnumerable<double?> valores)
+    /// <summary>Média dos valores presentes; nula se não há nenhum.</summary>
+    public static double? Media(IEnumerable<double?> valores)
     {
         var presentes = valores.Where(v => v.HasValue).Select(v => v!.Value).ToList();
-        return presentes.Count == 0 ? 0 : presentes.Average();
+        return presentes.Count == 0 ? null : presentes.Average();
     }
 
     public static double Mediana(IReadOnlyList<double> valores)

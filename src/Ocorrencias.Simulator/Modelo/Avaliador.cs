@@ -65,11 +65,19 @@ public static class Avaliador
             var agora = Instante(fimDaHora);
             estado = MotorConfianca.AvaliarCicloDeVida(estado, votos.Values, agora, cfg);
             linha.Status[h] = estado.Status;
-            linha.Indice[h] = MotorConfianca.CalcularConfianca(votos.Values, agora, cfg).Indice;
+            linha.Indice[h] = ComoGravadoNaApi(MotorConfianca.CalcularConfianca(votos.Values, agora, cfg).Indice);
         }
 
         return linha;
     }
+
+    /// <summary>
+    /// A API grava a confiança em <c>numeric(5,2)</c> e classifica a faixa sobre o valor gravado
+    /// (<c>RecalculoProblema.Aplicar</c>): o Simulator usa o mesmo arredondamento, senão índices em
+    /// [69,995; 70) ou [39,995; 40) cairiam em faixas diferentes das do sistema avaliado.
+    /// </summary>
+    /// <remarks>Arredonda via <c>decimal</c>, exatamente como a API: em <c>double</c>, 39,995 é 39,99499… e iria para 39,99.</remarks>
+    public static double ComoGravadoNaApi(double indice) => (double)Math.Round((decimal)indice, 2, MidpointRounding.AwayFromZero);
 
     /// <summary>Mesmas recusas da API: problema resolvido, autor votando existência, persistência em Nova.</summary>
     private static bool Aceita(Intencao intencao, ProblemaSimulado problema, EstadoProblema estado) =>

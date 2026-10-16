@@ -37,7 +37,7 @@ public sealed class AvaliadorTests
         var esperado = MotorConfianca.CalcularConfianca(
             intencoes.Select(i => new VotoFato(i.UsuarioId, i.Tipo, i.Valor, i.Perfil, 100, Avaliador.Instante(10.5))).ToList(),
             Avaliador.Instante(11), B).Indice;
-        linha.Indice[10].Should().BeApproximately(esperado, 1e-9);
+        linha.Indice[10].Should().Be(Avaliador.ComoGravadoNaApi(esperado));
     }
 
     [Fact]
@@ -107,4 +107,12 @@ public sealed class AvaliadorTests
         linha.FaixaExibida(10, B).Should().BeNull("ainda está em Nova");
         linha.FaixaExibida(82, B).Should().Be(FaixaConfianca.Alta, "após 72 h sai de Nova");
     }
+
+    [Theory]
+    [InlineData(69.995, FaixaConfianca.Alta)]
+    [InlineData(69.994, FaixaConfianca.Media)]
+    [InlineData(39.995, FaixaConfianca.Media)]
+    [InlineData(39.994, FaixaConfianca.Baixa)]
+    public void Faixa_e_classificada_sobre_o_indice_arredondado_como_na_api(double bruto, FaixaConfianca esperada) =>
+        MotorConfianca.ClassificarFaixa(Avaliador.ComoGravadoNaApi(bruto), B).Should().Be(esperada);
 }

@@ -67,9 +67,35 @@ public sealed class OpcoesTests
         }
     }
 
+    public static TheoryData<Cenario> CenariosInvalidos =>
+    [
+        new Cenario { DiasCriacao = 40 },
+        new Cenario { InicioAtaqueAposCriacaoHoras = -100, DuracaoAtaqueHoras = 1 },
+        new Cenario { DuracaoAtaqueHoras = 0 },
+        new Cenario { DiaAtaque = -1 },
+    ];
+
+    [Theory]
+    [MemberData(nameof(CenariosInvalidos))]
+    public void Cenario_invalido_e_recusado(Cenario cenario) =>
+        ((Action)cenario.Validar).Should().Throw<ArgumentException>();
+
     [Fact]
-    public void Cenario_invalido_e_recusado() =>
-        ((Action)(() => new Cenario { DiasCriacao = 40 }.Validar())).Should().Throw<ArgumentException>();
+    public void Sem_falsos_o_fp_medio_e_vazio_e_nao_zero()
+    {
+        var cenario = CenarioPequeno.Valor with { FracaoVerdadeiros = 1 };
+
+        var resultado = Executor.Executar(cenario, [Ocorrencias.Domain.Confianca.ConfiguracaoConfianca.B], [Variante.S1], [1, 2]);
+
+        Resumo.PorConfiguracao(resultado).Single().FpMedio.Should().BeNull();
+    }
+
+    [Fact]
+    public void Media_ignora_ausentes()
+    {
+        Resumo.Media([null, 0.2, 0.4]).Should().BeApproximately(0.3, 1e-12);
+        Resumo.Media([null, null]).Should().BeNull();
+    }
 
     [Fact]
     public void K_minimo_e_o_menor_k_com_taxa_de_pelo_menos_50_porcento()
