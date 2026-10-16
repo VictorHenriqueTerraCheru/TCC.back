@@ -33,7 +33,7 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `
 
 ## Etapa 3 — Geocodificação (≈ ½ dia)
 
-- `Infra/Geocodificacao`: `NominatimClient` (HttpClient tipado, `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat&lon&zoom=18&addressdetails=1`), `ServicoGeocodificacao` com `IMemoryCache` (chave = lat/lng em 4 casas, TTL 7 dias) e limitador de 1 requisição/s ao Nominatim.
+- `Feature/Geocodificacao`: `NominatimClient` (HttpClient tipado, `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat&lon&zoom=18&addressdetails=1`), `ServicoGeocodificacao` com `IMemoryCache` (chave = lat/lng em 4 casas, TTL 7 dias) e limitador de 1 requisição/s ao Nominatim.
 - Montagem de `endereco` e `rotuloArea` conforme `API.md` (mapear `road`, `house_number`, `suburb`/`neighbourhood`, `city`/`town`, `ISO3166-2-lvl4` → UF).
 - Feature `Geocodificacao/Reversa` com rate limit de 30/min por IP (`Microsoft.AspNetCore.RateLimiting`).
 - Nos testes, substitua o cliente por um fake (nunca chame o Nominatim real em teste).
@@ -48,7 +48,7 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `
 - `Problemas/ObterDetalhe` (contagens de pessoas por valor; `resolvidoUltimas24h`; `avaliacao` em Nova; `meusVotos`/`souAutor` se autenticado).
 - `Problemas/ListarRecentes` (raio, paginação).
 - `Votos/VotarExistencia` e `Votos/VotarPersistencia`: regras de `API.md` → calcula distância no banco → UPSERT com `perfil_no_momento`/`distancia_metros` → carrega votos → `MotorConfianca.CalcularConfianca` + `AvaliarCicloDeVida` → salva `confianca`, `status`, `status_alterado_em`, `condicao_resolucao_desde` → responde o detalhe. Tudo numa transação.
-- `Infra/Jobs/CicloDeVidaJob`: a cada 15 min, para problemas não resolvidos, recalcula confiança e ciclo de vida (o decaimento muda o resultado sem votos novos).
+- `Feature/Confianca/Jobs/CicloDeVidaJob`: a cada 15 min, para problemas não resolvidos, recalcula confiança e ciclo de vida (o decaimento muda o resultado sem votos novos).
 
 **Aceite:** testes de integração: duplicata a 30 m é achada e a 60 m não; autor não vota existência; persistência em Nova é recusada; 5 votantes tiram de Nova; o job leva um problema "possivelmente resolvido" a "resolvido" após 48 h (com `TimeProvider` falso).
 
