@@ -1,5 +1,4 @@
 using Ocorrencias.Api.Features.Admin;
-using Ocorrencias.Api.Features.Verificacao;
 
 namespace Ocorrencias.Api.Features;
 
@@ -8,8 +7,6 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapFeaturesLegadas(this RouteGroupBuilder api)
     {
-        api.MapSolicitarVerificacao();
-
         api.MapListarVerificacoes();
         api.MapAprovarVerificacao();
         api.MapRecusarVerificacao();

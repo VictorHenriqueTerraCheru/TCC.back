@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Features.Admin;
 using Ocorrencias.Api.Usuarios;
-using Ocorrencias.Api.Features.Verificacao;
+using Ocorrencias.Api.Verificacao;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
 
@@ -19,7 +19,7 @@ public sealed class AdminTests(ApiFactory fabrica)
         var resposta = await pessoa.Cliente.PostAsJsonAsync("/api/v1/verificacoes",
             new { tipoVinculo = "trabalhaRegiao", justificativa = "Trabalho no comércio da região há mais de cinco anos." }, ClienteApi.Json);
         resposta.EnsureSuccessStatusCode();
-        return (await resposta.LerAsync<SolicitarVerificacao.Response>()).Id;
+        return (await resposta.LerAsync<SolicitarVerificacaoResponse>()).Id;
     }
 
     private static Task<HttpResponseMessage> AprovarAsync(Pessoa admin, Guid id) =>
