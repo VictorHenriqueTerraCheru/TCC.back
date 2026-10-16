@@ -1,18 +1,17 @@
 using System.Net;
 using System.Net.Http.Json;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features.Usuarios;
+using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
-using static Ocorrencias.Api.Features.Usuarios.ObterHistorico;
 
 namespace Ocorrencias.Api.Tests.Usuarios;
 
 [Collection(ApiCollection.Nome)]
 public sealed class HistoricoTests(ApiFactory fabrica)
 {
-    private static async Task<Paginado<Item>> HistoricoAsync(Pessoa pessoa, string consulta = "") =>
-        await (await pessoa.Cliente.GetAsync($"/api/v1/me/historico{consulta}")).LerAsync<Paginado<Item>>();
+    private static async Task<Paginado<ObterHistoricoItem>> HistoricoAsync(Pessoa pessoa, string consulta = "") =>
+        await (await pessoa.Cliente.GetAsync($"/api/v1/me/historico{consulta}")).LerAsync<Paginado<ObterHistoricoItem>>();
 
     [Fact]
     public async Task Une_registros_e_votos_do_mais_recente_para_o_mais_antigo()
@@ -32,11 +31,11 @@ public sealed class HistoricoTests(ApiFactory fabrica)
         var historico = await HistoricoAsync(eu);
 
         historico.Total.Should().Be(3);
-        historico.Itens.Select(i => i.Tipo).Should().Equal(TipoItem.VotoExistencia, TipoItem.RegistroIncidente, TipoItem.RegistroProblema);
+        historico.Itens.Select(i => i.Tipo).Should().Equal(ObterHistoricoTipoItem.VotoExistencia, ObterHistoricoTipoItem.RegistroIncidente, ObterHistoricoTipoItem.RegistroProblema);
 
         var voto = historico.Itens[0];
         voto.OcorrenciaId.Should().Be(deOutro.Id);
-        voto.Valor.Should().Be(ValorItem.NaoVi);
+        voto.Valor.Should().Be(ObterHistoricoValorItem.NaoVi);
         voto.StatusProblema.Should().Be(StatusProblema.Nova);
         voto.Categoria.Nome.Should().Be("Poste apagado");
 
@@ -70,11 +69,11 @@ public sealed class HistoricoTests(ApiFactory fabrica)
         var votos = await HistoricoAsync(eu, "?filtro=votos");
         var pagina2 = await HistoricoAsync(eu, "?tamanho=2&pagina=2");
 
-        registros.Itens.Should().ContainSingle().Which.Tipo.Should().Be(TipoItem.RegistroProblema);
+        registros.Itens.Should().ContainSingle().Which.Tipo.Should().Be(ObterHistoricoTipoItem.RegistroProblema);
         votos.Itens.Select(i => (i.Tipo, i.Valor)).Should().BeEquivalentTo(
-            [(TipoItem.VotoExistencia, (ValorItem?)ValorItem.Confirma), (TipoItem.VotoPersistencia, (ValorItem?)ValorItem.Resolvido)]);
+            [(ObterHistoricoTipoItem.VotoExistencia, (ObterHistoricoValorItem?)ObterHistoricoValorItem.Confirma), (ObterHistoricoTipoItem.VotoPersistencia, (ObterHistoricoValorItem?)ObterHistoricoValorItem.Resolvido)]);
         pagina2.Total.Should().Be(3);
-        pagina2.Itens.Should().ContainSingle().Which.Tipo.Should().Be(TipoItem.RegistroProblema);
+        pagina2.Itens.Should().ContainSingle().Which.Tipo.Should().Be(ObterHistoricoTipoItem.RegistroProblema);
     }
 
     [Fact]
@@ -93,7 +92,7 @@ public sealed class HistoricoTests(ApiFactory fabrica)
                 .EnsureSuccessStatusCode();
         }
 
-        var paginas = new List<Item>();
+        var paginas = new List<ObterHistoricoItem>();
         for (var pagina = 1; pagina <= 5; pagina++)
         {
             paginas.AddRange((await HistoricoAsync(eu, $"?tamanho=1&pagina={pagina}")).Itens);

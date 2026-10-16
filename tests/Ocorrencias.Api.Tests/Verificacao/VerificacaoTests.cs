@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Features.Admin;
-using Ocorrencias.Api.Features.Usuarios;
+using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Features.Verificacao;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
@@ -34,12 +34,12 @@ public sealed class VerificacaoTests(ApiFactory fabrica)
 
         var resposta = await SolicitarAsync(pessoa);
         var corpo = await resposta.LerAsync<SolicitarVerificacao.Response>();
-        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMe.Response>();
+        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMeResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         corpo.Status.Should().Be(StatusVerificacao.Pendente);
         corpo.TipoVinculo.Should().Be(TipoVinculo.MoradorRegiao);
-        me.Verificacao.Should().Be(new ObterMe.VerificacaoResumo(StatusVerificacao.Pendente, TipoVinculo.MoradorRegiao, null, corpo.CriadaEm));
+        me.Verificacao.Should().Be(new ObterMeVerificacaoResumo(StatusVerificacao.Pendente, TipoVinculo.MoradorRegiao, null, corpo.CriadaEm));
     }
 
     [Theory]

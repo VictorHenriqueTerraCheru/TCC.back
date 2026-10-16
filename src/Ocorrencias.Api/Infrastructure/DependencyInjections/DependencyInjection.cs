@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Auth;
 using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Confianca;
@@ -100,6 +101,7 @@ public static class DependencyInjection
     {
         services.AddScoped<ICategoriaService, CategoriaService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUsuarioService, UsuarioService>();
         return services;
     }
 }

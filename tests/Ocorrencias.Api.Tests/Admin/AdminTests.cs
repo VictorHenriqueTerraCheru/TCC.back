@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Features.Admin;
-using Ocorrencias.Api.Features.Usuarios;
+using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Features.Verificacao;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
@@ -47,7 +47,7 @@ public sealed class AdminTests(ApiFactory fabrica)
         var id = await SolicitarAsync(pessoa);
 
         var resposta = await AprovarAsync(admin, id);
-        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMe.Response>();
+        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMeResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.NoContent);
         me.Perfil.Should().Be(Perfil.CidadaoVerificado);
@@ -67,7 +67,7 @@ public sealed class AdminTests(ApiFactory fabrica)
         var id = await SolicitarAsync(pessoa);
 
         var resposta = await RecusarAsync(admin, id, "  Não comprovou vínculo.  ");
-        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMe.Response>();
+        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMeResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.NoContent);
         me.Perfil.Should().Be(Perfil.Cidadao);
