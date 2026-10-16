@@ -46,13 +46,13 @@ public static class ListarProblemasNaArea
     {
         var area = Geo.Retangulo(request.MinLat, request.MinLng, request.MaxLat, request.MaxLng);
         var grupos = Listas.Separar(request.Grupos);
-        var status = Listas.Separar(request.Status)
-            .Select(s => Enum.Parse<StatusProblema>(s, ignoreCase: true))
-            .Where(s => s != StatusProblema.Resolvida)
-            .ToArray();
+        var pedidos = Listas.Separar(request.Status).Select(s => Enum.Parse<StatusProblema>(s, ignoreCase: true)).ToArray();
+        StatusProblema[] status = pedidos.Length == 0
+            ? [StatusProblema.Nova, StatusProblema.Ativa, StatusProblema.PossivelmenteResolvida]
+            : pedidos.Where(s => s != StatusProblema.Resolvida).Distinct().ToArray();
         if (status.Length == 0)
         {
-            status = [StatusProblema.Nova, StatusProblema.Ativa, StatusProblema.PossivelmenteResolvida];
+            return []; // só "resolvida" foi pedido, e o mapa nunca mostra resolvidos
         }
 
         var consulta = db.Problemas.Where(p => status.Contains(p.Status) && p.Localizacao.Intersects(area));

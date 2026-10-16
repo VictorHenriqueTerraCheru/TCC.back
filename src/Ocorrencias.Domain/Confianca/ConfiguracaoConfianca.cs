@@ -65,7 +65,7 @@ public sealed record ConfiguracaoConfianca
             return baseCfg;
         }
 
-        return double.TryParse(partes[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var peso) && peso > 0
+        return double.TryParse(partes[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var peso) && double.IsFinite(peso) && peso > 0
             ? baseCfg.ComPesoVerificado(peso)
             : throw new ArgumentException($"Peso de verificado inválido em '{nome}'.", nameof(nome));
     }
