@@ -33,7 +33,8 @@ src/
     Program.cs                 # AddAplicacao() + configurações de borda + pipeline + MapEndpoints()
     Modules/                   # um IEndpointModule por área (descobertos por reflexão): só HTTP
       AuthModule.cs, UsuarioModule.cs, CategoriaModule.cs, GeocodificacaoModule.cs, ProblemaModule.cs,
-      VotoModule.cs, IncidenteModule.cs, VerificacaoModule.cs, AdminModule.cs
+      VotoModule.cs, IncidenteModule.cs, VerificacaoModule.cs, AdminModule.cs,
+      SaudeModule.cs           # /api/v1/saude e /saude/banco (health checks; fora do OpenAPI)
     Feature/<Area>/            # namespace Ocorrencias.Api.<Area>
       Abstractions/I<Area>Service.cs
       Services/<Area>Service.cs        # regra + EF direto; devolve Resultado<T>

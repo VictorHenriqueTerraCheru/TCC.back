@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Saude;
 using Ocorrencias.Api.Admin;
 using Ocorrencias.Api.Verificacao;
 using Ocorrencias.Api.Incidentes;
@@ -54,8 +55,6 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(o => o
             .UseNpgsql(conexao, npgsql => npgsql.UseNetTopologySuite(geographyAsDefault: true))
             .UseSnakeCaseNamingConvention());
-
-        services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 
         return services;
     }
@@ -112,6 +111,7 @@ public static class DependencyInjection
         services.AddScoped<IIncidenteService, IncidenteService>();
         services.AddScoped<IVerificacaoService, VerificacaoService>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<ISaudeService, SaudeService>();
         return services;
     }
 }

@@ -22,7 +22,6 @@ app.UseRateLimiter();
 
 app.MapOpenApi();
 app.MapScalarApiReference();
-app.MapHealthChecks("/health");
 app.MapEndpoints();
 
 if (app.Environment.IsDevelopment())

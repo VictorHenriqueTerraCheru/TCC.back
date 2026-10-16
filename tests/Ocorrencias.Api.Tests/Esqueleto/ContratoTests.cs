@@ -28,6 +28,8 @@ public sealed class ContratoTests(ApiFactory fabrica)
         "PATCH /api/v1/me",
         "GET /api/v1/me/historico",
         "GET /api/v1/categorias [anonimo]",
+        "GET /api/v1/saude [anonimo]",
+        "GET /api/v1/saude/banco [anonimo]",
         "GET /api/v1/geocodificacao/reversa [anonimo]",
         "GET /api/v1/problemas [anonimo]",
         "GET /api/v1/problemas/recentes [anonimo]",
