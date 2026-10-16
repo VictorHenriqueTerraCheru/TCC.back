@@ -1,7 +1,7 @@
 using Ocorrencias.Domain;
 using Ocorrencias.Domain.Confianca;
 
-namespace Ocorrencias.Api.Features.Problemas;
+namespace Ocorrencias.Api.Problemas;
 
 public static class ExibicaoConfianca
 {

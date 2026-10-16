@@ -1,6 +1,5 @@
 using Ocorrencias.Api.Features.Admin;
 using Ocorrencias.Api.Features.Incidentes;
-using Ocorrencias.Api.Features.Problemas;
 using Ocorrencias.Api.Features.Verificacao;
 using Ocorrencias.Api.Features.Votos;
 
@@ -11,12 +10,6 @@ public static class Endpoints
 {
     public static RouteGroupBuilder MapFeaturesLegadas(this RouteGroupBuilder api)
     {
-        api.MapListarProblemasNaArea();
-        api.MapListarProblemasRecentes();
-        api.MapBuscarDuplicatas();
-        api.MapObterDetalheProblema();
-        api.MapRegistrarProblema();
-
         api.MapVotarExistencia();
         api.MapVotarPersistencia();
 

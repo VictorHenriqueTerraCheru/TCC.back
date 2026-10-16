@@ -1,6 +1,6 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
-using Ocorrencias.Api.Features.Problemas;
+using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Features.Votos;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
@@ -10,7 +10,7 @@ namespace Ocorrencias.Api.Tests.Votos;
 [Collection(ApiCollection.Nome)]
 public sealed class VotosTests(ApiFactory fabrica)
 {
-    private async Task<(Pessoa Autor, ObterDetalheProblema.Response Problema, double Lat, double Lng)> ProblemaNovoAsync()
+    private async Task<(Pessoa Autor, ObterDetalheProblemaResponse Problema, double Lat, double Lng)> ProblemaNovoAsync()
     {
         var autor = await fabrica.NovaPessoaAsync();
         var (lat, lng) = ApiFactory.PontoUnico();
@@ -47,12 +47,12 @@ public sealed class VotosTests(ApiFactory fabrica)
     public async Task Cinco_votantes_tiram_o_problema_de_nova()
     {
         var (_, problema, _, _) = await ProblemaNovoAsync();
-        ObterDetalheProblema.Response? detalhe = null;
+        ObterDetalheProblemaResponse? detalhe = null;
 
         for (var i = 1; i <= 5; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();
-            detalhe = await (await votante.VotarExistenciaAsync(problema.Id, "confirma")).LerAsync<ObterDetalheProblema.Response>();
+            detalhe = await (await votante.VotarExistenciaAsync(problema.Id, "confirma")).LerAsync<ObterDetalheProblemaResponse>();
 
             if (i < 5)
             {
@@ -67,7 +67,7 @@ public sealed class VotosTests(ApiFactory fabrica)
         detalhe.Avaliacao.Should().BeNull();
         detalhe.Confianca.Should().Be(62.5);
         detalhe.Faixa.Should().Be(FaixaConfianca.Media);
-        detalhe.Existencia.Should().Be(new ObterDetalheProblema.ContagemExistencia(5, 0));
+        detalhe.Existencia.Should().Be(new ObterDetalheProblemaContagemExistencia(5, 0));
         detalhe.MeusVotos!.Existencia.Should().Be(ValorExistencia.Confirma);
     }
 
@@ -107,10 +107,10 @@ public sealed class VotosTests(ApiFactory fabrica)
         fabrica.Relogio.Advance(TimeSpan.FromMinutes(5));
 
         var resposta = await votante.VotarExistenciaAsync(problema.Id, "naoVi");
-        var detalhe = await resposta.LerAsync<ObterDetalheProblema.Response>();
+        var detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        detalhe.Existencia.Should().Be(new ObterDetalheProblema.ContagemExistencia(0, 1));
+        detalhe.Existencia.Should().Be(new ObterDetalheProblemaContagemExistencia(0, 1));
         detalhe.MeusVotos!.Existencia.Should().Be(ValorExistencia.NaoVi);
 
         var votos = await fabrica.NoBancoAsync(db => db.Votos.Where(v => v.ProblemaId == problema.Id).ToListAsync());
@@ -167,18 +167,18 @@ public sealed class VotosTests(ApiFactory fabrica)
     {
         var (lat, lng) = ApiFactory.PontoUnico();
         var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
-        ObterDetalheProblema.Response? detalhe = null;
+        ObterDetalheProblemaResponse? detalhe = null;
 
         // 3 "resolvido" a ~100 m: R⁻ = 3 × 2 = 6 ≥ 5 e p = 1 ≥ 0,6.
         for (var i = 0; i < 3; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();
             detalhe = await (await votante.VotarPersistenciaAsync(problema.Id, "resolvido", Cenarios.Norte(lat, 100), lng))
-                .LerAsync<ObterDetalheProblema.Response>();
+                .LerAsync<ObterDetalheProblemaResponse>();
         }
 
         detalhe!.Status.Should().Be(StatusProblema.PossivelmenteResolvida);
-        detalhe.Persistencia.Should().Be(new ObterDetalheProblema.ContagemPersistencia(0, 3, 3));
+        detalhe.Persistencia.Should().Be(new ObterDetalheProblemaContagemPersistencia(0, 3, 3));
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public sealed class VotosTests(ApiFactory fabrica)
 
         respostas.Should().AllSatisfy(r => r.StatusCode.Should().Be(HttpStatusCode.OK));
         var detalhe = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))
-            .LerAsync<ObterDetalheProblema.Response>();
+            .LerAsync<ObterDetalheProblemaResponse>();
         detalhe.Status.Should().Be(StatusProblema.Ativa);
         detalhe.Confianca.Should().Be(62.5);
     }

@@ -2,7 +2,7 @@ using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features.Problemas;
+using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
 using Ocorrencias.Domain.Confianca;
@@ -31,7 +31,7 @@ public static class VotarPersistencia
         return app;
     }
 
-    public static Task<Results<Ok<ObterDetalheProblema.Response>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> Handle(
-        Guid id, Request request, ClaimsPrincipal principal, AppDbContext db, TimeProvider relogio, ConfiguracaoConfianca cfg, CancellationToken ct) =>
-        Votacao.VotarAsync(db, id, principal.ObterUsuarioId(), TipoVoto.Persistencia, (ValorVoto)request.Valor, request.Lat, request.Lng, relogio, cfg, ct);
+    public static Task<Results<Ok<ObterDetalheProblemaResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> Handle(
+        Guid id, Request request, ClaimsPrincipal principal, AppDbContext db, IProblemaService problemas, TimeProvider relogio, ConfiguracaoConfianca cfg, CancellationToken ct) =>
+        Votacao.VotarAsync(db, problemas, id, principal.ObterUsuarioId(), TipoVoto.Persistencia, (ValorVoto)request.Valor, request.Lat, request.Lng, relogio, cfg, ct);
 }

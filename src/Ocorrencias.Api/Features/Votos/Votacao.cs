@@ -2,7 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features.Problemas;
+using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;
@@ -29,8 +29,9 @@ public static class Votacao
     /// do votante é descartada), faz o UPSERT do voto com o perfil atual do banco, recalcula a confiança e
     /// avalia o ciclo de vida.
     /// </summary>
-    public static async Task<Results<Ok<ObterDetalheProblema.Response>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> VotarAsync(
+    public static async Task<Results<Ok<ObterDetalheProblemaResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> VotarAsync(
         AppDbContext db,
+        IProblemaService problemas,
         Guid problemaId,
         Guid usuarioId,
         TipoVoto tipo,
@@ -94,7 +95,7 @@ public static class Votacao
         await db.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 
-        var detalhe = await ObterDetalheProblema.ConsultarAsync(db, problemaId, usuarioId, agora, cfg, ct);
+        var detalhe = await problemas.ConsultarDetalheAsync(problemaId, usuarioId, agora, ct);
         return TypedResults.Ok(detalhe!);
     }
 
