@@ -38,7 +38,6 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:Default", _banco.GetConnectionString());
         builder.UseSetting("Jwt:Chave", "chave-de-teste-com-pelo-menos-32-caracteres");
         builder.UseSetting("Cors:Origens:0", OrigemFront);
-        builder.UseSetting("Nominatim:Email", "testes@example.com");
         builder.UseSetting("CicloDeVida:Habilitado", "false");
         builder.ConfigureTestServices(s =>
         {
