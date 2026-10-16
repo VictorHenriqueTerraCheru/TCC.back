@@ -5,15 +5,6 @@ namespace Ocorrencias.Api.Common;
 /// <summary>Erros de regra de negócio com <c>type</c> estável (tabela de docs/API.md).</summary>
 public static class Erros
 {
-    public static ProblemHttpResult AutorNaoVotaExistencia =>
-        Problema(StatusCodes.Status422UnprocessableEntity, "autor-nao-vota-existencia", "Quem registrou o problema não vota na existência dele.");
-
-    public static ProblemHttpResult PersistenciaIndisponivelEmNova =>
-        Problema(StatusCodes.Status422UnprocessableEntity, "persistencia-indisponivel-em-nova", "\"Ainda está lá?\" só abre depois que o problema sai de Nova.");
-
-    public static ProblemHttpResult ProblemaResolvido =>
-        Problema(StatusCodes.Status422UnprocessableEntity, "problema-resolvido", "O problema já foi resolvido e não recebe mais votos.");
-
     public static ProblemHttpResult CategoriaNaoEIncidente =>
         Problema(StatusCodes.Status422UnprocessableEntity, "categoria-nao-e-incidente", "A categoria escolhida é de problema, não de incidente.");
 

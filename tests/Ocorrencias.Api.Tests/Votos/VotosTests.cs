@@ -1,7 +1,7 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Problemas;
-using Ocorrencias.Api.Features.Votos;
+using Ocorrencias.Api.Votos;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
 

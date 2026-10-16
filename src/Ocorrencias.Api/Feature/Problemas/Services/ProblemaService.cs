@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features.Votos;
+using Ocorrencias.Api.Votos;
 using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Api.Persistence;
 using Ocorrencias.Domain;

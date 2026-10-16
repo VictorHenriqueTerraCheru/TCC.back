@@ -1,6 +1,6 @@
 using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features.Votos;
+using Ocorrencias.Api.Votos;
 using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Problemas;
