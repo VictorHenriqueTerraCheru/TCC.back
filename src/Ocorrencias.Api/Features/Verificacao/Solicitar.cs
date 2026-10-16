@@ -23,7 +23,7 @@ public static class SolicitarVerificacao
             RuleFor(r => r.TipoVinculo).IsInEnum();
             RuleFor(r => r.Justificativa)
                 .NotEmpty()
-                .Must(j => j.Trim().Length is >= 30 and <= 500)
+                .Must(j => j?.Trim().Length is >= 30 and <= 500)
                 .WithMessage("A justificativa precisa ter entre 30 e 500 caracteres.");
         }
     }

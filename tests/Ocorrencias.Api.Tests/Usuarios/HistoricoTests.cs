@@ -78,6 +78,33 @@ public sealed class HistoricoTests(ApiFactory fabrica)
     }
 
     [Fact]
+    public async Task Paginacao_e_estavel_com_registros_no_mesmo_instante()
+    {
+        var eu = await fabrica.NovaPessoaAsync();
+        var (lat, lng) = ApiFactory.AreaIsolada();
+        for (var i = 0; i < 5; i++)
+        {
+            // Rótulo distinto por incidente (para enxergar duplicatas) e mesmo instante (relógio parado):
+            // só o desempate pela chave ordena.
+            var latI = lat + i * 0.001;
+            fabrica.Nominatim.Responder(latI, lng, NominatimFalso.Endereco(rua: $"Rua {i}"));
+            (await eu.Cliente.PostAsJsonAsync("/api/v1/incidentes",
+                new { categoriaId = 7, lat = latI, lng, ocorridoEm = fabrica.Relogio.GetUtcNow().AddMinutes(-5) }, ClienteApi.Json))
+                .EnsureSuccessStatusCode();
+        }
+
+        var paginas = new List<Item>();
+        for (var pagina = 1; pagina <= 5; pagina++)
+        {
+            paginas.AddRange((await HistoricoAsync(eu, $"?tamanho=1&pagina={pagina}")).Itens);
+        }
+
+        var completa = (await HistoricoAsync(eu, "?tamanho=5")).Itens;
+        paginas.Should().Equal(completa);
+        paginas.Select(i => i.Endereco).Should().OnlyHaveUniqueItems().And.HaveCount(5);
+    }
+
+    [Fact]
     public async Task Enums_do_historico_trafegam_em_camel_case()
     {
         var eu = await fabrica.NovaPessoaAsync();
