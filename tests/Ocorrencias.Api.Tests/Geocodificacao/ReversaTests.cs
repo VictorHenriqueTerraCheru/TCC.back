@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Net;
 using Microsoft.AspNetCore.Hosting;
-using Ocorrencias.Api.Features.Geocodificacao;
+using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Api.Tests.Infra;
 
 namespace Ocorrencias.Api.Tests.Geocodificacao;
@@ -18,10 +18,10 @@ public sealed class ReversaTests(ApiFactory fabrica)
         var (lat, lng) = ApiFactory.PontoUnico();
 
         var resposta = await fabrica.CreateClient().GetAsync(Url(lat, lng));
-        var corpo = await resposta.LerAsync<Reversa.Response>();
+        var corpo = await resposta.LerAsync<ReversaResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        corpo.Should().Be(new Reversa.Response(
+        corpo.Should().Be(new ReversaResponse(
             true,
             "Rua Voluntários da Pátria, 170 — Botafogo",
             "Rua Voluntários da Pátria",
