@@ -96,4 +96,16 @@ public sealed class AuthTests(ApiFactory fabrica)
 
         resposta.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task Token_expira_em_7_dias_pelo_relogio_da_aplicacao()
+    {
+        var auth = await _cliente.CadastrarAsync();
+        var cliente = fabrica.CreateClient().Autenticado(auth.Token);
+        (await cliente.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        fabrica.Relogio.Advance(TimeSpan.FromDays(7) + TimeSpan.FromMinutes(6));
+
+        (await cliente.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

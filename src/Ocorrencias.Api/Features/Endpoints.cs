@@ -1,7 +1,9 @@
 using Ocorrencias.Api.Features.Auth;
 using Ocorrencias.Api.Features.Categorias;
 using Ocorrencias.Api.Features.Geocodificacao;
+using Ocorrencias.Api.Features.Problemas;
 using Ocorrencias.Api.Features.Usuarios;
+using Ocorrencias.Api.Features.Votos;
 using Ocorrencias.Api.Infra.Auth;
 
 namespace Ocorrencias.Api.Features;
@@ -25,6 +27,15 @@ public static class Endpoints
         api.MapListarCategorias();
 
         api.MapReversa();
+
+        api.MapListarProblemasNaArea();
+        api.MapListarProblemasRecentes();
+        api.MapBuscarDuplicatas();
+        api.MapObterDetalheProblema();
+        api.MapRegistrarProblema();
+
+        api.MapVotarExistencia();
+        api.MapVotarPersistencia();
 
         return app;
     }

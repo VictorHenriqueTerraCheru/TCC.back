@@ -39,6 +39,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Jwt:Chave", "chave-de-teste-com-pelo-menos-32-caracteres");
         builder.UseSetting("Cors:Origens:0", OrigemFront);
         builder.UseSetting("Nominatim:Email", "testes@example.com");
+        builder.UseSetting("CicloDeVida:Habilitado", "false");
         builder.ConfigureTestServices(s =>
         {
             s.AddSingleton<TimeProvider>(Relogio);
@@ -53,6 +54,16 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await using var escopo = Services.CreateAsyncScope();
         await escopo.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
     }
+
+    /// <summary>Executa algo direto no banco (preparar cenário ou conferir o que foi gravado).</summary>
+    public async Task<T> NoBancoAsync<T>(Func<AppDbContext, Task<T>> acao)
+    {
+        await using var escopo = Services.CreateAsyncScope();
+        return await acao(escopo.ServiceProvider.GetRequiredService<AppDbContext>());
+    }
+
+    public Task NoBancoAsync(Func<AppDbContext, Task> acao) =>
+        NoBancoAsync(async db => { await acao(db); return true; });
 
     async Task IAsyncLifetime.DisposeAsync()
     {
