@@ -30,6 +30,20 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
     }
 
     [Theory]
+    [InlineData("/api/v1/auth/login", "post", false)]
+    [InlineData("/api/v1/auth/cadastro", "post", false)]
+    [InlineData("/api/v1/categorias", "get", false)]
+    [InlineData("/api/v1/me", "get", true)]
+    [InlineData("/api/v1/me", "patch", true)]
+    public async Task Openapi_exige_bearer_so_nas_operacoes_protegidas(string caminho, string metodo, bool exigeBearer)
+    {
+        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();
+        var operacao = documento.GetProperty("paths").GetProperty(caminho).GetProperty(metodo);
+
+        operacao.TryGetProperty("security", out _).Should().Be(exigeBearer);
+    }
+
+    [Theory]
     [InlineData(ApiFactory.OrigemFront, true)]
     [InlineData("https://malicioso.example", false)]
     public async Task Cors_libera_somente_origens_configuradas(string origem, bool liberada)

@@ -33,6 +33,16 @@ public sealed class AuthTests(ApiFactory fabrica)
         token.GetClaim("perfil").Value.Should().Be("cidadao");
     }
 
+    [Theory]
+    [InlineData("o'brien")]
+    [InlineData("joão.conceição")]
+    public async Task Cadastro_aceita_emails_validos_com_apostrofo_ou_acento(string local)
+    {
+        var resposta = await _cliente.PostarCadastroAsync($"{local}.{Guid.NewGuid():N}@teste.local");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
     [Fact]
     public async Task Cadastro_com_email_existente_devolve_409_email_ja_cadastrado()
     {

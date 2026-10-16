@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
@@ -24,10 +25,21 @@ public static class OpenApiConfig
                     Scheme = "bearer",
                     BearerFormat = "JWT",
                 };
-                documento.Security =
-                [
-                    new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("Bearer", documento)] = [] },
-                ];
+                return Task.CompletedTask;
+            });
+
+            // Bearer só nas operações protegidas: as marcadas com AllowAnonymous (🔓) ficam sem requisito.
+            o.AddOperationTransformer((operacao, contexto, _) =>
+            {
+                var anonima = contexto.Description.ActionDescriptor.EndpointMetadata.OfType<IAllowAnonymous>().Any();
+                if (!anonima)
+                {
+                    operacao.Security =
+                    [
+                        new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("Bearer", contexto.Document)] = [] },
+                    ];
+                }
+
                 return Task.CompletedTask;
             });
         });

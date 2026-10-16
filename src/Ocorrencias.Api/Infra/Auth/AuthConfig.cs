@@ -21,6 +21,8 @@ public static class AuthConfig
         services.AddIdentityCore<Usuario>(o =>
             {
                 o.User.RequireUniqueEmail = true;
+                // UserName = e-mail: aceita qualquer caractere que a validação de e-mail aceite (ex.: apóstrofo, acentos).
+                o.User.AllowedUserNameCharacters = "";
                 // Contrato: só "senha ≥ 8 caracteres".
                 o.Password.RequiredLength = 8;
                 o.Password.RequireDigit = false;
