@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
+using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Infra.Data;
 using Testcontainers.PostgreSql;
 
@@ -16,7 +17,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private readonly PostgreSqlContainer _banco = new PostgreSqlBuilder("postgis/postgis:16-3.4").Build();
 
-    public FakeTimeProvider Relogio { get; } = new(DateTimeOffset.UtcNow);
+    /// <summary>Começa alinhado em microssegundos (precisão do timestamptz); avance em unidades inteiras.</summary>
+    public FakeTimeProvider Relogio { get; } = new(RelogioPostgres.Truncar(DateTimeOffset.UtcNow));
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
