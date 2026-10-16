@@ -12,7 +12,7 @@ Validacao.ConfigurarGlobal();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApiConfigurado();
-builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<TimeProvider>(new RelogioPostgres());
 builder.Services.ConfigureHttpJsonOptions(o => JsonConfig.Configurar(o.SerializerOptions));
 builder.Services.AddCorsPorConfiguracao(builder.Configuration);
 builder.Services.AddDados(builder.Configuration);
