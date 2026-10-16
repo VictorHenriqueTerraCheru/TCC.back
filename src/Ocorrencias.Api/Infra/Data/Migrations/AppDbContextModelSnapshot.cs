@@ -382,6 +382,11 @@ namespace Ocorrencias.Api.Infra.Data.Migrations
                     b.HasIndex("AnalisadaPorId")
                         .HasDatabaseName("ix_solicitacoes_verificacao_analisada_por_id");
 
+                    b.HasIndex("UsuarioId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_solicitacoes_verificacao_usuario_pendente")
+                        .HasFilter("status = 1");
+
                     b.HasIndex("Status", "CriadaEm")
                         .HasDatabaseName("ix_solicitacoes_verificacao_status_criada_em");
 

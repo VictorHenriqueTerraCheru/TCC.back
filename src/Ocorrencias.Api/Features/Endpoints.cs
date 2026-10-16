@@ -1,9 +1,11 @@
+using Ocorrencias.Api.Features.Admin;
 using Ocorrencias.Api.Features.Auth;
 using Ocorrencias.Api.Features.Categorias;
 using Ocorrencias.Api.Features.Geocodificacao;
 using Ocorrencias.Api.Features.Incidentes;
 using Ocorrencias.Api.Features.Problemas;
 using Ocorrencias.Api.Features.Usuarios;
+using Ocorrencias.Api.Features.Verificacao;
 using Ocorrencias.Api.Features.Votos;
 using Ocorrencias.Api.Infra.Auth;
 
@@ -24,6 +26,7 @@ public static class Endpoints
 
         api.MapObterMe();
         api.MapAtualizarMe();
+        api.MapObterHistorico();
 
         api.MapListarCategorias();
 
@@ -41,6 +44,12 @@ public static class Endpoints
         api.MapRegistrarIncidente();
         api.MapObterCalorIncidentes();
         api.MapObterAreaIncidentes();
+
+        api.MapSolicitarVerificacao();
+
+        api.MapListarVerificacoes();
+        api.MapAprovarVerificacao();
+        api.MapRecusarVerificacao();
 
         return app;
     }

@@ -27,6 +27,11 @@ public static class Cenarios
             await fabrica.NoBancoAsync(db => db.Users
                 .Where(u => u.Id == auth.Usuario.Id)
                 .ExecuteUpdateAsync(s => s.SetProperty(u => u.Perfil, perfil)));
+
+            // Novo login: a claim "perfil" do token (usada pela policy de admin) precisa refletir o banco.
+            var login = await cliente.PostAsJsonAsync("/api/v1/auth/login", new { email = auth.Usuario.Email, senha = "senha-forte" }, ClienteApi.Json);
+            login.EnsureSuccessStatusCode();
+            cliente.Autenticado((await login.LerAsync<Features.Auth.RespostaAuth>()).Token);
         }
 
         return new Pessoa(auth.Usuario.Id, cliente);
