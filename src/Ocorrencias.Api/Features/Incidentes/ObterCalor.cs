@@ -37,7 +37,11 @@ public static class ObterCalorIncidentes
         return app;
     }
 
-    /// <summary>Agrupa por ponto arredondado os incidentes da janela (<c>ocorrido_em</c>) dentro do retângulo.</summary>
+    /// <summary>
+    /// Agrupa por ponto arredondado os incidentes da janela (<c>ocorrido_em</c>) dentro do retângulo. O recorte
+    /// é planar (<c>::geometry &amp;&amp;</c>, índice ix_incidentes_area_aproximada_geometry): em geography as
+    /// arestas seriam geodésicas e o retângulo, inexato em viewport largo.
+    /// </summary>
     public static async Task<List<Response>> Handle(
         [AsParameters] Request request, AppDbContext db, TimeProvider relogio, CancellationToken ct)
     {
@@ -53,7 +57,7 @@ public static class ObterCalorIncidentes
                 FROM incidentes i
                 JOIN categorias c ON c.id = i.categoria_id
                 WHERE i.ocorrido_em >= {desde} AND i.ocorrido_em <= {agora}
-                  AND i.area_aproximada && ST_MakeEnvelope({request.MinLng}, {request.MinLat}, {request.MaxLng}, {request.MaxLat}, 4326)::geography
+                  AND i.area_aproximada::geometry && ST_MakeEnvelope({request.MinLng}, {request.MinLat}, {request.MaxLng}, {request.MaxLat}, 4326)
                   AND (cardinality({grupos}) = 0 OR c.grupo = ANY({grupos}))
                 GROUP BY 1, 2
                 ORDER BY quantidade DESC

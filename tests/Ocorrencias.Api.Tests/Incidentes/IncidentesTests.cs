@@ -196,6 +196,19 @@ public sealed class IncidentesTests(ApiFactory fabrica)
         em30Dias.Sum(c => c.Quantidade).Should().Be(3);
     }
 
+    [Fact]
+    public async Task Calor_respeita_o_retangulo_exato_em_viewport_largo()
+    {
+        var pessoa = await fabrica.NovaPessoaAsync();
+        await RegistrarAsync(pessoa, 70, 0);    // fora (entraria se as arestas fossem geodésicas)
+        await RegistrarAsync(pessoa, 60.5, 10); // dentro (ficaria de fora em geography)
+
+        var celulas = await (await fabrica.CreateClient().GetAsync("/api/v1/incidentes/calor?minLat=60&minLng=-60&maxLat=61&maxLng=60"))
+            .LerAsync<List<ObterCalorIncidentes.Response>>();
+
+        celulas.Should().ContainSingle().Which.Should().Be(new ObterCalorIncidentes.Response(60.5, 10, 1));
+    }
+
     [Theory]
     [InlineData("dias=0")]
     [InlineData("dias=31")]
