@@ -9,11 +9,25 @@ public static class OpenApiConfig
     public static IServiceCollection AddOpenApiConfigurado(this IServiceCollection services) =>
         services.AddOpenApi(o =>
         {
-            // Cada feature declara records aninhados "Request"/"Response": qualifica pelo tipo externo
-            // para não colidir no OpenAPI (o front gera os tipos TypeScript a partir dele).
-            o.CreateSchemaReferenceId = info => info.Type.IsNested && info.Type.DeclaringType is { } externo
-                ? externo.Name + OpenApiOptions.CreateDefaultSchemaReferenceId(info)
-                : OpenApiOptions.CreateDefaultSchemaReferenceId(info);
+            // O front gera os tipos TypeScript a partir deste documento: nomes de schema não podem colidir.
+            o.CreateSchemaReferenceId = info =>
+                OpenApiOptions.CreateDefaultSchemaReferenceId(info) is null ? null : NomeSchema(info.Type);
+
+            // Enums anuláveis já aparecem como oneOf [null, $ref]; o null dentro do próprio enum tornaria o
+            // tipo anulável em todos os usos.
+            o.AddSchemaTransformer((schema, _, _) =>
+            {
+                if (schema.Enum is { Count: > 0 } valores)
+                {
+                    var semNulo = valores.Where(v => v is not null && v.GetValueKind() != System.Text.Json.JsonValueKind.Null).ToList();
+                    if (semNulo.Count != valores.Count)
+                    {
+                        schema.Enum = semNulo;
+                    }
+                }
+
+                return Task.CompletedTask;
+            });
 
             o.AddDocumentTransformer((documento, _, _) =>
             {
@@ -31,6 +45,15 @@ public static class OpenApiConfig
             // Bearer só nas operações protegidas: as marcadas com AllowAnonymous (🔓) ficam sem requisito.
             o.AddOperationTransformer((operacao, contexto, _) =>
             {
+                // Records [AsParameters] geram nomes em PascalCase; o contrato (e o binding, que ignora a caixa) usa camelCase.
+                foreach (var parametro in operacao.Parameters?.OfType<OpenApiParameter>() ?? [])
+                {
+                    if (parametro.In == ParameterLocation.Query && parametro.Name is { Length: > 0 } nome)
+                    {
+                        parametro.Name = System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(nome);
+                    }
+                }
+
                 var anonima = contexto.Description.ActionDescriptor.EndpointMetadata.OfType<IAllowAnonymous>().Any();
                 if (!anonima)
                 {
@@ -43,4 +66,22 @@ public static class OpenApiConfig
                 return Task.CompletedTask;
             });
         });
+
+    /// <summary>
+    /// Records aninhados ganham o nome da feature como prefixo (<c>CadastrarRequest</c>); genéricos incluem os
+    /// argumentos já qualificados (<c>Paginado&lt;ListarProblemasRecentes.Item&gt;</c> →
+    /// <c>PaginadoListarProblemasRecentesItem</c>), em vez do padrão <c>PaginadoOfItem</c>, que colidiria.
+    /// </summary>
+    public static string NomeSchema(Type tipo)
+    {
+        var nome = tipo.IsGenericType ? tipo.Name[..tipo.Name.IndexOf('`')] : tipo.Name;
+        if (tipo.IsNested && tipo.DeclaringType is { } externo && !tipo.IsGenericParameter)
+        {
+            nome = externo.Name + nome;
+        }
+
+        return tipo.IsGenericType
+            ? nome + string.Concat(tipo.GetGenericArguments().Select(NomeSchema))
+            : nome;
+    }
 }

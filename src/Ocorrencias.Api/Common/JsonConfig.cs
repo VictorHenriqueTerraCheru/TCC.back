@@ -9,6 +9,8 @@ public static class JsonConfig
     public static void Configurar(JsonSerializerOptions opcoes)
     {
         opcoes.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        // Números só como número: os defaults web aceitam "12" e fariam o OpenAPI declarar integer|string.
+        opcoes.NumberHandling = JsonNumberHandling.Strict;
         opcoes.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
         opcoes.Converters.Add(new DataUtcConverter());
     }
