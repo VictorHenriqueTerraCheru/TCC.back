@@ -74,6 +74,8 @@ public static class OpenApiConfig
     /// </summary>
     public static string NomeSchema(Type tipo)
     {
+        // Enum anulável usa o mesmo schema do enum (a anulabilidade fica no uso, via oneOf).
+        tipo = Nullable.GetUnderlyingType(tipo) ?? tipo;
         var nome = tipo.IsGenericType ? tipo.Name[..tipo.Name.IndexOf('`')] : tipo.Name;
         if (tipo.IsNested && tipo.DeclaringType is { } externo && !tipo.IsGenericParameter)
         {

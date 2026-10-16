@@ -72,6 +72,19 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
     public void Nome_de_schema_generico_inclui_o_argumento_qualificado() =>
         OpenApiConfig.NomeSchema(typeof(Envelope<Feature.Item>)).Should().Be("EsqueletoTestsEnvelopeFeatureItem");
 
+    [Fact]
+    public void Nullable_usa_o_mesmo_nome_do_tipo() =>
+        OpenApiConfig.NomeSchema(typeof(Domain.Perfil?)).Should().Be("Perfil");
+
+    [Fact]
+    public async Task Nenhum_schema_e_variacao_nullable()
+    {
+        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();
+
+        documento.GetProperty("components").GetProperty("schemas").EnumerateObject()
+            .Select(p => p.Name).Should().NotContain(n => n.StartsWith("Nullable", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("/api/v1/auth/login", "post", false)]
     [InlineData("/api/v1/auth/cadastro", "post", false)]
