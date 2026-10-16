@@ -51,6 +51,8 @@ src/
 tests/
   Ocorrencias.Domain.Tests/
   Ocorrencias.Api.Tests/
+  Ocorrencias.Simulator.Tests/
+cenarios/base.json             # parâmetros do cenário do Simulator (ver src/Ocorrencias.Simulator/README.md)
 docs/
 ```
 
@@ -85,7 +87,7 @@ dotnet ef migrations add <Nome> -p src/Ocorrencias.Api
 dotnet ef database update -p src/Ocorrencias.Api
 dotnet run --project src/Ocorrencias.Api      # Scalar em http://localhost:5080/scalar
 dotnet test
-dotnet run --project src/Ocorrencias.Simulator -- --config A,B,B-v3,B-v5 --sementes 30 --saida resultados/
+dotnet run -c Release --project src/Ocorrencias.Simulator -- --config A,B,B-v3,B-v5 --variantes S1,S2,S3 --sementes 30 --saida resultados/ --cenario cenarios/base.json
 ```
 
 ## Supabase (produção)
