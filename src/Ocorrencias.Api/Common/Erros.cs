@@ -20,6 +20,15 @@ public static class Erros
     public static ProblemHttpResult ProblemaResolvido =>
         Problema(StatusCodes.Status422UnprocessableEntity, "problema-resolvido", "O problema já foi resolvido e não recebe mais votos.");
 
+    public static ProblemHttpResult CategoriaNaoEIncidente =>
+        Problema(StatusCodes.Status422UnprocessableEntity, "categoria-nao-e-incidente", "A categoria escolhida é de problema, não de incidente.");
+
+    public static ProblemHttpResult HorarioForaDaJanela =>
+        Problema(StatusCodes.Status422UnprocessableEntity, "horario-fora-da-janela", "O horário do incidente precisa estar nas últimas 24 horas.");
+
+    public static ProblemHttpResult LimiteDiarioIncidentes =>
+        Problema(StatusCodes.Status429TooManyRequests, "limite-diario-incidentes", "Limite de 10 incidentes em 24 horas atingido.");
+
     public static ValidationProblem Campo(string campo, string mensagem) =>
         TypedResults.ValidationProblem(new Dictionary<string, string[]> { [campo] = [mensagem] });
 

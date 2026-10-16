@@ -29,6 +29,14 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
         documento.Should().Contain("\"CadastrarRequest\"").And.Contain("\"EntrarRequest\"");
     }
 
+    [Fact]
+    public async Task Nenhum_schema_do_contrato_expoe_o_autor()
+    {
+        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).Content.ReadAsStringAsync();
+
+        documento.Should().NotContainEquivalentOf("autorId");
+    }
+
     [Theory]
     [InlineData("/api/v1/auth/login", "post", false)]
     [InlineData("/api/v1/auth/cadastro", "post", false)]

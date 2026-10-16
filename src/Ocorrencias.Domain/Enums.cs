@@ -55,3 +55,11 @@ public enum StatusVerificacao
     Aprovada = 2,
     Recusada = 3,
 }
+
+/// <summary>Concentração de incidentes numa área (total de 7 dias): &lt; 5 baixa, 5–14 média, ≥ 15 alta.</summary>
+public enum NivelConcentracao
+{
+    Baixa = 1,
+    Media = 2,
+    Alta = 3,
+}
