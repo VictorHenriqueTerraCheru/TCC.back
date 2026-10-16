@@ -10,7 +10,16 @@ Backend (.NET 10, Minimal APIs, PostgreSQL + PostGIS) do TCC "Sistema colaborati
 ## Rodando localmente
 
 ```bash
+dotnet tool restore                         # dotnet-ef (manifesto local)
 docker compose up -d db                     # PostGIS na porta 5432
 dotnet run --project src/Ocorrencias.Api    # Scalar em http://localhost:5080/scalar
-dotnet test
+dotnet test                                 # testes de integração sobem um PostGIS via Testcontainers (requer Docker)
 ```
+
+Em `Development`, a API aplica as migrations e cria usuários de exemplo na primeira execução (senha de todos: `tcc12345`):
+
+| e-mail | perfil |
+|---|---|
+| `admin@tcc.local` | administrador |
+| `verificado@tcc.local` | cidadaoVerificado |
+| `cidadao1@tcc.local`, `cidadao2@tcc.local`, `cidadao3@tcc.local` | cidadao |

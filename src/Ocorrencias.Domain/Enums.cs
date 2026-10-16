@@ -34,3 +34,24 @@ public enum FaixaConfianca
     Media = 2,
     Alta = 3,
 }
+
+public enum TipoOcorrencia
+{
+    Problema = 1,
+    Incidente = 2,
+}
+
+public enum TipoVinculo
+{
+    MoradorRegiao = 1,
+    TrabalhaRegiao = 2,
+    ServidorPublico = 3,
+    Outro = 4,
+}
+
+public enum StatusVerificacao
+{
+    Pendente = 1,
+    Aprovada = 2,
+    Recusada = 3,
+}
