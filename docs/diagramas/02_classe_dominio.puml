@@ -1,0 +1,87 @@
+@startuml
+!include _style.iuml
+hide empty methods
+class Usuario {
+  nome
+  email
+  perfil : Perfil
+  criadoEm
+  verificadoEm
+}
+class SolicitacaoVerificacao {
+  tipoVinculo
+  justificativa
+  status : StatusVerificacao
+  motivoRecusa
+  criadaEm
+  analisadaEm
+}
+class Categoria {
+  nome
+  grupo
+  tipo : TipoOcorrencia
+  icone
+}
+class Problema {
+  descricao
+  localizacao
+  enderecoAproximado
+  status : StatusProblema
+  confianca
+  criadoEm
+  statusAlteradoEm
+}
+class Voto {
+  tipo : TipoVoto
+  valor : ValorVoto
+  perfilNoMomento : Perfil
+  distanciaMetros
+  registradoEm
+}
+class Incidente {
+  areaAproximada
+  raioMetros
+  rotuloArea
+  ocorridoEm
+  registradoEm
+}
+Usuario "1" -- "0..*" SolicitacaoVerificacao : solicita
+Usuario "0..1" -- "0..*" SolicitacaoVerificacao : analisa
+Usuario "1" -- "0..*" Problema : registra
+Usuario "1" -- "0..*" Incidente : relata
+Usuario "1" -- "0..*" Voto : emite
+Problema "1" -- "0..*" Voto : recebe
+Categoria "1" -- "0..*" Problema
+Categoria "1" -- "0..*" Incidente
+package "Enumerações" {
+enum Perfil {
+  Cidadao
+  CidadaoVerificado
+  Administrador
+}
+enum TipoOcorrencia {
+  Problema
+  Incidente
+}
+enum StatusProblema {
+  Nova
+  Ativa
+  PossivelmenteResolvida
+  Resolvida
+}
+enum TipoVoto {
+  Existencia
+  Persistencia
+}
+enum ValorVoto {
+  Positivo
+  Negativo
+}
+enum StatusVerificacao {
+  Pendente
+  Aprovada
+  Recusada
+}
+}
+Voto -[hidden]down- Perfil
+@enduml

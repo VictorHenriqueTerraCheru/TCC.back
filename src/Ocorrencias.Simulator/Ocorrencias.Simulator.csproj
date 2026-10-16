@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <!-- O Simulator referencia SÓ o Domain: mede exatamente o motor usado pela API. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Ocorrencias.Domain\Ocorrencias.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

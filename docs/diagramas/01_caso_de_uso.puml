@@ -1,0 +1,52 @@
+@startuml
+!include _style.iuml
+left to right direction
+skinparam nodesep 18
+skinparam ranksep 60
+actor "Visitante" as V
+actor "Cidadão" as C
+actor "Cidadão\nverificado" as CV
+actor "Administrador" as A
+actor "Tempo" as T
+rectangle "Sistema de ocorrências urbanas" {
+  usecase "Analisar solicitação\nde verificação" as UC16
+  usecase "Visualizar mapa" as UC1
+  usecase "Filtrar por tipo\ne categoria" as UC2
+  usecase "Consultar detalhe\nde problema" as UC3
+  usecase "Consultar área\nde incidentes" as UC4
+  usecase "Consultar recentes" as UC5
+  usecase "Criar conta" as UC6
+  usecase "Entrar" as UC7
+  usecase "Registrar problema" as UC8
+  usecase "Verificar duplicatas" as UC9
+  usecase "Registrar incidente" as UC10
+  usecase "Votar existência\n(Confirmar / Não vi)" as UC11
+  usecase "Votar persistência\n(Ainda está lá?)" as UC12
+  usecase "Calcular peso do voto" as UC13
+  usecase "Consultar histórico" as UC14
+  usecase "Solicitar verificação" as UC15
+  usecase "Atualizar ciclo de vida\ne confiança" as UC17
+}
+A --> UC16
+V --> UC1
+V --> UC3
+V --> UC4
+V --> UC5
+V --> UC6
+V --> UC7
+UC1 <.. UC2 : <<extend>>
+C --> UC8
+C --> UC10
+C --> UC11
+C --> UC12
+C --> UC14
+C --> UC15
+T --> UC17
+V <|-- C
+C <|-- CV
+C <|-- A
+UC8 ..> UC9 : <<include>>
+
+UC11 ..> UC13 : <<include>>
+UC12 ..> UC13 : <<include>>
+@enduml

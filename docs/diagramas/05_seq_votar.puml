@@ -1,0 +1,24 @@
+@startuml
+!include _style.iuml
+autonumber
+actor "Cidadão" as U
+participant "App React\n(navegador)" as APP
+participant "API .NET" as API
+participant "Motor de\nconfiança (Domain)" as MC
+database "PostgreSQL\n+ PostGIS" as DB
+U -> APP : "Confirmar que existe"
+APP -> APP : lê a posição pela\nGeolocation API (se permitido)
+APP -> API : PUT /problemas/{id}/votos/existencia\n{valor, lat?, lng?}
+API -> DB : carrega problema e perfil do usuário;\nST_Distance(posição, problema)
+DB --> API : problema, perfil, distância
+API -> DB : UPSERT voto (problema, usuário, tipo,\nperfil no momento, distância)
+API -> DB : votos do problema
+DB --> API : votos
+API -> MC : CalcularConfianca(votos, agora, configB)\n(pesos de perfil, proximidade e tempo)
+MC --> API : confiança e faixa
+API -> MC : AvaliarCicloDeVida(problema, votos, agora)
+MC --> API : novo status (ex.: Nova -> Ativa)
+API -> DB : UPDATE problema (confiança, status)
+API --> APP : detalhe atualizado
+APP --> U : barra de confiança e contadores
+@enduml

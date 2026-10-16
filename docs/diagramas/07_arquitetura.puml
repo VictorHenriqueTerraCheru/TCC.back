@@ -1,0 +1,31 @@
+@startuml
+!include _style.iuml
+node "Navegador (celular ou computador)" {
+  component "App React\n(SPA, TypeScript)" as APP
+  component "Geolocation API\ndo navegador" as GPS
+}
+node "Hospedagem estática (HTTPS)" as HOST
+cloud "OpenStreetMap" {
+  component "Servidor de tiles" as OSM
+  component "Nominatim\n(geocodificação)" as NOM
+}
+node "Servidor da API" {
+  component "API .NET 10\n(Minimal API, fatias verticais)" as API
+  component "Domain\n(motor de confiança)" as DOM
+  component "Job de ciclo de vida\n(BackgroundService)" as JOB
+}
+node "Estação de avaliação" {
+  component "Simulator\n(console .NET)" as SIM
+}
+database "Supabase\nPostgreSQL + PostGIS" as DB
+HOST ..> APP : entrega os arquivos
+APP --> GPS
+APP --> OSM : tiles do mapa
+APP --> API : HTTPS / JSON + JWT
+API --> NOM : geocodificação reversa\n(cache, 1 req/s)
+API --> DOM
+JOB --> DOM
+API --> DB : EF Core + Npgsql\n(NetTopologySuite)
+JOB --> DB
+SIM --> DOM : mesma biblioteca
+@enduml
