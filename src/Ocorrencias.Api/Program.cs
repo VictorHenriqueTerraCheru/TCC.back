@@ -2,6 +2,7 @@ using FluentValidation;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Features;
 using Ocorrencias.Api.Infra.Auth;
+using Ocorrencias.Api.Infra.Confianca;
 using Ocorrencias.Api.Infra.Data;
 using Ocorrencias.Api.Infra.Geocodificacao;
 using Scalar.AspNetCore;
@@ -18,6 +19,7 @@ builder.Services.AddCorsPorConfiguracao(builder.Configuration);
 builder.Services.AddDados(builder.Configuration);
 builder.Services.AddAutenticacao();
 builder.Services.AddGeocodificacao();
+builder.Services.AddConfianca(builder.Configuration);
 builder.Services.AddLimitesDeRequisicao(builder.Configuration);
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 

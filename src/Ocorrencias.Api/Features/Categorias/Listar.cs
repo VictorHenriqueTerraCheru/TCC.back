@@ -4,7 +4,7 @@ using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Features.Categorias;
 
-public static class Listar
+public static class ListarCategorias
 {
     public sealed record Response(short Id, string Nome, string Grupo, TipoOcorrencia Tipo, string Icone);
 

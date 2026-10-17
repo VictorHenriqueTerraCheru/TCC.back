@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Ocorrencias.Domain.Confianca;
 
 /// <summary>Parâmetros do motor (docs/MOTOR_CONFIANCA.md). A API usa <see cref="B"/>.</summary>
@@ -43,5 +45,28 @@ public sealed record ConfiguracaoConfianca
         UsarDecaimento = false,
     };
 
-    public ConfiguracaoConfianca ComPesoVerificado(double p) => this with { Nome = $"{Nome}-v{p}", PesoVerificado = p };
+    public ConfiguracaoConfianca ComPesoVerificado(double p) =>
+        this with { Nome = string.Create(CultureInfo.InvariantCulture, $"{Nome}-v{p}"), PesoVerificado = p };
+
+    /// <summary>Resolve <c>"A"</c>, <c>"B"</c> ou variantes de peso do verificado como <c>"B-v3"</c>.</summary>
+    /// <exception cref="ArgumentException">Nome desconhecido.</exception>
+    public static ConfiguracaoConfianca PorNome(string nome)
+    {
+        var partes = nome.Trim().Split("-v", 2);
+        var baseCfg = partes[0].ToUpperInvariant() switch
+        {
+            "A" => A,
+            "B" => B,
+            _ => throw new ArgumentException($"Configuração de confiança desconhecida: '{nome}'.", nameof(nome)),
+        };
+
+        if (partes.Length == 1)
+        {
+            return baseCfg;
+        }
+
+        return double.TryParse(partes[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var peso) && double.IsFinite(peso) && peso > 0
+            ? baseCfg.ComPesoVerificado(peso)
+            : throw new ArgumentException($"Peso de verificado inválido em '{nome}'.", nameof(nome));
+    }
 }

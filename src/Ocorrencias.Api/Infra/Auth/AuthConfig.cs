@@ -37,7 +37,7 @@ public static class AuthConfig
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-            .Configure<IOptions<JwtOptions>>((bearer, jwt) =>
+            .Configure<IOptions<JwtOptions>, TimeProvider>((bearer, jwt, relogio) =>
             {
                 bearer.MapInboundClaims = false;
                 bearer.TokenValidationParameters = new TokenValidationParameters
@@ -48,6 +48,14 @@ public static class AuthConfig
                     ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                     NameClaimType = JwtTokenService.ClaimNome,
                     RoleClaimType = JwtTokenService.ClaimPerfil,
+                    // Validade conferida pelo mesmo TimeProvider que emite o token (os testes controlam o tempo).
+                    LifetimeValidator = (inicio, fim, _, parametros) =>
+                    {
+                        var agora = relogio.GetUtcNow().UtcDateTime;
+                        var folga = parametros.ClockSkew;
+                        return (inicio is null || inicio.Value <= agora + folga)
+                            && fim is not null && fim.Value > agora - folga;
+                    },
                 };
             });
 
