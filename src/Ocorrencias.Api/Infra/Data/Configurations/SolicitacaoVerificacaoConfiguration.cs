@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ocorrencias.Api.Infra.Data.Entidades;
+using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Infra.Data.Configurations;
 
@@ -17,5 +18,11 @@ public sealed class SolicitacaoVerificacaoConfiguration : IEntityTypeConfigurati
 
         b.HasIndex(s => new { s.UsuarioId, s.CriadaEm });
         b.HasIndex(s => new { s.Status, s.CriadaEm });
+
+        // No máximo uma solicitação pendente por usuário, garantido também no banco (status 1 = Pendente).
+        b.HasIndex(s => s.UsuarioId)
+            .IsUnique()
+            .HasFilter($"status = {(short)StatusVerificacao.Pendente}")
+            .HasDatabaseName("ix_solicitacoes_verificacao_usuario_pendente");
     }
 }

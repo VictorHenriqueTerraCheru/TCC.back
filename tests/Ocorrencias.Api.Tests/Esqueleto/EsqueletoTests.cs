@@ -69,6 +69,20 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
         }
     }
 
+    [Fact]
+    public async Task Respostas_paginadas_tem_schemas_distintos()
+    {
+        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();
+        string Ref(string caminho) => documento.GetProperty("paths").GetProperty(caminho).GetProperty("get")
+            .GetProperty("responses").GetProperty("200").GetProperty("content").GetProperty("application/json")
+            .GetProperty("schema").GetProperty("$ref").GetString()!;
+
+        string[] refs = [Ref("/api/v1/problemas/recentes"), Ref("/api/v1/me/historico"), Ref("/api/v1/admin/verificacoes")];
+
+        refs.Should().OnlyHaveUniqueItems();
+        refs[0].Should().EndWith("PaginadoListarProblemasRecentesItem");
+    }
+
     private sealed record Envelope<T>(T Valor);
 
     private static class Feature
