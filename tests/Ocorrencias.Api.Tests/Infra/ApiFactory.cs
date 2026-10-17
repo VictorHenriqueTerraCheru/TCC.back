@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Infra.Data;
+using Ocorrencias.Api.Infra.Geocodificacao;
 using Testcontainers.PostgreSql;
 
 namespace Ocorrencias.Api.Tests.Infra;
@@ -20,13 +21,28 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     /// <summary>Começa alinhado em microssegundos (precisão do timestamptz); avance em unidades inteiras.</summary>
     public FakeTimeProvider Relogio { get; } = new(RelogioPostgres.Truncar(DateTimeOffset.UtcNow));
 
+    public NominatimFalso Nominatim { get; } = new();
+
+    /// <summary>Gera coordenadas distintas na Zona Sul do Rio, para os testes não compartilharem cache.</summary>
+    public static (double Lat, double Lng) PontoUnico()
+    {
+        var n = Interlocked.Increment(ref _sequencia);
+        return (-22.95 - n * 0.001, -43.18 - n * 0.001);
+    }
+
+    private static int _sequencia;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", _banco.GetConnectionString());
         builder.UseSetting("Jwt:Chave", "chave-de-teste-com-pelo-menos-32-caracteres");
         builder.UseSetting("Cors:Origens:0", OrigemFront);
-        builder.ConfigureTestServices(s => s.AddSingleton<TimeProvider>(Relogio));
+        builder.ConfigureTestServices(s =>
+        {
+            s.AddSingleton<TimeProvider>(Relogio);
+            s.AddSingleton<INominatimClient>(Nominatim);
+        });
     }
 
     public async Task InitializeAsync()

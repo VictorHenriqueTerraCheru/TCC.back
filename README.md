@@ -16,6 +16,8 @@ dotnet run --project src/Ocorrencias.Api    # Scalar em http://localhost:5080/sc
 dotnet test                                 # testes de integração sobem um PostGIS via Testcontainers (requer Docker)
 ```
 
+A geocodificação usa o Nominatim (OpenStreetMap), identificado por `User-Agent: OcorrenciasUrbanasTCC/1.0 (+<url do projeto>)`, como a política de uso exige (sem User-Agent a resposta é 403). O e-mail de contato é opcional (`Nominatim__Email`); se usar, não coloque um e-mail de exemplo, que o Nominatim recusa.
+
 Em `Development`, a API aplica as migrations e cria usuários de exemplo na primeira execução (senha de todos: `tcc12345`):
 
 | e-mail | perfil |
