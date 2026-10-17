@@ -7,5 +7,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Ocorrencias.Api.Tests/Ocorrencias.Api.Tests.csproj" />
     <Project Path="tests/Ocorrencias.Domain.Tests/Ocorrencias.Domain.Tests.csproj" />
+    <Project Path="tests/Ocorrencias.Simulator.Tests/Ocorrencias.Simulator.Tests.csproj" />
   </Folder>
 </Solution>
