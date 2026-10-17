@@ -34,7 +34,7 @@ src/
     Modules/                   # um IEndpointModule por área (descobertos por reflexão): só HTTP
       AuthModule.cs, UsuarioModule.cs, CategoriaModule.cs, GeocodificacaoModule.cs, ProblemaModule.cs,
       VotoModule.cs, IncidenteModule.cs, VerificacaoModule.cs, AdminModule.cs,
-      SaudeModule.cs           # /api/v1/saude e /saude/banco (health checks; fora do OpenAPI)
+      SaudeModule.cs           # /api/v1/saude e /saude/banco (health checks, anônimos)
     Feature/<Area>/            # namespace Ocorrencias.Api.<Area>
       Abstractions/I<Area>Service.cs
       Services/<Area>Service.cs        # regra + EF direto; devolve Resultado<T>

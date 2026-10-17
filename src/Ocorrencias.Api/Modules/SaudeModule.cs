@@ -4,18 +4,19 @@ using Ocorrencias.Api.Saude;
 
 namespace Ocorrencias.Api.Modules;
 
-/// <summary>Health checks para o host e o monitoramento. Fora do OpenAPI: não fazem parte do contrato do front.</summary>
+/// <summary>Health checks para o host e o monitoramento.</summary>
 public sealed class SaudeModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
         api.MapGet("/saude", Aplicacao)
             .AllowAnonymous()
-            .ExcludeFromDescription();
+            .WithTags("Saude");
 
         api.MapGet("/saude/banco", Banco)
             .AllowAnonymous()
-            .ExcludeFromDescription();
+            .WithTags("Saude")
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
     }
 
     private static Ok<StatusSaudeResponse> Aplicacao() => TypedResults.Ok(StatusSaudeResponse.Saudavel);

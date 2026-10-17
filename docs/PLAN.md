@@ -8,7 +8,7 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `
 
 - Solution com os 5 projetos da árvore do `CLAUDE.md`; `Directory.Build.props` com `net10.0`, `Nullable`, `ImplicitUsings`, `LangVersion latest`.
 - `docker-compose.yml` com `postgis/postgis:16-3.4` (usuário/senha/banco `ocorrencias`).
-- `Program.cs` mínimo: OpenAPI + Scalar, ProblemDetails, `JsonStringEnumConverter` camelCase, CORS por configuração (`Cors:Origens`, com `http://localhost:5173` em Development), health checks em `GET /api/v1/saude` (aplicação) e `GET /api/v1/saude/banco` (banco; 503 se fora), anônimos e fora do OpenAPI.
+- `Program.cs` mínimo: OpenAPI + Scalar, ProblemDetails, `JsonStringEnumConverter` camelCase, CORS por configuração (`Cors:Origens`, com `http://localhost:5173` em Development), health checks em `GET /api/v1/saude` (aplicação) e `GET /api/v1/saude/banco` (banco; 503 se fora), anônimos e documentados no OpenAPI (tag `Saude`).
 - Garanta que o documento OpenAPI (`/openapi/v1.json`) descreva os enums como string e os campos anuláveis corretamente: o front gera os tipos TypeScript a partir dele.
 - `.editorconfig`, `.gitignore`, GitHub Actions rodando `dotnet test`.
 

@@ -1114,6 +1114,17 @@
           "resolvida"
         ]
       },
+      "StatusSaudeResponse": {
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
       "StatusVerificacao": {
         "enum": [
           "pendente",
@@ -2249,6 +2260,54 @@
         ]
       }
     },
+    "/api/v1/saude": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusSaudeResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Saude"
+        ]
+      }
+    },
+    "/api/v1/saude/banco": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusSaudeResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "tags": [
+          "Saude"
+        ]
+      }
+    },
     "/api/v1/verificacoes": {
       "post": {
         "requestBody": {
@@ -2326,6 +2385,9 @@
     },
     {
       "name": "Admin"
+    },
+    {
+      "name": "Saude"
     }
   ]
 }

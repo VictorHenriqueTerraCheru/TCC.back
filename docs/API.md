@@ -234,6 +234,17 @@ O solicitante passa a `cidadaoVerificado` (vale para os votos seguintes). `409 v
 ```
 → `204`. `409 verificacao-ja-analisada`; `404` se o id não existe.
 
+## Saúde
+
+Para o host e o monitoramento; o front não precisa chamar.
+
+### `GET /saude` 🔓
+```json
+{ "status": "saudavel" }
+```
+### `GET /saude/banco` 🔓
+`200` com o mesmo corpo se o banco responde; `503 banco-indisponivel` se não.
+
 ## Códigos de erro (`type`)
 
 | type | status | quando |
@@ -250,3 +261,4 @@ O solicitante passa a `cidadaoVerificado` (vale para os votos seguintes). `409 v
 | `ja-verificado` | 422 | usuário já verificado |
 | `verificacao-ja-analisada` | 409 | aprovar/recusar solicitação não pendente |
 | `limite-requisicoes` | 429 | limite por IP da geocodificação excedido |
+| `banco-indisponivel` | 503 | GET /saude/banco sem conexão com o banco |
