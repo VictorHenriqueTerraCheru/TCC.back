@@ -1,0 +1,30 @@
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam ArrowColor #333333
+skinparam usecase {
+  BackgroundColor #FFFDE7
+  BorderColor #333333
+}
+skinparam actorBorderColor #333333
+skinparam actorBackgroundColor #FFFDE7
+skinparam class {
+  BackgroundColor #F7F9FC
+  BorderColor #333333
+  HeaderBackgroundColor #DCE6F2
+}
+skinparam state {
+  BackgroundColor #F7F9FC
+  BorderColor #333333
+}
+skinparam sequence {
+  ParticipantBackgroundColor #F7F9FC
+  ParticipantBorderColor #333333
+  LifeLineBorderColor #888888
+}
+skinparam componentBorderColor #333333
+skinparam componentBackgroundColor #F7F9FC
+skinparam databaseBackgroundColor #F7F9FC
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #999999
