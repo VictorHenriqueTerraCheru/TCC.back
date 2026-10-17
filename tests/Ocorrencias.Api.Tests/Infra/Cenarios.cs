@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
-using Ocorrencias.Api.Features.Problemas;
+using Ocorrencias.Api.Auth;
+using Ocorrencias.Api.Problemas;
 using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Tests.Infra;
@@ -31,7 +32,7 @@ public static class Cenarios
             // Novo login: a claim "perfil" do token (usada pela policy de admin) precisa refletir o banco.
             var login = await cliente.PostAsJsonAsync("/api/v1/auth/login", new { email = auth.Usuario.Email, senha = "senha-forte" }, ClienteApi.Json);
             login.EnsureSuccessStatusCode();
-            cliente.Autenticado((await login.LerAsync<Features.Auth.RespostaAuth>()).Token);
+            cliente.Autenticado((await login.LerAsync<RespostaAuth>()).Token);
         }
 
         return new Pessoa(auth.Usuario.Id, cliente);
@@ -41,12 +42,12 @@ public static class Cenarios
         this Pessoa pessoa, double lat, double lng, short categoriaId = 1, string? descricao = null) =>
         pessoa.Cliente.PostAsJsonAsync("/api/v1/problemas", new { categoriaId, lat, lng, descricao }, ClienteApi.Json);
 
-    public static async Task<ObterDetalheProblema.Response> RegistrarProblemaAsync(
+    public static async Task<ObterDetalheProblemaResponse> RegistrarProblemaAsync(
         this Pessoa pessoa, double lat, double lng, short categoriaId = 1)
     {
         var resposta = await pessoa.PostarProblemaAsync(lat, lng, categoriaId);
         resposta.EnsureSuccessStatusCode();
-        return await resposta.LerAsync<ObterDetalheProblema.Response>();
+        return await resposta.LerAsync<ObterDetalheProblemaResponse>();
     }
 
     public static Task<HttpResponseMessage> VotarExistenciaAsync(
@@ -58,18 +59,18 @@ public static class Cenarios
         pessoa.Cliente.PutAsJsonAsync($"/api/v1/problemas/{problemaId}/votos/persistencia", new { valor, lat, lng }, ClienteApi.Json);
 
     /// <summary>Registra um problema e o leva a <c>ativa</c> com 5 confirmações sem localização.</summary>
-    public static async Task<ObterDetalheProblema.Response> ProblemaAtivoAsync(this ApiFactory fabrica, double lat, double lng)
+    public static async Task<ObterDetalheProblemaResponse> ProblemaAtivoAsync(this ApiFactory fabrica, double lat, double lng)
     {
         var autor = await fabrica.NovaPessoaAsync();
         var problema = await autor.RegistrarProblemaAsync(lat, lng);
 
-        ObterDetalheProblema.Response? detalhe = null;
+        ObterDetalheProblemaResponse? detalhe = null;
         for (var i = 0; i < 5; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();
             var resposta = await votante.VotarExistenciaAsync(problema.Id, "confirma");
             resposta.EnsureSuccessStatusCode();
-            detalhe = await resposta.LerAsync<ObterDetalheProblema.Response>();
+            detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
         }
 
         detalhe!.Status.Should().Be(StatusProblema.Ativa);

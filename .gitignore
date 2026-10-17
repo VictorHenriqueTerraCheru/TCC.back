@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Collection local do Bruno (solicitada para não versionar)
+Bruno/
+
 # User-specific files
 *.rsuser
 *.suo

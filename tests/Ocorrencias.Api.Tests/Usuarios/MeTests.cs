@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using Ocorrencias.Api.Features.Usuarios;
+using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
 
@@ -34,7 +34,7 @@ public sealed class MeTests(ApiFactory fabrica)
         var auth = await cliente.CadastrarAsync();
 
         var resposta = await cliente.Autenticado(auth.Token).GetAsync("/api/v1/me");
-        var me = await resposta.LerAsync<ObterMe.Response>();
+        var me = await resposta.LerAsync<ObterMeResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.OK);
         me.Id.Should().Be(auth.Usuario.Id);
@@ -55,11 +55,11 @@ public sealed class MeTests(ApiFactory fabrica)
         cliente.Autenticado(auth.Token);
 
         var resposta = await cliente.PatchAsJsonAsync("/api/v1/me", new { nome = "  Mariana S.  " }, ClienteApi.Json);
-        var me = await resposta.LerAsync<ObterMe.Response>();
+        var me = await resposta.LerAsync<ObterMeResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.OK);
         me.Nome.Should().Be("Mariana S.");
-        (await (await cliente.GetAsync("/api/v1/me")).LerAsync<ObterMe.Response>()).Nome.Should().Be("Mariana S.");
+        (await (await cliente.GetAsync("/api/v1/me")).LerAsync<ObterMeResponse>()).Nome.Should().Be("Mariana S.");
     }
 
     [Fact]

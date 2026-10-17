@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Infrastructure;
 using Ocorrencias.Api.Tests.Infra;
 
 namespace Ocorrencias.Api.Tests.Esqueleto;
@@ -9,14 +10,6 @@ namespace Ocorrencias.Api.Tests.Esqueleto;
 public sealed class EsqueletoTests(ApiFactory fabrica)
 {
     private readonly HttpClient _cliente = fabrica.CreateClient();
-
-    [Fact]
-    public async Task Health_responde_200()
-    {
-        var resposta = await _cliente.GetAsync("/health");
-
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
 
     [Fact]
     public async Task Documento_openapi_descreve_enums_como_string_e_nao_colide_nomes()
@@ -126,7 +119,7 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
     [InlineData("https://malicioso.example", false)]
     public async Task Cors_libera_somente_origens_configuradas(string origem, bool liberada)
     {
-        using var requisicao = new HttpRequestMessage(HttpMethod.Options, "/health");
+        using var requisicao = new HttpRequestMessage(HttpMethod.Options, "/api/v1/saude");
         requisicao.Headers.Add("Origin", origem);
         requisicao.Headers.Add("Access-Control-Request-Method", "GET");
 

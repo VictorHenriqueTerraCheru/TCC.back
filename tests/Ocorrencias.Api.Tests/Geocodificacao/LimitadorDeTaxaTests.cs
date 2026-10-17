@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
-using Ocorrencias.Api.Infra.Geocodificacao;
+using Ocorrencias.Api.Geocodificacao;
 
 namespace Ocorrencias.Api.Tests.Geocodificacao;
 

@@ -1,7 +1,8 @@
+using Ocorrencias.Api.Categorias;
 using System.Globalization;
 using System.Net;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Features.Problemas;
+using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
 
@@ -19,12 +20,12 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var (lat, lng) = ApiFactory.PontoUnico();
 
         var resposta = await autor.PostarProblemaAsync(lat, lng, descricao: "  Buraco grande  ");
-        var detalhe = await resposta.LerAsync<ObterDetalheProblema.Response>();
+        var detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         resposta.Headers.Location!.ToString().Should().Be($"/api/v1/problemas/{detalhe.Id}");
         detalhe.Status.Should().Be(StatusProblema.Nova);
-        detalhe.Categoria.Should().Be(new Features.Categorias.CategoriaResumo(1, "Buraco na via", "viaPublica", "buraco"));
+        detalhe.Categoria.Should().Be(new CategoriaResumo(1, "Buraco na via", "viaPublica", "buraco"));
         detalhe.Descricao.Should().Be("Buraco grande");
         detalhe.Endereco.Should().Be("Rua Voluntários da Pátria, 170 — Botafogo");
         detalhe.Lat.Should().BeApproximately(lat, 1e-9);
@@ -32,9 +33,9 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         detalhe.CriadoEm.Should().Be(fabrica.Relogio.GetUtcNow());
         detalhe.Confianca.Should().BeNull();
         detalhe.Faixa.Should().BeNull();
-        detalhe.Avaliacao.Should().Be(new ObterDetalheProblema.Avaliacao(0, 5, detalhe.CriadoEm.AddHours(72)));
+        detalhe.Avaliacao.Should().Be(new ObterDetalheProblemaAvaliacao(0, 5, detalhe.CriadoEm.AddHours(72)));
         detalhe.SouAutor.Should().BeTrue();
-        detalhe.MeusVotos.Should().Be(new ObterDetalheProblema.MeusVotos(null, null));
+        detalhe.MeusVotos.Should().Be(new ObterDetalheProblemaMeusVotos(null, null));
     }
 
     [Fact]
@@ -45,7 +46,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         fabrica.Nominatim.ForaDoAr(lat, lng);
 
         var resposta = await autor.PostarProblemaAsync(lat, lng);
-        var detalhe = await resposta.LerAsync<ObterDetalheProblema.Response>();
+        var detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.Created);
         detalhe.Endereco.Should().StartWith("Próximo a ");
@@ -96,7 +97,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var problema = await autor.RegistrarProblemaAsync(lat, lng);
 
         var detalhe = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))
-            .LerAsync<ObterDetalheProblema.Response>();
+            .LerAsync<ObterDetalheProblemaResponse>();
 
         detalhe.MeusVotos.Should().BeNull();
         detalhe.SouAutor.Should().BeFalse();
@@ -120,7 +121,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 10), lng, categoriaId: 2); // outra categoria
 
         var resposta = await pessoa.Cliente.GetAsync(Inv($"/api/v1/problemas/duplicatas?categoriaId=1&lat={lat}&lng={lng}"));
-        var duplicatas = await resposta.LerAsync<List<BuscarDuplicatas.Response>>();
+        var duplicatas = await resposta.LerAsync<List<BuscarDuplicatasResponse>>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.OK);
         duplicatas.Should().ContainSingle();
@@ -139,7 +140,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var dez = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 10), lng);
 
         var duplicatas = await (await pessoa.Cliente.GetAsync(Inv($"/api/v1/problemas/duplicatas?categoriaId=1&lat={lat}&lng={lng}")))
-            .LerAsync<List<BuscarDuplicatas.Response>>();
+            .LerAsync<List<BuscarDuplicatasResponse>>();
 
         duplicatas.Select(d => d.Id).Should().Equal(dez.Id, quarenta.Id);
     }
@@ -155,9 +156,9 @@ public sealed class ProblemasTests(ApiFactory fabrica)
 
         var area = Inv($"minLat={lat - 0.0005}&minLng={lng - 0.0005}&maxLat={lat + 0.0005}&maxLng={lng + 0.0005}");
         var todos = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}"))
-            .LerAsync<List<ListarProblemasNaArea.Response>>();
+            .LerAsync<List<ListarProblemasNaAreaResponse>>();
         var eletrica = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}&grupos=eletrica"))
-            .LerAsync<List<ListarProblemasNaArea.Response>>();
+            .LerAsync<List<ListarProblemasNaAreaResponse>>();
 
         todos.Select(p => p.Id).Should().BeEquivalentTo([buraco.Id, poste.Id]);
         todos.Should().AllSatisfy(p =>
@@ -180,7 +181,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
 
         var area = Inv($"minLat={lat - 0.001}&minLng={lng - 0.001}&maxLat={lat + 0.001}&maxLng={lng + 0.001}");
         var lista = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}&status=nova,ativa,possivelmenteResolvida,resolvida"))
-            .LerAsync<List<ListarProblemasNaArea.Response>>();
+            .LerAsync<List<ListarProblemasNaAreaResponse>>();
 
         lista.Should().NotContain(p => p.Id == problema.Id);
     }
@@ -195,7 +196,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var dentro = await pessoa.RegistrarProblemaAsync(60.5, 10);
 
         var lista = await (await fabrica.CreateClient().GetAsync("/api/v1/problemas?minLat=60&minLng=-60&maxLat=61&maxLng=60"))
-            .LerAsync<List<ListarProblemasNaArea.Response>>();
+            .LerAsync<List<ListarProblemasNaAreaResponse>>();
 
         lista.Select(p => p.Id).Should().Contain(dentro.Id).And.NotContain(fora.Id);
     }
@@ -209,7 +210,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
 
         var area = Inv($"minLat={lat - 0.001}&minLng={lng - 0.001}&maxLat={lat + 0.001}&maxLng={lng + 0.001}");
         var lista = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}&status=resolvida"))
-            .LerAsync<List<ListarProblemasNaArea.Response>>();
+            .LerAsync<List<ListarProblemasNaAreaResponse>>();
 
         lista.Should().BeEmpty();
     }
@@ -250,8 +251,8 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         }
 
         var url = Inv($"/api/v1/problemas/recentes?lat={lat}&lng={lng}&raioKm=0.05&tamanho=2");
-        var pagina1 = await (await fabrica.CreateClient().GetAsync(url)).LerAsync<Paginado<ListarProblemasRecentes.Item>>();
-        var pagina2 = await (await fabrica.CreateClient().GetAsync(url + "&pagina=2")).LerAsync<Paginado<ListarProblemasRecentes.Item>>();
+        var pagina1 = await (await fabrica.CreateClient().GetAsync(url)).LerAsync<Paginado<ListarProblemasRecentesItem>>();
+        var pagina2 = await (await fabrica.CreateClient().GetAsync(url + "&pagina=2")).LerAsync<Paginado<ListarProblemasRecentesItem>>();
 
         pagina1.Total.Should().Be(3);
         pagina1.Pagina.Should().Be(1);

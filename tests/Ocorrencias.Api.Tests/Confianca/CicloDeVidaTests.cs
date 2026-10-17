@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Ocorrencias.Api.Features.Problemas;
-using Ocorrencias.Api.Infra.Confianca;
+using Ocorrencias.Api.Problemas;
+using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
 
@@ -16,8 +16,8 @@ public sealed class CicloDeVidaTests(ApiFactory fabrica)
         await escopo.ServiceProvider.GetRequiredService<ProcessadorCicloDeVida>().ProcessarAsync(CancellationToken.None);
     }
 
-    private Task<ObterDetalheProblema.Response> DetalheAsync(Guid id) =>
-        fabrica.CreateClient().GetAsync($"/api/v1/problemas/{id}").ContinueWith(t => t.Result.LerAsync<ObterDetalheProblema.Response>()).Unwrap();
+    private Task<ObterDetalheProblemaResponse> DetalheAsync(Guid id) =>
+        fabrica.CreateClient().GetAsync($"/api/v1/problemas/{id}").ContinueWith(t => t.Result.LerAsync<ObterDetalheProblemaResponse>()).Unwrap();
 
     [Fact]
     public async Task Job_leva_possivelmente_resolvido_a_resolvido_apos_48h()

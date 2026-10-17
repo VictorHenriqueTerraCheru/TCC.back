@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Ocorrencias.Api.Infra.Geocodificacao;
+using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Api.Tests.Infra;
 
 namespace Ocorrencias.Api.Tests.Geocodificacao;

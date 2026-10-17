@@ -1,0 +1,36 @@
+using FluentValidation;
+using Ocorrencias.Api.Common;
+
+namespace Ocorrencias.Api.Votos;
+
+public sealed class VotarExistenciaValidator : AbstractValidator<VotarExistenciaRequest>
+{
+    public VotarExistenciaValidator()
+    {
+        RuleFor(r => r.Valor).IsInEnum();
+        RegrasPosicaoVoto.Aplicar(this, r => r.Lat, r => r.Lng);
+    }
+}
+
+public sealed class VotarPersistenciaValidator : AbstractValidator<VotarPersistenciaRequest>
+{
+    public VotarPersistenciaValidator()
+    {
+        RuleFor(r => r.Valor).IsInEnum();
+        RegrasPosicaoVoto.Aplicar(this, r => r.Lat, r => r.Lng);
+    }
+}
+
+internal static class RegrasPosicaoVoto
+{
+    /// <summary>Posição opcional do votante: os dois campos juntos, ou nenhum.</summary>
+    public static void Aplicar<T>(AbstractValidator<T> validador, Func<T, double?> lat, Func<T, double?> lng)
+    {
+        validador.RuleFor(r => lat(r)).Latitude().OverridePropertyName("lat");
+        validador.RuleFor(r => lng(r)).Longitude().OverridePropertyName("lng");
+        validador.RuleFor(r => r)
+            .Must(r => lat(r).HasValue == lng(r).HasValue)
+            .OverridePropertyName("lat")
+            .WithMessage("Informe lat e lng juntos, ou nenhum dos dois.");
+    }
+}
