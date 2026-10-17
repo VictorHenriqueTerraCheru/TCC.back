@@ -32,6 +32,18 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private static int _sequencia;
 
+    /// <summary>
+    /// Ponto a ~5 km de qualquer outro já sorteado (região de São Paulo), para consultas de raio largo
+    /// (área de incidentes, 400 m) não enxergarem dados de outros testes.
+    /// </summary>
+    public static (double Lat, double Lng) AreaIsolada()
+    {
+        var n = Interlocked.Increment(ref _sequenciaIsolada);
+        return (-23.5 - n * 0.05, -46.6);
+    }
+
+    private static int _sequenciaIsolada;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");

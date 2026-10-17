@@ -30,6 +30,14 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
     }
 
     [Fact]
+    public async Task Nenhum_schema_do_contrato_expoe_o_autor()
+    {
+        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).Content.ReadAsStringAsync();
+
+        documento.Should().NotContainEquivalentOf("autorId");
+    }
+
+    [Fact]
     public async Task Openapi_gera_tipos_precisos_para_o_front()
     {
         var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();

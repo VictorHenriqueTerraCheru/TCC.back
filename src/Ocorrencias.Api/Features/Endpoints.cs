@@ -1,6 +1,7 @@
 using Ocorrencias.Api.Features.Auth;
 using Ocorrencias.Api.Features.Categorias;
 using Ocorrencias.Api.Features.Geocodificacao;
+using Ocorrencias.Api.Features.Incidentes;
 using Ocorrencias.Api.Features.Problemas;
 using Ocorrencias.Api.Features.Usuarios;
 using Ocorrencias.Api.Features.Votos;
@@ -36,6 +37,10 @@ public static class Endpoints
 
         api.MapVotarExistencia();
         api.MapVotarPersistencia();
+
+        api.MapRegistrarIncidente();
+        api.MapObterCalorIncidentes();
+        api.MapObterAreaIncidentes();
 
         return app;
     }
