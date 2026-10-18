@@ -28,5 +28,9 @@ if (app.Environment.IsDevelopment())
 {
     await app.InicializarBancoDesenvolvimentoAsync();
 }
+else if (app.Environment.IsProduction())
+{
+    await app.InicializarBancoProducaoAsync();
+}
 
 await app.RunAsync();
