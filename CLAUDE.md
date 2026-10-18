@@ -17,7 +17,7 @@ Se uma tarefa exigir mudar a regra ou o contrato, **pare e pergunte** — essas 
 
 - .NET 10 (LTS), C# 14, ASP.NET Core **Minimal APIs**
 - EF Core 10 + `Npgsql.EntityFrameworkCore.PostgreSQL` + `.NetTopologySuite`; `EFCore.NamingConventions` (snake_case)
-- PostgreSQL 16+ com PostGIS — **Supabase em produção**, `postgis/postgis` em Docker para dev e testes
+- PostgreSQL 16+ com PostGIS — **PostgreSQL + PostGIS no Railway em produção**, `postgis/postgis` em Docker para dev e testes
 - ASP.NET Core Identity (`IdentityUser<Guid>` customizado → tabela `usuarios`) + JWT Bearer
 - FluentValidation, OpenAPI nativo (`Microsoft.AspNetCore.OpenApi`) + Scalar em `/scalar`
 - xUnit + AwesomeAssertions (fork Apache-2.0 do FluentAssertions); Testcontainers (PostGIS) para testes de integração
@@ -94,8 +94,9 @@ dotnet test
 dotnet run -c Release --project src/Ocorrencias.Simulator -- --config A,B,B-v3,B-v5 --variantes S1,S2,S3 --sementes 30 --saida resultados/ --cenario cenarios/base.json
 ```
 
-## Supabase (produção)
+## Banco em produção (Railway)
 
-- Ative a extensão: `create extension if not exists postgis;` (Database → Extensions).
-- Conecte pela conexão direta ou pelo **Session pooler** (porta 5432). Evite o *Transaction pooler* (porta 6543): ele não preserva estado de sessão e costuma dar problema com Npgsql/EF (migrations, prepared statements).
-- O Supabase é **só banco**: não use Supabase Auth, RLS nem Edge Functions.
+- O serviço de banco precisa ter a extensão PostGIS **instalada** no servidor: use o template de PostGIS do Railway ou um serviço com a imagem `postgis/postgis:16-3.4` (a mesma do `docker-compose.yml`) e um volume em `/var/lib/postgresql/data`. A migration `Inicial` roda `CREATE EXTENSION postgis`, que falha se a extensão não existir na imagem.
+- A API lê `ConnectionStrings__Default` no formato chave=valor do Npgsql (não aceita a URL `postgresql://` da `DATABASE_URL`). Monte com as referências do Railway: `Host=${{Postgres.PGHOST}};Port=${{Postgres.PGPORT}};Database=${{Postgres.PGDATABASE}};Username=${{Postgres.PGUSER}};Password=${{Postgres.PGPASSWORD}}` (troque `Postgres` pelo nome do serviço). Dentro do Railway isso usa a rede privada.
+- Migrations: em produção a API **não** aplica migrations nem cria usuários de exemplo (só em `Development`). Rode `dotnet ef database update` da máquina local apontando para a conexão **pública** do banco (TCP Proxy, `DATABASE_PUBLIC_URL`, convertida para chave=valor).
+- É um PostgreSQL comum: nada de recurso específico de provedor.

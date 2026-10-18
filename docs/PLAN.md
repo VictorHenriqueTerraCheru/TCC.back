@@ -93,8 +93,8 @@ Console que referencia **só** o `Ocorrencias.Domain`. Roda em memória, sem ban
 
 ## Etapa 8 — Deploy e entrega (≈ 1 dia)
 
-- Banco no Supabase (PostGIS ativado), `dotnet ef database update` apontando para lá.
-- API em container (Dockerfile multi-stage). Host a decidir com os autores (ex.: Render, Railway, Fly.io ou Azure App Service, em plano gratuito). A API precisa de HTTPS (o front em HTTPS não pode chamar API em HTTP).
+- Banco PostgreSQL + PostGIS no Railway (template de PostGIS ou imagem `postgis/postgis:16-3.4` com volume); `dotnet ef database update` apontando para a conexão pública dele. Detalhes de conexão no `CLAUDE.md` ("Banco em produção").
+- API em container (Dockerfile multi-stage) no Railway, no mesmo projeto do banco (rede privada). A API precisa de HTTPS (o front em HTTPS não pode chamar API em HTTP); o domínio público do Railway já serve HTTPS.
 - `Cors__Origens__0` apontando para o domínio publicado do front; `Nominatim__Email` com um e-mail de contato real.
 - Exportar diagramas: `docs/diagramas/*.puml` → PNG (PlantUML) para o TCC.
 

@@ -9,15 +9,17 @@ cloud "OpenStreetMap" {
   component "Servidor de tiles" as OSM
   component "Nominatim\n(geocodificação)" as NOM
 }
-node "Servidor da API" {
-  component "API .NET 10\n(Minimal API, fatias verticais)" as API
-  component "Domain\n(motor de confiança)" as DOM
-  component "Job de ciclo de vida\n(BackgroundService)" as JOB
+node "Railway" {
+  node "Servidor da API (container)" {
+    component "API .NET 10\n(Minimal API, fatias verticais)" as API
+    component "Domain\n(motor de confiança)" as DOM
+    component "Job de ciclo de vida\n(BackgroundService)" as JOB
+  }
+  database "PostgreSQL + PostGIS" as DB
 }
 node "Estação de avaliação" {
   component "Simulator\n(console .NET)" as SIM
 }
-database "Supabase\nPostgreSQL + PostGIS" as DB
 HOST ..> APP : entrega os arquivos
 APP --> GPS
 APP --> OSM : tiles do mapa
