@@ -25,3 +25,5 @@ Em `Development`, a API aplica as migrations e cria usuários de exemplo na prim
 | `admin@tcc.local` | administrador |
 | `verificado@tcc.local` | cidadaoVerificado |
 | `cidadao1@tcc.local`, `cidadao2@tcc.local`, `cidadao3@tcc.local` | cidadao |
+
+Em produção (`Production`), esses usuários não existem: a API aplica as migrations e cria um único administrador com `AdminInicial__Email` e `AdminInicial__Senha`. Imagem para deploy: `docker build -t ocorrencias-api .` (porta 8080).
