@@ -36,8 +36,7 @@ public sealed class ContratoTests(ApiFactory fabrica)
         "GET /api/v1/problemas/duplicatas",
         "GET /api/v1/problemas/{id:guid} [anonimo]",
         "POST /api/v1/problemas",
-        "PUT /api/v1/problemas/{id:guid}/votos/existencia",
-        "PUT /api/v1/problemas/{id:guid}/votos/persistencia",
+        "PUT /api/v1/problemas/{id:guid}/voto",
         "POST /api/v1/incidentes",
         "GET /api/v1/incidentes/calor [anonimo]",
         "GET /api/v1/incidentes/area [anonimo]",
@@ -139,7 +138,7 @@ public sealed class ContratoTests(ApiFactory fabrica)
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await removido.Cliente.PostAsJsonAsync("/api/v1/verificacoes", new { tipoVinculo = "moradorRegiao", justificativa = Justificativa }, ClienteApi.Json))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await removido.VotarExistenciaAsync(problema.Id, "confirma")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await removido.VotarAsync(problema.Id, "sim")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -150,8 +149,7 @@ public sealed class ContratoTests(ApiFactory fabrica)
         var id = Guid.NewGuid();
 
         (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await pessoa.VotarExistenciaAsync(id, "confirma")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await pessoa.VotarPersistenciaAsync(id, "continua")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await pessoa.VotarAsync(id, "sim")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await admin.Cliente.PostAsync($"/api/v1/admin/verificacoes/{id}/aprovar", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await admin.Cliente.PostAsJsonAsync($"/api/v1/admin/verificacoes/{id}/recusar", new { motivo = "Sem vínculo com a região." }, ClienteApi.Json))
             .StatusCode.Should().Be(HttpStatusCode.NotFound);

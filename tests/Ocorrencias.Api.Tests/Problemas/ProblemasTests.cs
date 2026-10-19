@@ -35,7 +35,8 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         detalhe.Faixa.Should().BeNull();
         detalhe.Avaliacao.Should().Be(new ObterDetalheProblemaAvaliacao(0, 5, detalhe.CriadoEm.AddHours(72)));
         detalhe.SouAutor.Should().BeTrue();
-        detalhe.MeusVotos.Should().Be(new ObterDetalheProblemaMeusVotos(null, null));
+        detalhe.MeuVoto.Should().BeNull();
+        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 0, 0));
     }
 
     [Fact]
@@ -99,7 +100,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var detalhe = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))
             .LerAsync<ObterDetalheProblemaResponse>();
 
-        detalhe.MeusVotos.Should().BeNull();
+        detalhe.MeuVoto.Should().BeNull();
         detalhe.SouAutor.Should().BeFalse();
     }
 

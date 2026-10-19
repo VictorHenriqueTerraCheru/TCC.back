@@ -20,8 +20,7 @@ rectangle "Sistema de ocorrências urbanas" {
   usecase "Registrar problema" as UC8
   usecase "Verificar duplicatas" as UC9
   usecase "Registrar incidente" as UC10
-  usecase "Votar existência\n(Confirmar / Não vi)" as UC11
-  usecase "Votar persistência\n(Ainda está lá?)" as UC12
+  usecase "Responder \"Ainda está lá?\"\n(Sim / Não)" as UC11
   usecase "Calcular peso do voto" as UC13
   usecase "Consultar histórico" as UC14
   usecase "Solicitar verificação" as UC15
@@ -38,7 +37,6 @@ UC1 <.. UC2 : <<extend>>
 C --> UC8
 C --> UC10
 C --> UC11
-C --> UC12
 C --> UC14
 C --> UC15
 T --> UC17
@@ -48,5 +46,4 @@ C <|-- A
 UC8 ..> UC9 : <<include>>
 
 UC11 ..> UC13 : <<include>>
-UC12 ..> UC13 : <<include>>
 @enduml

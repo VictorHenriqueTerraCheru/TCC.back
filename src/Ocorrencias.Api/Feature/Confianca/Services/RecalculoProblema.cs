@@ -23,7 +23,7 @@ public static class RecalculoProblema
     public static void Aplicar(Problema problema, IEnumerable<Voto> votos, DateTimeOffset agora, ConfiguracaoConfianca cfg)
     {
         var fatos = votos
-            .Select(v => new VotoFato(v.UsuarioId, v.Tipo, v.Valor, v.PerfilNoMomento, v.DistanciaMetros, v.RegistradoEm))
+            .Select(v => new VotoFato(v.UsuarioId, v.Valor, v.PerfilNoMomento, v.DistanciaMetros, v.RegistradoEm))
             .ToList();
 
         var resultado = MotorConfianca.CalcularConfianca(fatos, agora, cfg);

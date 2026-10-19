@@ -26,16 +26,16 @@ public sealed class HistoricoTests(ApiFactory fabrica)
             new { categoriaId = 7, lat, lng, ocorridoEm = fabrica.Relogio.GetUtcNow().AddMinutes(-10) }, ClienteApi.Json);
         fabrica.Relogio.Advance(TimeSpan.FromMinutes(1));
         var deOutro = await outro.RegistrarProblemaAsync(Cenarios.Norte(lat, 30), lng, categoriaId: 3);
-        await eu.VotarExistenciaAsync(deOutro.Id, "naoVi");
+        await eu.VotarAsync(deOutro.Id, "nao");
 
         var historico = await HistoricoAsync(eu);
 
         historico.Total.Should().Be(3);
-        historico.Itens.Select(i => i.Tipo).Should().Equal(ObterHistoricoTipoItem.VotoExistencia, ObterHistoricoTipoItem.RegistroIncidente, ObterHistoricoTipoItem.RegistroProblema);
+        historico.Itens.Select(i => i.Tipo).Should().Equal(ObterHistoricoTipoItem.Voto, ObterHistoricoTipoItem.RegistroIncidente, ObterHistoricoTipoItem.RegistroProblema);
 
         var voto = historico.Itens[0];
         voto.OcorrenciaId.Should().Be(deOutro.Id);
-        voto.Valor.Should().Be(ObterHistoricoValorItem.NaoVi);
+        voto.Valor.Should().Be(ObterHistoricoValorItem.Nao);
         voto.StatusProblema.Should().Be(StatusProblema.Nova);
         voto.Categoria.Nome.Should().Be("Poste apagado");
 
@@ -60,19 +60,17 @@ public sealed class HistoricoTests(ApiFactory fabrica)
         await eu.RegistrarProblemaAsync(lat, lng);
         var alheio = await outro.RegistrarProblemaAsync(Cenarios.Norte(lat, 30), lng);
         fabrica.Relogio.Advance(TimeSpan.FromMinutes(1));
-        await eu.VotarExistenciaAsync(alheio.Id, "confirma");
-        await fabrica.NoBancoAsync(db => Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteUpdateAsync(
-            db.Problemas.Where(p => p.Id == alheio.Id), s => s.SetProperty(p => p.Status, StatusProblema.Ativa)));
-        await eu.VotarPersistenciaAsync(alheio.Id, "resolvido");
+        await eu.VotarAsync(alheio.Id, "sim");
+        await eu.VotarAsync(alheio.Id, "nao"); // substitui o "sim"
 
         var registros = await HistoricoAsync(eu, "?filtro=registros");
         var votos = await HistoricoAsync(eu, "?filtro=votos");
-        var pagina2 = await HistoricoAsync(eu, "?tamanho=2&pagina=2");
+        var pagina2 = await HistoricoAsync(eu, "?tamanho=1&pagina=2");
 
         registros.Itens.Should().ContainSingle().Which.Tipo.Should().Be(ObterHistoricoTipoItem.RegistroProblema);
-        votos.Itens.Select(i => (i.Tipo, i.Valor)).Should().BeEquivalentTo(
-            [(ObterHistoricoTipoItem.VotoExistencia, (ObterHistoricoValorItem?)ObterHistoricoValorItem.Confirma), (ObterHistoricoTipoItem.VotoPersistencia, (ObterHistoricoValorItem?)ObterHistoricoValorItem.Resolvido)]);
-        pagina2.Total.Should().Be(3);
+        votos.Itens.Select(i => (i.Tipo, i.Valor)).Should().Equal(
+            [(ObterHistoricoTipoItem.Voto, (ObterHistoricoValorItem?)ObterHistoricoValorItem.Nao)]);
+        pagina2.Total.Should().Be(2);
         pagina2.Itens.Should().ContainSingle().Which.Tipo.Should().Be(ObterHistoricoTipoItem.RegistroProblema);
     }
 

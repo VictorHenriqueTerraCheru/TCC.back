@@ -53,17 +53,12 @@ public sealed record ObterDetalheProblemaResponse(
     double? Confianca,
     FaixaConfianca? Faixa,
     ObterDetalheProblemaAvaliacao? Avaliacao,
-    ObterDetalheProblemaContagemExistencia Existencia,
-    ObterDetalheProblemaContagemPersistencia Persistencia,
-    ObterDetalheProblemaMeusVotos? MeusVotos,
+    ObterDetalheProblemaVotos Votos,
+    ValorVotoContrato? MeuVoto,
     bool SouAutor);
 
 /// <summary>Só em <c>nova</c>: quantas pessoas já votaram e quando a avaliação encerra.</summary>
 public sealed record ObterDetalheProblemaAvaliacao(int Votantes, int Necessarios, DateTimeOffset EncerraEm);
 
-/// <summary>Contagens de pessoas (não pesos).</summary>
-public sealed record ObterDetalheProblemaContagemExistencia(int Confirmacoes, int NaoVi);
-
-public sealed record ObterDetalheProblemaContagemPersistencia(int Continua, int Resolvido, int ResolvidoUltimas24h);
-
-public sealed record ObterDetalheProblemaMeusVotos(ValorExistencia? Existencia, ValorPersistencia? Persistencia);
+/// <summary>Respostas a "Ainda está lá?", em pessoas (não pesos).</summary>
+public sealed record ObterDetalheProblemaVotos(int Sim, int Nao, int NaoUltimas24h);

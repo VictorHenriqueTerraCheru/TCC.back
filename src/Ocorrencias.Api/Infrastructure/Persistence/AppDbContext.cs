@@ -55,7 +55,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         builder.Properties<Perfil>().HaveConversion<short>();
         builder.Properties<TipoOcorrencia>().HaveConversion<short>();
         builder.Properties<StatusProblema>().HaveConversion<short>();
-        builder.Properties<TipoVoto>().HaveConversion<short>();
         builder.Properties<ValorVoto>().HaveConversion<short>();
         builder.Properties<TipoVinculo>().HaveConversion<short>();
         builder.Properties<StatusVerificacao>().HaveConversion<short>();

@@ -39,18 +39,18 @@ public sealed class RegrasComplementaresTests
 
     [Fact]
     public void Voto_registrado_no_futuro_nao_ganha_peso_extra() =>
-        MotorConfianca.FatorTemporal(TimeSpan.FromHours(-5), TipoVoto.Existencia, B).Should().Be(1);
+        MotorConfianca.FatorTemporal(TimeSpan.FromHours(-5), B.MeiaVidaConfianca, B).Should().Be(1);
 
     [Fact]
     public void Config_A_nao_decai() =>
-        MotorConfianca.FatorTemporal(TimeSpan.FromDays(365), TipoVoto.Persistencia, ConfiguracaoConfianca.A).Should().Be(1);
+        MotorConfianca.FatorTemporal(TimeSpan.FromDays(365), ConfiguracaoConfianca.A.MeiaVidaCicloDeVida, ConfiguracaoConfianca.A).Should().Be(1);
 
     [Fact]
     public void Peso_do_voto_multiplica_perfil_proximidade_e_tempo()
     {
-        var voto = Confirma(Perfil.CidadaoVerificado, distancia: 1100, em: T0);
+        var voto = Sim(Perfil.CidadaoVerificado, distancia: 1100, em: T0);
 
-        MotorConfianca.PesoVoto(voto, T0.AddDays(14), B).Should().BeApproximately(10 * 1.5 * 0.5, 1e-9);
+        MotorConfianca.PesoVoto(voto, T0.AddDays(14), B.MeiaVidaConfianca, B).Should().BeApproximately(10 * 1.5 * 0.5, 1e-9);
     }
 
     [Theory]
@@ -64,7 +64,7 @@ public sealed class RegrasComplementaresTests
     [Fact]
     public void Nova_nao_pula_direto_para_possivelmente_resolvida()
     {
-        List<VotoFato> votos = [.. Repetir(5, () => Confirma()), .. Repetir(10, () => Resolvido())];
+        List<VotoFato> votos = [.. Repetir(5, () => Sim()), .. Repetir(10, () => Nao())];
 
         var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, T0, B);
 
@@ -73,34 +73,46 @@ public sealed class RegrasComplementaresTests
     }
 
     [Fact]
-    public void Votos_de_persistencia_tambem_contam_como_votantes()
+    public void Votos_nao_tambem_contam_como_votantes()
     {
-        List<VotoFato> votos = [.. Repetir(3, () => Confirma()), .. Repetir(2, () => Continua())];
+        List<VotoFato> votos = [.. Repetir(3, () => Sim()), .. Repetir(2, () => Nao())];
 
         MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, T0, B)
             .Status.Should().Be(StatusProblema.Ativa);
     }
 
     [Fact]
+    public void Mesmo_voto_envelhece_devagar_no_indice_e_rapido_no_ciclo_de_vida()
+    {
+        // 3 dias depois: no índice ainda pesa 2 × 2^(−3/14); no ciclo de vida, 2 × 0,5.
+        var voto = Sim(em: T0);
+        var agora = T0.AddDays(3);
+
+        MotorConfianca.CalcularConfianca([voto], agora, B).EPositivo
+            .Should().BeApproximately(2 * Math.Pow(2, -3.0 / 14), 1e-9);
+        MotorConfianca.PesoVoto(voto, agora, B.MeiaVidaCicloDeVida, B).Should().BeApproximately(1, 1e-9);
+    }
+
+    [Fact]
     public void Ativa_exige_peso_minimo_de_resolvido_para_entrar()
     {
-        // 2 "resolvido" a 100 m: R⁻ = 4 < 5, mesmo com p = 1.
-        var votos = Repetir(2, () => Resolvido());
+        // 2 "não" a 100 m: R⁻ = 4 < 5, mesmo com p = 1.
+        var votos = Repetir(2, () => Nao());
 
         MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), votos, T0, B)
             .Status.Should().Be(StatusProblema.Ativa);
     }
 
     [Fact]
-    public void Ativa_sem_votos_de_persistencia_continua_ativa() =>
-        MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), [Confirma()], T0.AddDays(30), B)
+    public void Ativa_so_com_sim_continua_ativa() =>
+        MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), [Sim()], T0.AddDays(30), B)
             .Status.Should().Be(StatusProblema.Ativa);
 
     [Fact]
     public void Proporcao_exatamente_no_limiar_entra_em_possivelmente_resolvida()
     {
         // R⁻ = 6, R⁺ = 4 → p = 0,6.
-        List<VotoFato> votos = [.. Repetir(3, () => Resolvido()), .. Repetir(2, () => Continua())];
+        List<VotoFato> votos = [.. Repetir(3, () => Nao()), .. Repetir(2, () => Sim())];
 
         MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), votos, T0, B)
             .Status.Should().Be(StatusProblema.PossivelmenteResolvida);
@@ -110,7 +122,7 @@ public sealed class RegrasComplementaresTests
     public void Resolvida_e_estado_final()
     {
         var estado = Estado(StatusProblema.Resolvida);
-        var votos = Repetir(10, () => Continua());
+        var votos = Repetir(10, () => Sim());
 
         MotorConfianca.AvaliarCicloDeVida(estado, votos, T0.AddDays(10), B).Should().Be(estado);
     }
@@ -120,6 +132,6 @@ public sealed class RegrasComplementaresTests
     {
         var estado = Estado(StatusProblema.Ativa, statusAlteradoEm: T0);
 
-        MotorConfianca.AvaliarCicloDeVida(estado, [Confirma()], T0.AddHours(1), B).Should().Be(estado);
+        MotorConfianca.AvaliarCicloDeVida(estado, [Sim()], T0.AddHours(1), B).Should().Be(estado);
     }
 }

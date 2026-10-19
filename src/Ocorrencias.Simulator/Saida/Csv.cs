@@ -17,8 +17,8 @@ public static class Csv
         var arquivos = new Dictionary<string, string>
         {
             ["base_diario.csv"] = Tabela(
-                "configuracao,semente,dia,falsos_existentes,falsos_alta,fp,verdadeiros_avaliados,verdadeiros_baixa,fn,verdadeiros_resolvidos_indevidamente",
-                r.Diario.Select(l => Linha(l.Configuracao, l.Semente, l.Dia, l.FalsosExistentes, l.FalsosAlta, Fracao(l.Fp),
+                "configuracao,semente,dia,falsos_existentes,falsos_alta,falsos_resolvidos,fp,verdadeiros_avaliados,verdadeiros_baixa,fn,verdadeiros_resolvidos_indevidamente",
+                r.Diario.Select(l => Linha(l.Configuracao, l.Semente, l.Dia, l.FalsosExistentes, l.FalsosAlta, l.FalsosResolvidos, Fracao(l.Fp),
                     l.VerdadeirosAvaliados, l.VerdadeirosBaixa, Fracao(l.Fn), l.VerdadeirosResolvidosIndevidamente))),
             ["resolucao.csv"] = Tabela(
                 "configuracao,semente,problema,resolucao_real_h,resolvida_h,tempo_h,censurado",
@@ -29,9 +29,9 @@ public static class Csv
                 r.Ataques.Select(l => Linha(l.Configuracao, l.Variante, l.K, l.Semente, Bool(l.AtingiuAlta), Horas(l.PrimeiraAltaHora),
                     Camel(l.StatusFimAtaque.ToString()), Indice(l.IndiceFimAtaque), Horas(l.TempoRecuperacaoHoras), Bool(l.Censurado)))),
             ["resumo_configuracoes.csv"] = Tabela(
-                "configuracao,sementes,fp_medio,fn_medio,resolvidos_indevidamente_medio,resolucao_mediana_h,resolucao_censurados",
+                "configuracao,sementes,fp_medio,fn_medio,resolvidos_indevidamente_medio,falsos_resolvidos_fim,resolucao_mediana_h,resolucao_censurados",
                 Resumo.PorConfiguracao(r).Select(l => Linha(l.Configuracao, l.Sementes, Fracao(l.FpMedio), Fracao(l.FnMedio),
-                    Fracao(l.IndevidosMedio), Horas(l.ResolucaoMedianaHoras), Fracao(l.ResolucaoCensurados)))),
+                    Fracao(l.IndevidosMedio), Fracao(l.FalsosResolvidosFim), Horas(l.ResolucaoMedianaHoras), Fracao(l.ResolucaoCensurados)))),
             ["resumo_ataque.csv"] = Tabela(
                 "configuracao,variante,k,taxa_alta,recuperacao_mediana_h,recuperacao_censurados",
                 resumoAtaque.Select(l => Linha(l.Configuracao, l.Variante, l.K, Fracao(l.TaxaAlta), Horas(l.RecuperacaoMedianaHoras),

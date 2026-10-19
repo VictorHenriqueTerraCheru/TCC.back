@@ -58,7 +58,7 @@ public sealed class ProblemaService(
         return detalhe;
     }
 
-    /// <param name="usuarioId">Nulo para visitante: <c>meusVotos</c> = null e <c>souAutor</c> = false.</param>
+    /// <param name="usuarioId">Nulo para visitante: <c>meuVoto</c> = null e <c>souAutor</c> = false.</param>
     public async Task<ObterDetalheProblemaResponse?> ConsultarDetalheAsync(Guid id, Guid? usuarioId, DateTimeOffset agora, CancellationToken ct)
     {
         var limite24h = agora.AddHours(-24);
@@ -77,18 +77,11 @@ public sealed class ProblemaService(
                 p.Confianca,
                 p.AutorId,
                 Votantes = p.Votos.Select(v => v.UsuarioId).Distinct().Count(),
-                Confirmacoes = p.Votos.Count(v => v.Tipo == TipoVoto.Existencia && v.Valor == ValorVoto.Positivo),
-                NaoVi = p.Votos.Count(v => v.Tipo == TipoVoto.Existencia && v.Valor == ValorVoto.Negativo),
-                Continua = p.Votos.Count(v => v.Tipo == TipoVoto.Persistencia && v.Valor == ValorVoto.Positivo),
-                Resolvido = p.Votos.Count(v => v.Tipo == TipoVoto.Persistencia && v.Valor == ValorVoto.Negativo),
-                ResolvidoUltimas24h = p.Votos.Count(v =>
-                    v.Tipo == TipoVoto.Persistencia && v.Valor == ValorVoto.Negativo && v.RegistradoEm >= limite24h),
-                MeuExistencia = p.Votos
-                    .Where(v => v.UsuarioId == usuarioId && v.Tipo == TipoVoto.Existencia)
-                    .Select(v => (ValorVoto?)v.Valor)
-                    .FirstOrDefault(),
-                MeuPersistencia = p.Votos
-                    .Where(v => v.UsuarioId == usuarioId && v.Tipo == TipoVoto.Persistencia)
+                Sim = p.Votos.Count(v => v.Valor == ValorVoto.Positivo),
+                Nao = p.Votos.Count(v => v.Valor == ValorVoto.Negativo),
+                NaoUltimas24h = p.Votos.Count(v => v.Valor == ValorVoto.Negativo && v.RegistradoEm >= limite24h),
+                MeuVoto = p.Votos
+                    .Where(v => v.UsuarioId == usuarioId)
                     .Select(v => (ValorVoto?)v.Valor)
                     .FirstOrDefault(),
             })
@@ -116,11 +109,8 @@ public sealed class ProblemaService(
             linha.Status == StatusProblema.Nova
                 ? new ObterDetalheProblemaAvaliacao(linha.Votantes, cfg.VotantesParaSairDeNova, linha.CriadoEm + cfg.TempoMaximoEmNova)
                 : null,
-            new ObterDetalheProblemaContagemExistencia(linha.Confirmacoes, linha.NaoVi),
-            new ObterDetalheProblemaContagemPersistencia(linha.Continua, linha.Resolvido, linha.ResolvidoUltimas24h),
-            usuarioId is null
-                ? null
-                : new ObterDetalheProblemaMeusVotos((ValorExistencia?)linha.MeuExistencia, (ValorPersistencia?)linha.MeuPersistencia),
+            new ObterDetalheProblemaVotos(linha.Sim, linha.Nao, linha.NaoUltimas24h),
+            usuarioId is null ? null : (ValorVotoContrato?)linha.MeuVoto,
             usuarioId is not null && linha.AutorId == usuarioId);
     }
 
@@ -142,7 +132,7 @@ public sealed class ProblemaService(
                 Distancia = p.Localizacao.Distance(ponto),
                 p.Status,
                 p.Confianca,
-                Confirmacoes = p.Votos.Count(v => v.Tipo == TipoVoto.Existencia && v.Valor == ValorVoto.Positivo),
+                Confirmacoes = p.Votos.Count(v => v.Valor == ValorVoto.Positivo),
             })
             .OrderBy(p => p.Distancia)
             .Take(LimitesProblema.MaximoDuplicatas)

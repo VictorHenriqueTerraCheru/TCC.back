@@ -4,11 +4,11 @@ hide empty description
 [*] --> Nova : registro
 Nova : marcador com selo "Nova"
 Nova : confiança não exibida
-Nova : "Ainda está lá?" fechado
+Nova : "Ainda está lá?" já aceita votos
 Ativa : destaque pela faixa de confiança
 PossivelmenteResolvida : marcador tracejado
 Resolvida : fora do mapa, só no histórico
-Nova --> Ativa : 5 votantes distintos\nou 72 h desde o registro
+Nova --> Ativa : 5 votantes distintos\nou 72 h desde o registro\n(os "não" já contam a partir daqui)
 Ativa --> PossivelmenteResolvida : R⁻ ≥ 5 e\nR⁻ / (R⁺ + R⁻) ≥ 0,6
 PossivelmenteResolvida --> Ativa : R⁻ / (R⁺ + R⁻) < 0,6
 PossivelmenteResolvida --> Resolvida : R⁻ / (R⁺ + R⁻) ≥ 0,6\nmantida por 48 h

@@ -35,11 +35,11 @@ var arquivos = Csv.Escrever(opcoes.Saida, resultado);
 cronometro.Stop();
 
 Console.WriteLine();
-Console.WriteLine("configuracao  fp_medio  fn_medio  resolucao_mediana_h");
+Console.WriteLine("configuracao  fp_medio  fn_medio  indevidos  falsos_resolvidos_fim  resolucao_mediana_h");
 foreach (var r in Resumo.PorConfiguracao(resultado))
 {
     Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-        $"{r.Configuracao,-12}  {Texto(r.FpMedio, "F4"),8}  {Texto(r.FnMedio, "F4"),8}  {Texto(r.ResolucaoMedianaHoras, "F1"),19}"));
+        $"{r.Configuracao,-12}  {Texto(r.FpMedio, "F4"),8}  {Texto(r.FnMedio, "F4"),8}  {Texto(r.IndevidosMedio, "F4"),9}  {Texto(r.FalsosResolvidosFim, "F4"),21}  {Texto(r.ResolucaoMedianaHoras, "F1"),19}"));
 }
 
 Console.WriteLine();

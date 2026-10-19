@@ -30,7 +30,7 @@ public static class Avaliador
     public static LinhaDoTempo Avaliar(ProblemaSimulado problema, IReadOnlyList<Intencao> intencoes, ConfiguracaoConfianca cfg, int horas)
     {
         var linha = new LinhaDoTempo(horas);
-        var votos = new Dictionary<(Guid, TipoVoto), VotoFato>();
+        var votos = new Dictionary<Guid, VotoFato>();
         var criado = Instante(problema.CriadoHora);
         var estado = new EstadoProblema(StatusProblema.Nova, criado, criado, null);
         var proxima = 0;
@@ -52,10 +52,10 @@ public static class Avaliador
                     continue;
                 }
 
-                // UPSERT por (usuário, tipo), com perfil e distância (em metros inteiros, como a API grava).
+                // UPSERT por usuário, com perfil e distância (em metros inteiros, como a API grava).
                 var instante = Instante(intencao.Hora);
-                votos[(intencao.UsuarioId, intencao.Tipo)] = new VotoFato(
-                    intencao.UsuarioId, intencao.Tipo, intencao.Valor, intencao.Perfil,
+                votos[intencao.UsuarioId] = new VotoFato(
+                    intencao.UsuarioId, intencao.Valor, intencao.Perfil,
                     intencao.DistanciaMetros is { } d ? Math.Round(d, MidpointRounding.AwayFromZero) : null,
                     instante);
                 estado = MotorConfianca.AvaliarCicloDeVida(estado, votos.Values, instante, cfg);
@@ -79,9 +79,7 @@ public static class Avaliador
     /// <remarks>Arredonda via <c>decimal</c>, exatamente como a API: em <c>double</c>, 39,995 é 39,99499… e iria para 39,99.</remarks>
     public static double ComoGravadoNaApi(double indice) => (double)Math.Round((decimal)indice, 2, MidpointRounding.AwayFromZero);
 
-    /// <summary>Mesmas recusas da API: problema resolvido, autor votando existência, persistência em Nova.</summary>
+    /// <summary>Mesmas recusas da API: problema resolvido e autor votando no próprio problema.</summary>
     private static bool Aceita(Intencao intencao, ProblemaSimulado problema, EstadoProblema estado) =>
-        estado.Status != StatusProblema.Resolvida
-        && !(intencao.Tipo == TipoVoto.Existencia && intencao.UsuarioId == problema.AutorId)
-        && !(intencao.Tipo == TipoVoto.Persistencia && estado.Status == StatusProblema.Nova);
+        estado.Status != StatusProblema.Resolvida && intencao.UsuarioId != problema.AutorId;
 }

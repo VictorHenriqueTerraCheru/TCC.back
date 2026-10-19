@@ -3,8 +3,8 @@ using Ocorrencias.Domain;
 namespace Ocorrencias.Simulator.Modelo;
 
 /// <summary>
-/// Ataque coordenado ao problema falso alvo: <c>k</c> contas votam "confirma" e, depois, "continua", ao longo
-/// de 6 h a partir de 1 h após o registro. "Continua" só entra se o problema já tiver saído de Nova (regra da API).
+/// Ataque coordenado ao problema falso alvo: <c>k</c> contas respondem "sim" a "Ainda está lá?" ao longo de 6 h
+/// a partir de 1 h após o registro.
 /// </summary>
 public static class Ataque
 {
@@ -17,18 +17,14 @@ public static class Ataque
         var rnd = new Random(Aleatorio.Derivar(semente, 3, (int)variante, k));
         var inicio = Inicio(c, alvo);
         var fim = Fim(c, alvo);
-        var intencoes = new List<Intencao>(2 * k);
+        var intencoes = new List<Intencao>(k);
 
         for (var i = 0; i < k; i++)
         {
             var id = Mundo.IdAtacante(i);
             var perfil = variante == Variante.S3 && i == 0 ? Perfil.CidadaoVerificado : Perfil.Cidadao;
             double? distancia = variante == Variante.S1 ? null : rnd.Uniforme(0, c.DistanciaMaximaGpsFalsoMetros);
-            var confirma = rnd.Uniforme(inicio, fim);
-            var continua = rnd.Uniforme(confirma, fim);
-
-            intencoes.Add(new Intencao(confirma, id, TipoVoto.Existencia, ValorVoto.Positivo, perfil, distancia));
-            intencoes.Add(new Intencao(continua, id, TipoVoto.Persistencia, ValorVoto.Positivo, perfil, distancia));
+            intencoes.Add(new Intencao(rnd.Uniforme(inicio, fim), id, ValorVoto.Positivo, perfil, distancia));
         }
 
         return intencoes;

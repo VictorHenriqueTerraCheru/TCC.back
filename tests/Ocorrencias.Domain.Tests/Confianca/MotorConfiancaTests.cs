@@ -35,39 +35,39 @@ public sealed class MotorConfiancaTests
         MotorConfianca.PesoProximidade(50, A).Should().BeApproximately(1, Tolerancia);
 
     [Fact]
-    public void Caso05_existencia_meia_vida_14_dias() =>
-        MotorConfianca.FatorTemporal(TimeSpan.FromDays(14), TipoVoto.Existencia, B).Should().BeApproximately(0.5, Tolerancia);
+    public void Caso05_meia_vida_da_confianca_14_dias() =>
+        MotorConfianca.FatorTemporal(TimeSpan.FromDays(14), B.MeiaVidaConfianca, B).Should().BeApproximately(0.5, Tolerancia);
 
     [Fact]
-    public void Caso06_persistencia_meia_vida_3_dias() =>
-        MotorConfianca.FatorTemporal(TimeSpan.FromDays(3), TipoVoto.Persistencia, B).Should().BeApproximately(0.5, Tolerancia);
+    public void Caso06_meia_vida_do_ciclo_de_vida_3_dias() =>
+        MotorConfianca.FatorTemporal(TimeSpan.FromDays(3), B.MeiaVidaCicloDeVida, B).Should().BeApproximately(0.5, Tolerancia);
 
     // ---------- índice ----------
 
-    private static List<VotoFato> QuinzeConfirmacoesA100m() => Repetir(15, () => Confirma());
+    private static List<VotoFato> QuinzeSimA100m() => Repetir(15, () => Sim());
 
     [Fact]
-    public void Caso07_quinze_confirmacoes_agora()
+    public void Caso07_quinze_sim_agora()
     {
-        var r = MotorConfianca.CalcularConfianca(QuinzeConfirmacoesA100m(), T0, B);
+        var r = MotorConfianca.CalcularConfianca(QuinzeSimA100m(), T0, B);
 
         r.Indice.Should().BeApproximately(90.909, ToleranciaIndice);
         r.Faixa.Should().Be(FaixaConfianca.Alta);
     }
 
     [Fact]
-    public void Caso08_quinze_confirmacoes_apos_28_dias()
+    public void Caso08_quinze_sim_apos_28_dias()
     {
-        var r = MotorConfianca.CalcularConfianca(QuinzeConfirmacoesA100m(), T0.AddDays(28), B);
+        var r = MotorConfianca.CalcularConfianca(QuinzeSimA100m(), T0.AddDays(28), B);
 
         r.Indice.Should().BeApproximately(71.429, ToleranciaIndice);
         r.Faixa.Should().Be(FaixaConfianca.Alta);
     }
 
     [Fact]
-    public void Caso09_quinze_confirmacoes_apos_56_dias()
+    public void Caso09_quinze_sim_apos_56_dias()
     {
-        var r = MotorConfianca.CalcularConfianca(QuinzeConfirmacoesA100m(), T0.AddDays(56), B);
+        var r = MotorConfianca.CalcularConfianca(QuinzeSimA100m(), T0.AddDays(56), B);
 
         r.Indice.Should().BeApproximately(38.462, ToleranciaIndice);
         r.Faixa.Should().Be(FaixaConfianca.Baixa);
@@ -79,7 +79,7 @@ public sealed class MotorConfiancaTests
     [InlineData(365)]
     public void Caso10_config_A_independe_do_tempo(int dias)
     {
-        var r = MotorConfianca.CalcularConfianca(QuinzeConfirmacoesA100m(), T0.AddDays(dias), A);
+        var r = MotorConfianca.CalcularConfianca(QuinzeSimA100m(), T0.AddDays(dias), A);
 
         r.Indice.Should().BeApproximately(83.333, ToleranciaIndice);
     }
@@ -87,7 +87,7 @@ public sealed class MotorConfiancaTests
     [Fact]
     public void Caso11_um_verificado_a_100m()
     {
-        var r = MotorConfianca.CalcularConfianca([Confirma(Perfil.CidadaoVerificado)], T0, B);
+        var r = MotorConfianca.CalcularConfianca([Sim(Perfil.CidadaoVerificado)], T0, B);
 
         r.Indice.Should().BeApproximately(86.957, ToleranciaIndice);
         r.Faixa.Should().Be(FaixaConfianca.Alta);
@@ -98,7 +98,7 @@ public sealed class MotorConfiancaTests
     {
         var cfg = B.ComPesoVerificado(3);
 
-        var r = MotorConfianca.CalcularConfianca([Confirma(Perfil.CidadaoVerificado)], T0, cfg);
+        var r = MotorConfianca.CalcularConfianca([Sim(Perfil.CidadaoVerificado)], T0, cfg);
 
         cfg.Nome.Should().Be("B-v3");
         r.EPositivo.Should().BeApproximately(6, Tolerancia);
@@ -120,7 +120,7 @@ public sealed class MotorConfiancaTests
     [Fact]
     public void Caso14_nova_com_4_votantes_e_71h_continua_nova()
     {
-        var votos = Repetir(4, () => Confirma());
+        var votos = Repetir(4, () => Sim());
 
         var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, T0.AddHours(71), B);
 
@@ -130,7 +130,7 @@ public sealed class MotorConfiancaTests
     [Fact]
     public void Caso15_nova_com_5_votantes_distintos_vira_ativa()
     {
-        var votos = Repetir(5, () => Confirma());
+        var votos = Repetir(5, () => Sim());
         var agora = T0.AddHours(1);
 
         var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, agora, B);
@@ -142,19 +142,19 @@ public sealed class MotorConfiancaTests
     [Fact]
     public void Caso16_nova_com_1_votante_e_72h_vira_ativa()
     {
-        var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), [Confirma()], T0.AddHours(72), B);
+        var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), [Sim()], T0.AddHours(72), B);
 
         e.Status.Should().Be(StatusProblema.Ativa);
     }
 
-    /// <summary>Votos do caso 17: 3 "resolvido" (R⁻ = 6) e 1 "continua" (R⁺ = 2), todos a 100 m em t0.</summary>
-    private static List<VotoFato> VotosCaso17() => [.. Repetir(3, () => Resolvido()), Continua()];
+    /// <summary>Votos do caso 17: 3 "não" (R⁻ = 6) e 1 "sim" (R⁺ = 2), todos a 100 m em t0.</summary>
+    private static List<VotoFato> VotosCaso17() => [.. Repetir(3, () => Nao()), Sim()];
 
     private static EstadoProblema EstadoAposCaso17() =>
         MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), VotosCaso17(), T0, B);
 
     [Fact]
-    public void Caso17_ativa_com_maioria_resolvido_vira_possivelmente_resolvida()
+    public void Caso17_ativa_com_maioria_nao_vira_possivelmente_resolvida()
     {
         var e = EstadoAposCaso17();
 
@@ -184,10 +184,10 @@ public sealed class MotorConfiancaTests
     }
 
     [Fact]
-    public void Caso20_tres_continua_derrubam_a_proporcao_e_volta_para_ativa()
+    public void Caso20_tres_sim_derrubam_a_proporcao_e_volta_para_ativa()
     {
         var agora = T0.AddHours(1);
-        List<VotoFato> votos = [.. VotosCaso17(), .. Repetir(3, () => Continua(em: agora))];
+        List<VotoFato> votos = [.. VotosCaso17(), .. Repetir(3, () => Sim(em: agora))];
 
         var e = MotorConfianca.AvaliarCicloDeVida(EstadoAposCaso17(), votos, agora, B);
 
@@ -197,7 +197,7 @@ public sealed class MotorConfiancaTests
     }
 
     /// <summary>
-    /// Caso 21: dois votos de existência do mesmo usuário não podem acontecer (a API garante a
+    /// Caso 21: dois votos do mesmo usuário não podem acontecer (a API garante a
     /// unicidade por índice único). O Domain assume isso e NÃO deduplica pesos; este teste só
     /// documenta o comportamento: ambos pesam no índice, mas contam como um único votante.
     /// </summary>
@@ -205,13 +205,35 @@ public sealed class MotorConfiancaTests
     public void Caso21_unicidade_de_voto_e_garantida_pela_api_nao_pelo_domain()
     {
         var usuario = Guid.NewGuid();
-        List<VotoFato> duplicados = [Confirma(usuario: usuario), Confirma(usuario: usuario)];
+        List<VotoFato> duplicados = [Sim(usuario: usuario), Sim(usuario: usuario)];
 
         var r = MotorConfianca.CalcularConfianca(duplicados, T0, B);
         r.EPositivo.Should().BeApproximately(4, Tolerancia);
 
-        List<VotoFato> cincoDoMesmo = Repetir(5, () => Confirma(usuario: usuario));
+        List<VotoFato> cincoDoMesmo = Repetir(5, () => Sim(usuario: usuario));
         MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), cincoDoMesmo, T0, B)
             .Status.Should().Be(StatusProblema.Nova, "votantes conta UsuarioId distintos");
+    }
+
+    /// <summary>
+    /// Caso 22: registro falso que ninguém encontra. Os "não" dados em Nova contam no índice e, depois
+    /// que o problema sai de Nova, também no ciclo de vida: ele passa a PossivelmenteResolvida e sai do
+    /// mapa em 48 h.
+    /// </summary>
+    [Fact]
+    public void Caso22_nova_so_com_nao_sai_do_mapa_em_48h()
+    {
+        var votos = Repetir(5, () => Nao());
+
+        MotorConfianca.CalcularConfianca(votos, T0, B).Faixa.Should().Be(FaixaConfianca.Baixa);
+
+        var ativa = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, T0, B);
+        ativa.Status.Should().Be(StatusProblema.Ativa);
+
+        var possivelmente = MotorConfianca.AvaliarCicloDeVida(ativa, votos, T0.AddMinutes(15), B);
+        possivelmente.Status.Should().Be(StatusProblema.PossivelmenteResolvida);
+
+        MotorConfianca.AvaliarCicloDeVida(possivelmente, votos, T0.AddMinutes(15).AddHours(48), B)
+            .Status.Should().Be(StatusProblema.Resolvida);
     }
 }

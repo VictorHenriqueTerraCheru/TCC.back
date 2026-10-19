@@ -17,7 +17,7 @@ public sealed record ProblemaSimulado(int Indice, bool Verdadeiro, Ponto Local, 
 /// Intenção de voto: o que a pessoa tentaria registrar na API. A avaliação aplica as regras da API
 /// (que dependem do estado, portanto da configuração) para decidir se o voto entra.
 /// </summary>
-public readonly record struct Intencao(double Hora, Guid UsuarioId, TipoVoto Tipo, ValorVoto Valor, Perfil Perfil, double? DistanciaMetros);
+public readonly record struct Intencao(double Hora, Guid UsuarioId, ValorVoto Valor, Perfil Perfil, double? DistanciaMetros);
 
 public enum Variante
 {

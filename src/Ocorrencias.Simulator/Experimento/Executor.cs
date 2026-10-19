@@ -90,7 +90,7 @@ public static class Executor
     }
 
     /// <summary>
-    /// FP: entre os falsos já criados, a fração com faixa Alta exibida. FN: entre os verdadeiros ainda não
+    /// FP: entre os falsos já criados, a fração com faixa Alta exibida (e quantos já saíram do mapa como Resolvida). FN: entre os verdadeiros ainda não
     /// resolvidos de fato e fora de Nova (Ativa ou PossivelmenteResolvida), a fração com faixa Baixa.
     /// Medido no fim de cada dia.
     /// </summary>
@@ -100,7 +100,7 @@ public static class Executor
         {
             var h = dia * 24 - 1; // fim do dia = instante dia × 24
             var instante = h + 1.0;
-            int falsos = 0, falsosAlta = 0, verdadeiros = 0, verdadeirosBaixa = 0, indevidos = 0;
+            int falsos = 0, falsosAlta = 0, falsosResolvidos = 0, verdadeiros = 0, verdadeirosBaixa = 0, indevidos = 0;
 
             for (var p = 0; p < linhas.Length; p++)
             {
@@ -115,6 +115,7 @@ public static class Executor
                 {
                     falsos++;
                     falsosAlta += faixa == FaixaConfianca.Alta ? 1 : 0;
+                    falsosResolvidos += linhas[p].Status[h] == StatusProblema.Resolvida ? 1 : 0;
                     continue;
                 }
 
@@ -135,7 +136,7 @@ public static class Executor
                 }
             }
 
-            yield return new LinhaDiaria(cfg.Nome, semente, dia, falsos, falsosAlta, verdadeiros, verdadeirosBaixa, indevidos);
+            yield return new LinhaDiaria(cfg.Nome, semente, dia, falsos, falsosAlta, falsosResolvidos, verdadeiros, verdadeirosBaixa, indevidos);
         }
     }
 
@@ -157,7 +158,8 @@ public static class Executor
 
     /// <summary>
     /// Atingir Alta = faixa Alta exibida (fora de Nova) em algum fim de hora. Recuperação = horas do fim do
-    /// ataque até o índice cair para Baixa (C &lt; 40), censurado no horizonte.
+    /// ataque até o falso deixar de enganar: índice em Baixa (C &lt; 40) ou status Resolvida (fora do mapa, sem
+    /// receber mais votos, então o índice para de cair), censurado no horizonte.
     /// </summary>
     private static LinhaAtaque MedirAtaque(
         Cenario c, ConfiguracaoConfianca cfg, Variante variante, int k, int semente, ProblemaSimulado alvo, LinhaDoTempo linha)
@@ -176,7 +178,8 @@ public static class Executor
         double? recuperacao = null;
         for (var h = hFim; h < c.Horas && recuperacao is null; h++)
         {
-            if (MotorConfianca.ClassificarFaixa(linha.Indice[h], cfg) == FaixaConfianca.Baixa)
+            if (MotorConfianca.ClassificarFaixa(linha.Indice[h], cfg) == FaixaConfianca.Baixa
+                || linha.Status[h] == StatusProblema.Resolvida)
             {
                 recuperacao = Math.Max(0, h + 1.0 - fim);
             }

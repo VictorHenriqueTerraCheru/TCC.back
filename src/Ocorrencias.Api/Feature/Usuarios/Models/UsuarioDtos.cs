@@ -25,16 +25,14 @@ public enum ObterHistoricoTipoItem
 {
     RegistroProblema = 1,
     RegistroIncidente = 2,
-    VotoExistencia = 3,
-    VotoPersistencia = 4,
+    Voto = 3,
 }
 
+/// <summary>Resposta a "Ainda está lá?".</summary>
 public enum ObterHistoricoValorItem
 {
-    Confirma = 1,
-    NaoVi = 2,
-    Continua = 3,
-    Resolvido = 4,
+    Sim = 1,
+    Nao = 2,
 }
 
 /// <param name="Filtro">tudo | registros | votos.</param>

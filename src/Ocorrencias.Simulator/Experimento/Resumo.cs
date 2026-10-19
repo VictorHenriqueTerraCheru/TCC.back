@@ -6,6 +6,7 @@ public sealed record ResumoConfiguracao(
     double? FpMedio,
     double? FnMedio,
     double? IndevidosMedio,
+    double? FalsosResolvidosFim,
     double? ResolucaoMedianaHoras,
     double ResolucaoCensurados);
 
@@ -40,6 +41,9 @@ public static class Resumo
                     Media(porSemente.Select(s => Media(s.Select(l => l.VerdadeirosResolvidosIndevidamente == 0 && l.VerdadeirosAvaliados == 0
                         ? (double?)null
                         : (double)l.VerdadeirosResolvidosIndevidamente / (l.VerdadeirosAvaliados + l.VerdadeirosResolvidosIndevidamente))))),
+                    Media(porSemente.Select(s => s.MaxBy(l => l.Dia) is { FalsosExistentes: > 0 } fim
+                        ? (double)fim.FalsosResolvidos / fim.FalsosExistentes
+                        : (double?)null)),
                     concluidas.Count == 0 ? null : Mediana(concluidas),
                     resolucoes.Count == 0 ? 0 : (double)resolucoes.Count(x => x.Censurado) / resolucoes.Count);
             })

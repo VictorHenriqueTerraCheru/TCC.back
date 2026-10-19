@@ -3,18 +3,9 @@ using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Votos;
 
-public sealed class VotarExistenciaValidator : AbstractValidator<VotarExistenciaRequest>
+public sealed class VotarValidator : AbstractValidator<VotarRequest>
 {
-    public VotarExistenciaValidator()
-    {
-        RuleFor(r => r.Valor).IsInEnum();
-        RegrasPosicaoVoto.Aplicar(this, r => r.Lat, r => r.Lng);
-    }
-}
-
-public sealed class VotarPersistenciaValidator : AbstractValidator<VotarPersistenciaRequest>
-{
-    public VotarPersistenciaValidator()
+    public VotarValidator()
     {
         RuleFor(r => r.Valor).IsInEnum();
         RegrasPosicaoVoto.Aplicar(this, r => r.Lat, r => r.Lng);

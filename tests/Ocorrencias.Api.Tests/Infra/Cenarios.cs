@@ -50,15 +50,12 @@ public static class Cenarios
         return await resposta.LerAsync<ObterDetalheProblemaResponse>();
     }
 
-    public static Task<HttpResponseMessage> VotarExistenciaAsync(
+    /// <param name="valor">Resposta a "Ainda está lá?": <c>sim</c> | <c>nao</c>.</param>
+    public static Task<HttpResponseMessage> VotarAsync(
         this Pessoa pessoa, Guid problemaId, string valor, double? lat = null, double? lng = null) =>
-        pessoa.Cliente.PutAsJsonAsync($"/api/v1/problemas/{problemaId}/votos/existencia", new { valor, lat, lng }, ClienteApi.Json);
+        pessoa.Cliente.PutAsJsonAsync($"/api/v1/problemas/{problemaId}/voto", new { valor, lat, lng }, ClienteApi.Json);
 
-    public static Task<HttpResponseMessage> VotarPersistenciaAsync(
-        this Pessoa pessoa, Guid problemaId, string valor, double? lat = null, double? lng = null) =>
-        pessoa.Cliente.PutAsJsonAsync($"/api/v1/problemas/{problemaId}/votos/persistencia", new { valor, lat, lng }, ClienteApi.Json);
-
-    /// <summary>Registra um problema e o leva a <c>ativa</c> com 5 confirmações sem localização.</summary>
+    /// <summary>Registra um problema e o leva a <c>ativa</c> com 5 "sim" sem localização.</summary>
     public static async Task<ObterDetalheProblemaResponse> ProblemaAtivoAsync(this ApiFactory fabrica, double lat, double lng)
     {
         var autor = await fabrica.NovaPessoaAsync();
@@ -68,7 +65,7 @@ public static class Cenarios
         for (var i = 0; i < 5; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();
-            var resposta = await votante.VotarExistenciaAsync(problema.Id, "confirma");
+            var resposta = await votante.VotarAsync(problema.Id, "sim");
             resposta.EnsureSuccessStatusCode();
             detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
         }

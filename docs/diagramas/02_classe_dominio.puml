@@ -32,7 +32,6 @@ class Problema {
   statusAlteradoEm
 }
 class Voto {
-  tipo : TipoVoto
   valor : ValorVoto
   perfilNoMomento : Perfil
   distanciaMetros
@@ -69,13 +68,9 @@ enum StatusProblema {
   PossivelmenteResolvida
   Resolvida
 }
-enum TipoVoto {
-  Existencia
-  Persistencia
-}
 enum ValorVoto {
-  Positivo
-  Negativo
+  Positivo (sim)
+  Negativo (não)
 }
 enum StatusVerificacao {
   Pendente

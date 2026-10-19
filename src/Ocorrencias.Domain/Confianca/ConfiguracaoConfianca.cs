@@ -18,10 +18,10 @@ public sealed record ConfiguracaoConfianca
     public double RaioBonusZeroMetros { get; init; } = 2000;
     public double BonusMaximo { get; init; } = 2;
 
-    // tempo
+    // tempo: o mesmo voto envelhece devagar no índice ("é real?") e rápido no ciclo de vida ("está lá agora?")
     public bool UsarDecaimento { get; init; } = true;
-    public TimeSpan MeiaVidaExistencia { get; init; } = TimeSpan.FromDays(14);
-    public TimeSpan MeiaVidaPersistencia { get; init; } = TimeSpan.FromDays(3);
+    public TimeSpan MeiaVidaConfianca { get; init; } = TimeSpan.FromDays(14);
+    public TimeSpan MeiaVidaCicloDeVida { get; init; } = TimeSpan.FromDays(3);
 
     // índice
     public double K { get; init; } = 3;

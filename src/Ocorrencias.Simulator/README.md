@@ -29,16 +29,16 @@ Todos os parâmetros estão em `cenarios/base.json` (nomes em camelCase; campo d
 - **Usuários honestos:** 1 000 (5% verificados), cada um com um centro de circulação uniforme na área. É **elegível** para um problema quem tem o centro a até 1 500 m dele.
 - **Problemas:** 200, criados em horas uniformes nos primeiros 20 dias; 70% verdadeiros. O autor é um elegível sorteado. Um verdadeiro é de fato resolvido após um tempo exponencial com média de 10 dias.
 - **Passagens:** a cada hora, cada elegível passa pelo problema com probabilidade `p`. Por padrão `p` é calibrado para `passagensPorDia = 2` no centro da área: `p = 2 / 24 / elegíveis médios` (≈ 0,0007/h com 118 elegíveis). `probabilidadePassagem` fixa `p` diretamente. A distância da passagem é sorteada uniformemente num disco de 500 m.
-- **Votos honestos** (ao passar a ≤ 500 m):
-  - verdadeiro ainda não resolvido de fato → "confirma" com 30% e, independentemente, "continua" com 15%;
-  - verdadeiro já resolvido de fato → "resolvido" com 30%;
-  - falso → "não vi" com 20%;
-  - 5% dos votos invertem o valor (ruído); o autor não vota existência.
-- **Regras da API aplicadas na avaliação:** persistência é recusada em Nova, nenhum voto entra depois de Resolvida, o autor não vota existência e votar de novo substitui o voto (UPSERT por usuário e tipo). A distância é gravada em metros inteiros.
+- **Votos honestos** (ao passar a ≤ 500 m, a pessoa responde "Ainda está lá?", voto único):
+  - verdadeiro ainda não resolvido de fato → "sim" com 30% (`probSim`);
+  - verdadeiro já resolvido de fato → "não" com 30% (`probNaoResolvido`);
+  - falso → "não" com 20% (`probNaoFalso`);
+  - 5% dos votos invertem o valor (ruído); o autor não vota.
+- **Regras da API aplicadas na avaliação:** nenhum voto entra depois de Resolvida, o autor não vota e votar de novo substitui o voto (UPSERT por usuário). Votos em Nova são aceitos. A distância é gravada em metros inteiros.
 
 ### Ataque
 
-Um problema **falso extra** (o *alvo*) é criado no dia 3. A partir de 1 h após o registro e ao longo de 6 h, `k` contas (k = 1…30) votam "confirma" e, depois, "continua". "Continua" só entra se o alvo já tiver saído de Nova. O alvo também recebe os votos honestos de quem passa por ele, e são eles que derrubam o índice depois do ataque.
+Um problema **falso extra** (o *alvo*) é criado no dia 3. A partir de 1 h após o registro e ao longo de 6 h, `k` contas (k = 1…30) respondem "sim". O alvo também recebe os votos honestos de quem passa por ele, e são eles que derrubam o índice (e, com p ≥ 0,6, tiram o alvo do mapa) depois do ataque.
 
 | Variante | Distância informada | Perfis |
 |---|---|---|
@@ -56,7 +56,8 @@ O plano deixa estes pontos em aberto; estas são as definições usadas:
 - **Faixa exibida:** só existe para problemas em Ativa ou PossivelmenteResolvida, porque em Nova a confiança não aparece para ninguém. FP e "atingir Alta" usam a faixa exibida.
 - **FP:** entre os falsos já criados, a fração com faixa Alta exibida, medida no fim de cada dia.
 - **FN:** entre os verdadeiros já criados, ainda não resolvidos de fato e em Ativa ou PossivelmenteResolvida, a fração com faixa Baixa. Os marcados Resolvida antes da resolução real aparecem à parte (`verdadeiros_resolvidos_indevidamente`).
-- **Recuperação:** horas do fim do ataque até o índice do alvo ficar abaixo de 40 (faixa Baixa calculada, exibida ou não), medido de hora em hora e censurado no fim dos 30 dias.
+- **Recuperação:** horas do fim do ataque até o alvo deixar de enganar: índice abaixo de 40 (faixa Baixa calculada, exibida ou não) **ou** status Resolvida (fora do mapa; sem votos novos, o índice dele para de cair). Medido de hora em hora e censurado no fim dos 30 dias.
+- **Falsos resolvidos no fim:** entre os falsos já criados, a fração em Resolvida no último dia (média entre sementes).
 - **k mínimo:** o menor k em que o alvo atinge Alta exibida (em qualquer momento) em ≥ 50% das sementes.
 
 ## Arquivos de saída
@@ -72,6 +73,7 @@ CSV com vírgula, ponto decimal, fim de linha `\n` e UTF-8 sem BOM. Campos vazio
 | `dia` | Dia (1…30); medição no fim do dia |
 | `falsos_existentes` | Falsos já criados |
 | `falsos_alta` | Desses, quantos com faixa Alta exibida |
+| `falsos_resolvidos` | Desses, quantos já em Resolvida (fora do mapa) |
 | `fp` | `falsos_alta / falsos_existentes` (vazio se não há falsos) |
 | `verdadeiros_avaliados` | Verdadeiros não resolvidos de fato, em Ativa ou PossivelmenteResolvida |
 | `verdadeiros_baixa` | Desses, quantos com faixa Baixa |
@@ -107,6 +109,7 @@ CSV com vírgula, ponto decimal, fim de linha `\n` e UTF-8 sem BOM. Campos vazio
 | `sementes` | Sementes agregadas |
 | `fp_medio`, `fn_medio` | Média, entre sementes, da média diária de FP/FN. Dias sem denominador e sementes sem nenhum dia medido são ignorados; vazio = nenhuma medição |
 | `resolvidos_indevidamente_medio` | Média análoga da fração de verdadeiros marcados Resolvida antes da hora |
+| `falsos_resolvidos_fim` | Fração de falsos em Resolvida no último dia (média entre sementes) |
 | `resolucao_mediana_h` | Mediana de `tempo_h` entre as resoluções não censuradas |
 | `resolucao_censurados` | Fração de resoluções censuradas |
 
