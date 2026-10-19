@@ -20,7 +20,7 @@ DB --> API : candidatos
 API --> APP : lista de candidatos
 alt existe candidato e o cidadão diz "é o mesmo"
   U -> APP : "Sim, confirmar esse"
-  APP -> API : PUT /problemas/{id}/votos/existencia
+  APP -> API : PUT /problemas/{id}/voto\n{valor: "sim", lat?, lng?}
   API --> APP : detalhe atualizado
 else nenhum candidato ou "Não, é outro"
   U -> APP : descrição (opcional) e "Enviar registro"
