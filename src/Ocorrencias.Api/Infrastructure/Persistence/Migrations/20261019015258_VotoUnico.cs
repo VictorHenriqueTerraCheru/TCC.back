@@ -21,6 +21,11 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                     SELECT 1 FROM votos o
                     WHERE o.problema_id = v.problema_id AND o.usuario_id = v.usuario_id
                       AND (o.registrado_em, o.id) > (v.registrado_em, v.id));
+
+                -- A confiança gravada foi calculada só com os votos de existência. O job recalcula a dos
+                -- não resolvidos ao subir a API, mas não passa pelos resolvidos (estado final): limpa a
+                -- deles para não exibir um índice que não bate com os votos que sobraram.
+                UPDATE problemas SET confianca = NULL WHERE status = 4;
                 """);
 
             migrationBuilder.DropIndex(
