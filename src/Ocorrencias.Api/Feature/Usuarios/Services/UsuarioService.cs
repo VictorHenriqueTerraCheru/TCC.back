@@ -52,7 +52,7 @@ public sealed class UsuarioService(AppDbContext db) : IUsuarioService
             FROM incidentes i JOIN categorias c ON c.id = i.categoria_id
             WHERE i.autor_id = {usuarioId} AND {registros}
             UNION ALL
-            SELECT v.id, CASE v.tipo WHEN 1 THEN 3 ELSE 4 END, p.id, c.id, c.nome, c.grupo, c.icone,
+            SELECT v.id, 3, p.id, c.id, c.nome, c.grupo, c.icone,
                    p.endereco_aproximado, v.valor, p.status, v.registrado_em
             FROM votos v JOIN problemas p ON p.id = v.problema_id JOIN categorias c ON c.id = p.categoria_id
             WHERE v.usuario_id = {usuarioId} AND {votos}
@@ -93,12 +93,10 @@ public sealed class UsuarioService(AppDbContext db) : IUsuarioService
     private static ObterHistoricoItem Mapear(LinhaHistorico l)
     {
         var tipo = (ObterHistoricoTipoItem)l.Tipo;
-        ObterHistoricoValorItem? valor = (tipo, (ValorVoto?)l.Valor) switch
+        ObterHistoricoValorItem? valor = (ValorVoto?)l.Valor switch
         {
-            (ObterHistoricoTipoItem.VotoExistencia, ValorVoto.Positivo) => ObterHistoricoValorItem.Confirma,
-            (ObterHistoricoTipoItem.VotoExistencia, ValorVoto.Negativo) => ObterHistoricoValorItem.NaoVi,
-            (ObterHistoricoTipoItem.VotoPersistencia, ValorVoto.Positivo) => ObterHistoricoValorItem.Continua,
-            (ObterHistoricoTipoItem.VotoPersistencia, ValorVoto.Negativo) => ObterHistoricoValorItem.Resolvido,
+            ValorVoto.Positivo => ObterHistoricoValorItem.Sim,
+            ValorVoto.Negativo => ObterHistoricoValorItem.Nao,
             _ => null,
         };
 

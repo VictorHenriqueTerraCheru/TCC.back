@@ -450,74 +450,6 @@
         ],
         "type": "object"
       },
-      "ObterDetalheProblemaContagemExistencia": {
-        "properties": {
-          "confirmacoes": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "naoVi": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "confirmacoes",
-          "naoVi"
-        ],
-        "type": "object"
-      },
-      "ObterDetalheProblemaContagemPersistencia": {
-        "properties": {
-          "continua": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "resolvido": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "resolvidoUltimas24h": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "continua",
-          "resolvido",
-          "resolvidoUltimas24h"
-        ],
-        "type": "object"
-      },
-      "ObterDetalheProblemaMeusVotos": {
-        "properties": {
-          "existencia": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ValorExistencia"
-              }
-            ]
-          },
-          "persistencia": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ValorPersistencia"
-              }
-            ]
-          }
-        },
-        "required": [
-          "existencia",
-          "persistencia"
-        ],
-        "type": "object"
-      },
       "ObterDetalheProblemaResponse": {
         "properties": {
           "avaliacao": {
@@ -552,9 +484,6 @@
           "endereco": {
             "type": "string"
           },
-          "existencia": {
-            "$ref": "#/components/schemas/ObterDetalheProblemaContagemExistencia"
-          },
           "faixa": {
             "oneOf": [
               {
@@ -577,24 +506,24 @@
             "format": "double",
             "type": "number"
           },
-          "meusVotos": {
+          "meuVoto": {
             "oneOf": [
               {
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/ObterDetalheProblemaMeusVotos"
+                "$ref": "#/components/schemas/ValorVotoContrato"
               }
             ]
-          },
-          "persistencia": {
-            "$ref": "#/components/schemas/ObterDetalheProblemaContagemPersistencia"
           },
           "souAutor": {
             "type": "boolean"
           },
           "status": {
             "$ref": "#/components/schemas/StatusProblema"
+          },
+          "votos": {
+            "$ref": "#/components/schemas/ObterDetalheProblemaVotos"
           }
         },
         "required": [
@@ -609,10 +538,31 @@
           "confianca",
           "faixa",
           "avaliacao",
-          "existencia",
-          "persistencia",
-          "meusVotos",
+          "votos",
+          "meuVoto",
           "souAutor"
+        ],
+        "type": "object"
+      },
+      "ObterDetalheProblemaVotos": {
+        "properties": {
+          "nao": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "naoUltimas24h": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "sim": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sim",
+          "nao",
+          "naoUltimas24h"
         ],
         "type": "object"
       },
@@ -676,16 +626,13 @@
         "enum": [
           "registroProblema",
           "registroIncidente",
-          "votoExistencia",
-          "votoPersistencia"
+          "voto"
         ]
       },
       "ObterHistoricoValorItem": {
         "enum": [
-          "confirma",
-          "naoVi",
-          "continua",
-          "resolvido"
+          "sim",
+          "nao"
         ]
       },
       "ObterMeResponse": {
@@ -1146,19 +1093,13 @@
           "outro"
         ]
       },
-      "ValorExistencia": {
+      "ValorVotoContrato": {
         "enum": [
-          "confirma",
-          "naoVi"
+          "sim",
+          "nao"
         ]
       },
-      "ValorPersistencia": {
-        "enum": [
-          "continua",
-          "resolvido"
-        ]
-      },
-      "VotarExistenciaRequest": {
+      "VotarRequest": {
         "properties": {
           "lat": {
             "format": "double",
@@ -1175,34 +1116,7 @@
             ]
           },
           "valor": {
-            "$ref": "#/components/schemas/ValorExistencia"
-          }
-        },
-        "required": [
-          "valor",
-          "lat",
-          "lng"
-        ],
-        "type": "object"
-      },
-      "VotarPersistenciaRequest": {
-        "properties": {
-          "lat": {
-            "format": "double",
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "lng": {
-            "format": "double",
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "valor": {
-            "$ref": "#/components/schemas/ValorPersistencia"
+            "$ref": "#/components/schemas/ValorVotoContrato"
           }
         },
         "required": [
@@ -2144,7 +2058,7 @@
         ]
       }
     },
-    "/api/v1/problemas/{id}/votos/existencia": {
+    "/api/v1/problemas/{id}/voto": {
       "put": {
         "parameters": [
           {
@@ -2161,65 +2075,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VotarExistenciaRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObterDetalheProblemaResponse"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "400": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        },
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "tags": [
-          "Votos"
-        ]
-      }
-    },
-    "/api/v1/problemas/{id}/votos/persistencia": {
-      "put": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VotarPersistenciaRequest"
+                "$ref": "#/components/schemas/VotarRequest"
               }
             }
           },

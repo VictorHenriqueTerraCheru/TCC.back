@@ -52,13 +52,12 @@ entity "votos" as v {
   --
   * problema_id : uuid <<FK>>
   * usuario_id : uuid <<FK>>
-  * tipo : smallint
   * valor : smallint
   * perfil_no_momento : smallint
   distancia_metros : integer
   * registrado_em : timestamptz
   ..
-  UK (problema_id, usuario_id, tipo)
+  UK (problema_id, usuario_id)
 }
 entity "incidentes" as i {
   * id : uuid <<PK>>

@@ -33,10 +33,15 @@ public sealed record Cenario
     public double RaioPassagemMetros { get; init; } = 500;
 
     public double DistanciaMaximaVotoMetros { get; init; } = 500;
-    public double ProbConfirmar { get; init; } = 0.30;
-    public double ProbNaoVi { get; init; } = 0.20;
-    public double ProbResolvido { get; init; } = 0.30;
-    public double ProbContinua { get; init; } = 0.15;
+    /// <summary>Verdadeiro ainda não resolvido de fato: responde "sim" a "Ainda está lá?".</summary>
+    public double ProbSim { get; init; } = 0.30;
+
+    /// <summary>Verdadeiro já resolvido de fato: responde "não".</summary>
+    public double ProbNaoResolvido { get; init; } = 0.30;
+
+    /// <summary>Falso: quem passa e não encontra responde "não".</summary>
+    public double ProbNaoFalso { get; init; } = 0.20;
+
     public double ProbRuido { get; init; } = 0.05;
 
     // Ataque
@@ -72,7 +77,7 @@ public sealed record Cenario
             "o ataque começa depois da criação do alvo (início ≥ 0) e dura mais que zero");
         Exigir(DiaAtaque * 24 + InicioAtaqueAposCriacaoHoras + DuracaoAtaqueHoras < Horas, "o ataque precisa terminar antes do horizonte");
         Exigir(DistanciaMaximaGpsFalsoMetros >= 0 && RaioPassagemMetros > 0 && RaioCirculacaoMetros > 0, "distâncias devem ser positivas");
-        foreach (var p in new[] { FracaoVerificados, FracaoVerdadeiros, ProbConfirmar, ProbNaoVi, ProbResolvido, ProbContinua, ProbRuido })
+        foreach (var p in new[] { FracaoVerificados, FracaoVerdadeiros, ProbSim, ProbNaoResolvido, ProbNaoFalso, ProbRuido })
         {
             Exigir(p is >= 0 and <= 1, "probabilidades e frações devem estar em [0, 1]");
         }

@@ -30,18 +30,16 @@ public sealed class GeracaoTests
 
             intencoes.Select(i => i.Hora).Should().BeInAscendingOrder();
             intencoes.Should().OnlyContain(i => i.Hora >= problema.CriadoHora && i.DistanciaMetros <= C.DistanciaMaximaVotoMetros);
-            intencoes.Should().NotContain(i => i.Tipo == TipoVoto.Existencia && i.UsuarioId == problema.AutorId);
-
-            if (!problema.Verdadeiro)
-            {
-                // Falso: só "não vi" (e as inversões por ruído viram "confirma").
-                intencoes.Should().OnlyContain(i => i.Tipo == TipoVoto.Existencia);
-            }
-            else if (problema.ResolucaoRealHora is { } r)
-            {
-                intencoes.Where(i => i.Hora >= r).Should().OnlyContain(i => i.Tipo == TipoVoto.Persistencia);
-            }
+            intencoes.Should().NotContain(i => i.UsuarioId == problema.AutorId);
         }
+
+        // Falso e verdadeiro já resolvido recebem "não"; verdadeiro ativo, "sim" (só o ruído de 5% inverte).
+        var esperados = mundo.Problemas.SelectMany((problema, p) => mundo.Intencoes[p].Select(i =>
+                !problema.Verdadeiro || problema.ResolucaoRealHora is { } r && i.Hora >= r ? ValorVoto.Negativo : ValorVoto.Positivo)
+            .Zip(mundo.Intencoes[p], (esperado, i) => esperado == i.Valor))
+            .ToList();
+        esperados.Should().NotBeEmpty();
+        esperados.Count(acertou => acertou).Should().BeGreaterThan((int)(0.9 * esperados.Count));
     }
 
     [Fact]
@@ -64,17 +62,10 @@ public sealed class GeracaoTests
 
         var intencoes = Ataque.Gerar(C, alvo, variante, k, semente: 1);
 
-        intencoes.Should().HaveCount(2 * k);
+        intencoes.Should().HaveCount(k);
         intencoes.Should().OnlyContain(i => i.Hora >= Ataque.Inicio(C, alvo) && i.Hora <= Ataque.Fim(C, alvo));
         intencoes.Should().OnlyContain(i => i.Valor == ValorVoto.Positivo);
         intencoes.Select(i => i.UsuarioId).Distinct().Should().HaveCount(k);
-
-        foreach (var conta in intencoes.GroupBy(i => i.UsuarioId))
-        {
-            var confirma = conta.Single(i => i.Tipo == TipoVoto.Existencia);
-            var continua = conta.Single(i => i.Tipo == TipoVoto.Persistencia);
-            continua.Hora.Should().BeGreaterThanOrEqualTo(confirma.Hora);
-        }
 
         switch (variante)
         {

@@ -12,8 +12,8 @@ public sealed class VotoConfiguration : IEntityTypeConfiguration<Voto>
         b.HasOne(v => v.Problema).WithMany(p => p.Votos).HasForeignKey(v => v.ProblemaId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne(v => v.Usuario).WithMany().HasForeignKey(v => v.UsuarioId).OnDelete(DeleteBehavior.Restrict);
 
-        // Um voto por (problema, usuário, tipo): votar de novo faz UPSERT.
-        b.HasIndex(v => new { v.ProblemaId, v.UsuarioId, v.Tipo }).IsUnique();
+        // Um voto por (problema, usuário): votar de novo faz UPSERT.
+        b.HasIndex(v => new { v.ProblemaId, v.UsuarioId }).IsUnique();
         b.HasIndex(v => new { v.UsuarioId, v.RegistradoEm });
     }
 }

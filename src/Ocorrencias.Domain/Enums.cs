@@ -7,13 +7,7 @@ public enum Perfil
     Administrador = 3,
 }
 
-public enum TipoVoto
-{
-    Existencia = 1,
-    Persistencia = 2,
-}
-
-/// <summary>Existência: Positivo = Confirma, Negativo = NaoVi. Persistência: Positivo = Continua, Negativo = Resolvido.</summary>
+/// <summary>Resposta a "Ainda está lá?": Positivo = Sim, Negativo = Não (foi resolvido ou não foi encontrado).</summary>
 public enum ValorVoto
 {
     Positivo = 1,

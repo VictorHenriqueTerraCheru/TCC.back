@@ -20,8 +20,7 @@ public sealed class PropriedadesTests
         _ => throw new ArgumentOutOfRangeException(nameof(nome)),
     };
 
-    private static VotoFato VotoAleatorio(Random rnd, TipoVoto? tipo = null, ValorVoto? valor = null) => Voto(
-        tipo ?? (rnd.Next(2) == 0 ? TipoVoto.Existencia : TipoVoto.Persistencia),
+    private static VotoFato VotoAleatorio(Random rnd, ValorVoto? valor = null) => Voto(
         valor ?? (rnd.Next(2) == 0 ? ValorVoto.Positivo : ValorVoto.Negativo),
         (Perfil)rnd.Next(1, 4),
         rnd.Next(4) == 0 ? null : rnd.NextDouble() * 5000,
@@ -47,7 +46,7 @@ public sealed class PropriedadesTests
 
     [Theory]
     [MemberData(nameof(Configuracoes))]
-    public void Indice_cresce_quando_entra_uma_confirmacao(string nome)
+    public void Indice_cresce_quando_entra_um_sim(string nome)
     {
         var cfg = Config(nome);
         var rnd = new Random(7);
@@ -57,7 +56,7 @@ public sealed class PropriedadesTests
             var votos = VotosAleatorios(rnd);
             var antes = MotorConfianca.CalcularConfianca(votos, T0, cfg);
 
-            votos.Add(VotoAleatorio(rnd, TipoVoto.Existencia, ValorVoto.Positivo));
+            votos.Add(VotoAleatorio(rnd, ValorVoto.Positivo));
             var depois = MotorConfianca.CalcularConfianca(votos, T0, cfg);
 
             depois.EPositivo.Should().BeGreaterThan(antes.EPositivo);
@@ -77,21 +76,6 @@ public sealed class PropriedadesTests
             var depois = MotorConfianca.CalcularConfianca(votos, T0.AddDays(rnd.Next(1, 1000)), ConfiguracaoConfianca.A);
 
             depois.Should().Be(agora);
-        }
-    }
-
-    [Fact]
-    public void Indice_considera_so_votos_de_existencia()
-    {
-        var rnd = new Random(11);
-
-        for (var i = 0; i < Amostras; i++)
-        {
-            var votos = VotosAleatorios(rnd);
-            var soExistencia = votos.Where(v => v.Tipo == TipoVoto.Existencia).ToList();
-
-            MotorConfianca.CalcularConfianca(votos, T0, ConfiguracaoConfianca.B)
-                .Should().Be(MotorConfianca.CalcularConfianca(soExistencia, T0, ConfiguracaoConfianca.B));
         }
     }
 }

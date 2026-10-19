@@ -10,22 +10,14 @@ public sealed class VotoModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapPut("/problemas/{id:guid}/votos/existencia", VotarExistencia)
-            .Validar<VotarExistenciaRequest>()
-            .WithTags("Votos");
-
-        api.MapPut("/problemas/{id:guid}/votos/persistencia", VotarPersistencia)
-            .Validar<VotarPersistenciaRequest>()
+        api.MapPut("/problemas/{id:guid}/voto", Votar)
+            .Validar<VotarRequest>()
             .WithTags("Votos");
     }
 
-    private static async Task<Results<Ok<ObterDetalheProblemaResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> VotarExistencia(
-        Guid id, VotarExistenciaRequest request, ClaimsPrincipal principal, IVotoService service, CancellationToken ct) =>
-        ParaHttp(await service.VotarExistenciaAsync(id, principal.ObterUsuarioId(), request, ct));
-
-    private static async Task<Results<Ok<ObterDetalheProblemaResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> VotarPersistencia(
-        Guid id, VotarPersistenciaRequest request, ClaimsPrincipal principal, IVotoService service, CancellationToken ct) =>
-        ParaHttp(await service.VotarPersistenciaAsync(id, principal.ObterUsuarioId(), request, ct));
+    private static async Task<Results<Ok<ObterDetalheProblemaResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> Votar(
+        Guid id, VotarRequest request, ClaimsPrincipal principal, IVotoService service, CancellationToken ct) =>
+        ParaHttp(await service.VotarAsync(id, principal.ObterUsuarioId(), request, ct));
 
     private static Results<Ok<ObterDetalheProblemaResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult> ParaHttp(
         Resultado<ObterDetalheProblemaResponse> r) =>

@@ -20,27 +20,33 @@ public sealed class VotosTests(ApiFactory fabrica)
     private static async Task<string?> TipoErroAsync(HttpResponseMessage resposta) =>
         (await resposta.LerJsonAsync()).GetProperty("type").GetString();
 
-    [Fact]
-    public async Task Autor_nao_vota_existencia_no_proprio_problema()
+    [Theory]
+    [InlineData("sim")]
+    [InlineData("nao")]
+    public async Task Autor_nao_vota_no_proprio_problema(string valor)
     {
         var (autor, problema, _, _) = await ProblemaNovoAsync();
 
-        var resposta = await autor.VotarExistenciaAsync(problema.Id, "confirma");
+        var resposta = await autor.VotarAsync(problema.Id, valor);
 
         resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await TipoErroAsync(resposta)).Should().Be("autor-nao-vota-existencia");
+        (await TipoErroAsync(resposta)).Should().Be("autor-nao-vota");
     }
 
     [Fact]
-    public async Task Persistencia_em_nova_e_recusada()
+    public async Task Nao_em_nova_e_aceito_e_conta_como_votante()
     {
         var (_, problema, _, _) = await ProblemaNovoAsync();
         var votante = await fabrica.NovaPessoaAsync();
 
-        var resposta = await votante.VotarPersistenciaAsync(problema.Id, "continua");
+        var resposta = await votante.VotarAsync(problema.Id, "nao");
+        var detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await TipoErroAsync(resposta)).Should().Be("persistencia-indisponivel-em-nova");
+        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+        detalhe.Status.Should().Be(StatusProblema.Nova);
+        detalhe.Avaliacao!.Votantes.Should().Be(1);
+        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 1, 1));
+        detalhe.MeuVoto.Should().Be(ValorVotoContrato.Nao);
     }
 
     [Fact]
@@ -52,7 +58,7 @@ public sealed class VotosTests(ApiFactory fabrica)
         for (var i = 1; i <= 5; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();
-            detalhe = await (await votante.VotarExistenciaAsync(problema.Id, "confirma")).LerAsync<ObterDetalheProblemaResponse>();
+            detalhe = await (await votante.VotarAsync(problema.Id, "sim")).LerAsync<ObterDetalheProblemaResponse>();
 
             if (i < 5)
             {
@@ -67,8 +73,8 @@ public sealed class VotosTests(ApiFactory fabrica)
         detalhe.Avaliacao.Should().BeNull();
         detalhe.Confianca.Should().Be(62.5);
         detalhe.Faixa.Should().Be(FaixaConfianca.Media);
-        detalhe.Existencia.Should().Be(new ObterDetalheProblemaContagemExistencia(5, 0));
-        detalhe.MeusVotos!.Existencia.Should().Be(ValorExistencia.Confirma);
+        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(5, 0, 0));
+        detalhe.MeuVoto.Should().Be(ValorVotoContrato.Sim);
     }
 
     [Fact]
@@ -77,7 +83,7 @@ public sealed class VotosTests(ApiFactory fabrica)
         var (_, problema, lat, lng) = await ProblemaNovoAsync();
         var votante = await fabrica.NovaPessoaAsync();
 
-        await votante.VotarExistenciaAsync(problema.Id, "confirma", Cenarios.Norte(lat, 100), lng);
+        await votante.VotarAsync(problema.Id, "sim", Cenarios.Norte(lat, 100), lng);
 
         var voto = await fabrica.NoBancoAsync(db => db.Votos.SingleAsync(v => v.ProblemaId == problema.Id));
         voto.DistanciaMetros!.Value.Should().BeCloseTo(100, 2);
@@ -91,7 +97,7 @@ public sealed class VotosTests(ApiFactory fabrica)
         var (_, problema, _, _) = await ProblemaNovoAsync();
         var votante = await fabrica.NovaPessoaAsync();
 
-        await votante.VotarExistenciaAsync(problema.Id, "naoVi");
+        await votante.VotarAsync(problema.Id, "nao");
 
         var voto = await fabrica.NoBancoAsync(db => db.Votos.SingleAsync(v => v.ProblemaId == problema.Id));
         voto.DistanciaMetros.Should().BeNull();
@@ -103,15 +109,15 @@ public sealed class VotosTests(ApiFactory fabrica)
     {
         var (_, problema, lat, lng) = await ProblemaNovoAsync();
         var votante = await fabrica.NovaPessoaAsync();
-        await votante.VotarExistenciaAsync(problema.Id, "confirma", Cenarios.Norte(lat, 100), lng);
+        await votante.VotarAsync(problema.Id, "sim", Cenarios.Norte(lat, 100), lng);
         fabrica.Relogio.Advance(TimeSpan.FromMinutes(5));
 
-        var resposta = await votante.VotarExistenciaAsync(problema.Id, "naoVi");
+        var resposta = await votante.VotarAsync(problema.Id, "nao");
         var detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        detalhe.Existencia.Should().Be(new ObterDetalheProblemaContagemExistencia(0, 1));
-        detalhe.MeusVotos!.Existencia.Should().Be(ValorExistencia.NaoVi);
+        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 1, 1));
+        detalhe.MeuVoto.Should().Be(ValorVotoContrato.Nao);
 
         var votos = await fabrica.NoBancoAsync(db => db.Votos.Where(v => v.ProblemaId == problema.Id).ToListAsync());
         votos.Should().ContainSingle();
@@ -127,7 +133,7 @@ public sealed class VotosTests(ApiFactory fabrica)
         await fabrica.NoBancoAsync(db => db.Users.Where(u => u.Id == votante.Id)
             .ExecuteUpdateAsync(s => s.SetProperty(u => u.Perfil, Perfil.CidadaoVerificado)));
 
-        await votante.VotarExistenciaAsync(problema.Id, "confirma");
+        await votante.VotarAsync(problema.Id, "sim");
 
         var voto = await fabrica.NoBancoAsync(db => db.Votos.SingleAsync(v => v.ProblemaId == problema.Id));
         voto.PerfilNoMomento.Should().Be(Perfil.CidadaoVerificado);
@@ -141,44 +147,29 @@ public sealed class VotosTests(ApiFactory fabrica)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, StatusProblema.Resolvida)));
         var votante = await fabrica.NovaPessoaAsync();
 
-        var existencia = await votante.VotarExistenciaAsync(problema.Id, "confirma");
-        var persistencia = await votante.VotarPersistenciaAsync(problema.Id, "continua");
+        var resposta = await votante.VotarAsync(problema.Id, "sim");
 
-        (await TipoErroAsync(existencia)).Should().Be("problema-resolvido");
-        (await TipoErroAsync(persistencia)).Should().Be("problema-resolvido");
+        (await TipoErroAsync(resposta)).Should().Be("problema-resolvido");
     }
 
     [Fact]
-    public async Task Autor_pode_votar_persistencia()
-    {
-        var autor = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await autor.RegistrarProblemaAsync(lat, lng);
-        await fabrica.NoBancoAsync(db => db.Problemas.Where(p => p.Id == problema.Id)
-            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, StatusProblema.Ativa)));
-
-        var resposta = await autor.VotarPersistenciaAsync(problema.Id, "resolvido");
-
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task Tres_resolvido_perto_levam_a_possivelmente_resolvida()
+    public async Task Quatro_nao_perto_levam_a_possivelmente_resolvida()
     {
         var (lat, lng) = ApiFactory.PontoUnico();
         var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
         ObterDetalheProblemaResponse? detalhe = null;
 
-        // 3 "resolvido" a ~100 m: R⁻ = 3 × 2 = 6 ≥ 5 e p = 1 ≥ 0,6.
-        for (var i = 0; i < 3; i++)
+        // Os 5 "sim" sem GPS de ProblemaAtivoAsync também contam no ciclo de vida (R⁺ = 5).
+        // 4 "não" a ~100 m: R⁻ = 4 × 2 = 8 ≥ 5 e p = 8 / 13 ≈ 0,62 ≥ 0,6.
+        for (var i = 0; i < 4; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();
-            detalhe = await (await votante.VotarPersistenciaAsync(problema.Id, "resolvido", Cenarios.Norte(lat, 100), lng))
+            detalhe = await (await votante.VotarAsync(problema.Id, "nao", Cenarios.Norte(lat, 100), lng))
                 .LerAsync<ObterDetalheProblemaResponse>();
         }
 
         detalhe!.Status.Should().Be(StatusProblema.PossivelmenteResolvida);
-        detalhe.Persistencia.Should().Be(new ObterDetalheProblemaContagemPersistencia(0, 3, 3));
+        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(5, 4, 4));
     }
 
     [Fact]
@@ -186,21 +177,22 @@ public sealed class VotosTests(ApiFactory fabrica)
     {
         var votante = await fabrica.NovaPessoaAsync();
 
-        var resposta = await votante.VotarExistenciaAsync(Guid.NewGuid(), "confirma");
+        var resposta = await votante.VotarAsync(Guid.NewGuid(), "sim");
 
         resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Theory]
     [InlineData("talvez", -22.9, -43.1)]
-    [InlineData("confirma", -22.9, null)]
-    [InlineData("confirma", -95.0, -43.1)]
+    [InlineData("confirma", -22.9, -43.1)]
+    [InlineData("sim", -22.9, null)]
+    [InlineData("sim", -95.0, -43.1)]
     public async Task Voto_invalido_devolve_400(string valor, double? lat, double? lng)
     {
         var (_, problema, _, _) = await ProblemaNovoAsync();
         var votante = await fabrica.NovaPessoaAsync();
 
-        var resposta = await votante.VotarExistenciaAsync(problema.Id, valor, lat, lng);
+        var resposta = await votante.VotarAsync(problema.Id, valor, lat, lng);
 
         resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -211,7 +203,7 @@ public sealed class VotosTests(ApiFactory fabrica)
         var (_, problema, _, _) = await ProblemaNovoAsync();
         var votantes = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => fabrica.NovaPessoaAsync()));
 
-        var respostas = await Task.WhenAll(votantes.Select(v => v.VotarExistenciaAsync(problema.Id, "confirma")));
+        var respostas = await Task.WhenAll(votantes.Select(v => v.VotarAsync(problema.Id, "sim")));
 
         respostas.Should().AllSatisfy(r => r.StatusCode.Should().Be(HttpStatusCode.OK));
         var detalhe = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))

@@ -36,40 +36,37 @@ public static class MotorConfianca
         return 1;
     }
 
-    /// <summary><c>2^(−idade / meiaVida)</c>, com idade negativa tratada como zero.</summary>
-    public static double FatorTemporal(TimeSpan idade, TipoVoto tipo, ConfiguracaoConfianca cfg)
+    /// <summary>
+    /// <c>2^(−idade / meiaVida)</c>, com idade negativa tratada como zero. A meia-vida depende do uso:
+    /// <see cref="ConfiguracaoConfianca.MeiaVidaConfianca"/> no índice, <see cref="ConfiguracaoConfianca.MeiaVidaCicloDeVida"/>
+    /// no ciclo de vida.
+    /// </summary>
+    public static double FatorTemporal(TimeSpan idade, TimeSpan meiaVida, ConfiguracaoConfianca cfg)
     {
         if (!cfg.UsarDecaimento)
         {
             return 1;
         }
 
-        var meiaVida = tipo switch
-        {
-            TipoVoto.Existencia => cfg.MeiaVidaExistencia,
-            TipoVoto.Persistencia => cfg.MeiaVidaPersistencia,
-            _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "Tipo de voto desconhecido."),
-        };
-
         var idadeEfetiva = idade < TimeSpan.Zero ? TimeSpan.Zero : idade;
         return Math.Pow(2, -(idadeEfetiva / meiaVida));
     }
 
-    public static double PesoVoto(VotoFato voto, DateTimeOffset agora, ConfiguracaoConfianca cfg) =>
+    public static double PesoVoto(VotoFato voto, DateTimeOffset agora, TimeSpan meiaVida, ConfiguracaoConfianca cfg) =>
         PesoPerfil(voto.PerfilNoMomento, cfg)
         * PesoProximidade(voto.DistanciaMetros, cfg)
-        * FatorTemporal(agora - voto.RegistradoEm, voto.Tipo, cfg);
+        * FatorTemporal(agora - voto.RegistradoEm, meiaVida, cfg);
 
     public static FaixaConfianca ClassificarFaixa(double indice, ConfiguracaoConfianca cfg) =>
         indice >= cfg.LimiarAlta ? FaixaConfianca.Alta
         : indice >= cfg.LimiarMedia ? FaixaConfianca.Media
         : FaixaConfianca.Baixa;
 
-    /// <summary>Índice de confiança <c>C = 100 × E⁺ / (E⁺ + E⁻ + K)</c>, só com votos de existência.</summary>
+    /// <summary>Índice de confiança <c>C = 100 × E⁺ / (E⁺ + E⁻ + K)</c>, com a meia-vida da confiança.</summary>
     public static ResultadoConfianca CalcularConfianca(
         IReadOnlyCollection<VotoFato> votos, DateTimeOffset agora, ConfiguracaoConfianca cfg)
     {
-        var (positivo, negativo) = SomarPesos(votos, TipoVoto.Existencia, agora, cfg);
+        var (positivo, negativo) = SomarPesos(votos, cfg.MeiaVidaConfianca, agora, cfg);
 
         var denominador = positivo + negativo + cfg.K;
         var indice = denominador > 0 ? 100 * positivo / denominador : 0;
@@ -96,7 +93,7 @@ public static class MotorConfianca
 
             case StatusProblema.Ativa:
             {
-                var (continua, resolvido) = SomarPesos(votos, TipoVoto.Persistencia, agora, cfg);
+                var (continua, resolvido) = SomarPesos(votos, cfg.MeiaVidaCicloDeVida, agora, cfg);
                 var entra = resolvido >= cfg.PesoMinimoResolvido
                     && ProporcaoResolvido(continua, resolvido) >= cfg.ProporcaoResolvido;
 
@@ -113,7 +110,7 @@ public static class MotorConfianca
             case StatusProblema.PossivelmenteResolvida:
             {
                 // Para permanecer basta a proporção: sem votos novos, R⁺ e R⁻ decaem juntos e p não muda.
-                var (continua, resolvido) = SomarPesos(votos, TipoVoto.Persistencia, agora, cfg);
+                var (continua, resolvido) = SomarPesos(votos, cfg.MeiaVidaCicloDeVida, agora, cfg);
 
                 if (ProporcaoResolvido(continua, resolvido) < cfg.ProporcaoResolvido)
                 {
@@ -140,18 +137,13 @@ public static class MotorConfianca
     }
 
     private static (double Positivo, double Negativo) SomarPesos(
-        IReadOnlyCollection<VotoFato> votos, TipoVoto tipo, DateTimeOffset agora, ConfiguracaoConfianca cfg)
+        IReadOnlyCollection<VotoFato> votos, TimeSpan meiaVida, DateTimeOffset agora, ConfiguracaoConfianca cfg)
     {
         double positivo = 0, negativo = 0;
 
         foreach (var voto in votos)
         {
-            if (voto.Tipo != tipo)
-            {
-                continue;
-            }
-
-            var peso = PesoVoto(voto, agora, cfg);
+            var peso = PesoVoto(voto, agora, meiaVida, cfg);
             if (voto.Valor == ValorVoto.Positivo)
             {
                 positivo += peso;
@@ -165,7 +157,7 @@ public static class MotorConfianca
         return (positivo, negativo);
     }
 
-    /// <summary><c>p = R⁻ / (R⁺ + R⁻)</c>; 0 quando não há votos de persistência.</summary>
+    /// <summary><c>p = R⁻ / (R⁺ + R⁻)</c>; 0 quando não há votos.</summary>
     private static double ProporcaoResolvido(double continua, double resolvido)
     {
         var total = continua + resolvido;

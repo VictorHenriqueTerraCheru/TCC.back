@@ -45,12 +45,12 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `
 - `Problemas/Registrar` (valida categoria do tipo problema, descrição ≤ 280, status `Nova`; `endereco_aproximado` vem do `IServicoGeocodificacao`).
 - `Problemas/BuscarDuplicatas` (`ST_DWithin` 50 m, mesma categoria, status ≠ Resolvida, ordenado por `ST_Distance`).
 - `Problemas/ListarNaArea` (bbox com `&&`/`ST_MakeEnvelope`, filtros, limite 500, sem Resolvida).
-- `Problemas/ObterDetalhe` (contagens de pessoas por valor; `resolvidoUltimas24h`; `avaliacao` em Nova; `meusVotos`/`souAutor` se autenticado).
+- `Problemas/ObterDetalhe` (contagens de pessoas por valor; `naoUltimas24h`; `avaliacao` em Nova; `meuVoto`/`souAutor` se autenticado).
 - `Problemas/ListarRecentes` (raio, paginação).
-- `Votos/VotarExistencia` e `Votos/VotarPersistencia`: regras de `API.md` → calcula distância no banco → UPSERT com `perfil_no_momento`/`distancia_metros` → carrega votos → `MotorConfianca.CalcularConfianca` + `AvaliarCicloDeVida` → salva `confianca`, `status`, `status_alterado_em`, `condicao_resolucao_desde` → responde o detalhe. Tudo numa transação.
+- `Votos/Votar` (voto único "Ainda está lá?"): regras de `API.md` → calcula distância no banco → UPSERT com `perfil_no_momento`/`distancia_metros` → carrega votos → `MotorConfianca.CalcularConfianca` + `AvaliarCicloDeVida` → salva `confianca`, `status`, `status_alterado_em`, `condicao_resolucao_desde` → responde o detalhe. Tudo numa transação.
 - `Feature/Confianca/Jobs/CicloDeVidaJob`: a cada 15 min, para problemas não resolvidos, recalcula confiança e ciclo de vida (o decaimento muda o resultado sem votos novos).
 
-**Aceite:** testes de integração: duplicata a 30 m é achada e a 60 m não; autor não vota existência; persistência em Nova é recusada; 5 votantes tiram de Nova; o job leva um problema "possivelmente resolvido" a "resolvido" após 48 h (com `TimeProvider` falso).
+**Aceite:** testes de integração: duplicata a 30 m é achada e a 60 m não; autor não vota; voto em Nova é aceito; 5 votantes tiram de Nova; o job leva um problema "possivelmente resolvido" a "resolvido" após 48 h (com `TimeProvider` falso).
 
 ## Etapa 5 — Incidentes (≈ 1 dia)
 
@@ -75,9 +75,9 @@ Console que referencia **só** o `Ocorrencias.Domain`. Roda em memória, sem ban
 **Modelo do cenário base** (parâmetros em `cenarios/base.json`, todos ajustáveis):
 - Área: retângulo de ~10 × 6 km na Zona Sul do Rio; usuários com um "centro de circulação" sorteado e raio de circulação de 1,5 km.
 - 30 dias em passos de 1 h. 200 problemas criados ao longo dos primeiros 20 dias; 70% verdadeiros, 30% falsos.
-- 1 000 honestos (95% cidadãos, 5% verificados). Em cada passo, cada usuário "passa" por cada problema dentro do seu raio com probabilidade `p_passagem` (calibrar para ~2 passagens/dia por problema em área densa). Ao passar a ≤ 500 m: problema verdadeiro e não resolvido → confirma com 30%; falso → "não vi" com 20%; verdadeiro e já resolvido → responde "resolvido" com 30%; verdadeiro ativo → responde "continua" com 15%. 5% dos votos honestos invertem o valor (ruído). Distância do voto = distância real da passagem.
+- 1 000 honestos (95% cidadãos, 5% verificados). Em cada passo, cada usuário "passa" por cada problema dentro do seu raio com probabilidade `p_passagem` (calibrar para ~2 passagens/dia por problema em área densa). Ao passar a ≤ 500 m, a pessoa responde "Ainda está lá?" (voto único): verdadeiro e não resolvido → "sim" com 30%; falso → "não" com 20%; verdadeiro e já resolvido → "não" com 30%. O autor não vota. 5% dos votos honestos invertem o valor (ruído). Distância do voto = distância real da passagem.
 - Resolução real dos verdadeiros: exponencial com média de 10 dias.
-- Ataque: em um problema falso, grupo de `k` contas (k = 1…30) vota "confirma" e, depois, "continua", ao longo de 6 h. Variantes: **S1** sem localização; **S2** distância 0–50 m (GPS falsificado); **S3** = S2 com 1 conta verificada.
+- Ataque: em um problema falso, grupo de `k` contas (k = 1…30) responde "sim" ao longo de 6 h. Variantes: **S1** sem localização; **S2** distância 0–50 m (GPS falsificado); **S3** = S2 com 1 conta verificada.
 - 30 sementes por (configuração × variante × k). `Random` com semente explícita — determinístico (RNF06).
 
 **Métricas** (exportar CSV bruto + resumo por configuração):

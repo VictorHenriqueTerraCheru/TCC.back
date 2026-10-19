@@ -22,8 +22,7 @@ Contrato único entre a API (.NET) e o front (React + TypeScript). **Qualquer mu
 | `TipoOcorrencia` | `problema`, `incidente` |
 | `StatusProblema` | `nova`, `ativa`, `possivelmenteResolvida`, `resolvida` |
 | `FaixaConfianca` | `baixa`, `media`, `alta` |
-| `ValorExistencia` | `confirma`, `naoVi` |
-| `ValorPersistencia` | `continua`, `resolvido` |
+| `ValorVotoContrato` | `sim`, `nao` (resposta a "Ainda está lá?") |
 | `TipoVinculo` | `moradorRegiao`, `trabalhaRegiao`, `servidorPublico`, `outro` |
 | `StatusVerificacao` | `pendente`, `aprovada`, `recusada` |
 | `NivelConcentracao` | `baixa`, `media`, `alta` |
@@ -71,11 +70,11 @@ O token carrega `sub`, `email`, `nome` e `perfil` **do momento do login**. Depoi
 Itens em ordem decrescente de data:
 ```json
 {
-  "tipo": "registroProblema | registroIncidente | votoExistencia | votoPersistencia",
+  "tipo": "registroProblema | registroIncidente | voto",
   "ocorrenciaId": "uuid",
   "categoria": { "id": 1, "nome": "Buraco na via", "grupo": "viaPublica", "icone": "buraco" },
   "endereco": "Rua Voluntários da Pátria, 170",
-  "valor": "confirma | naoVi | continua | resolvido | null",
+  "valor": "sim | nao | null",
   "statusProblema": "nova | ativa | ... | null",
   "data": "2026-10-06T09:41:00Z"
 }
@@ -122,15 +121,15 @@ Em `nova`, `confianca` e `faixa` vêm `null`.
   "status": "ativa",
   "confianca": 82.0, "faixa": "alta",
   "avaliacao": { "votantes": 5, "necessarios": 5, "encerraEm": "2026-10-07T07:52:00Z" },
-  "existencia": { "confirmacoes": 15, "naoVi": 1 },
-  "persistencia": { "continua": 9, "resolvido": 1, "resolvidoUltimas24h": 1 },
-  "meusVotos": { "existencia": "confirma", "persistencia": null },
+  "votos": { "sim": 15, "nao": 1, "naoUltimas24h": 1 },
+  "meuVoto": "sim",
   "souAutor": false
 }
 ```
 - Contadores são **contagens de pessoas** (não pesos) — é o que a tela mostra.
 - `avaliacao` só vem preenchido em `nova`.
-- `meusVotos`/`souAutor` só com token; para visitante vêm `null`/`false`.
+- `votos` conta as respostas a "Ainda está lá?"; `naoUltimas24h` são os "não" registrados nas últimas 24 h.
+- `meuVoto`/`souAutor` só com token; para visitante vêm `null`/`false`. `meuVoto` é `null` também para quem ainda não votou.
 - `confianca` vem com 1 casa decimal; `faixa` é calculada sobre o valor gravado (2 casas). Em `nova`, ambos `null`.
 - `404` se o id não existe.
 - A distância "você está a X m" é calculada **no front** com a posição atual do navegador.
@@ -140,6 +139,7 @@ Problemas da mesma categoria, não resolvidos, a até 50 m. Ordenados por distâ
 ```json
 [ { "id": "uuid", "categoria": {...}, "endereco": "...", "criadoEm": "...", "distanciaMetros": 30, "faixa": "alta", "confirmacoes": 15 } ]
 ```
+`confirmacoes` = quantas pessoas responderam "sim".
 
 ### `POST /problemas`
 ```json
@@ -155,18 +155,13 @@ Problemas não resolvidos no raio, mais recentes primeiro. `raioKm` ∈ (0, 50],
 
 ## Votos
 
-### `PUT /problemas/{id}/votos/existencia`
+### `PUT /problemas/{id}/voto`
+Resposta a "Ainda está lá?". Um voto por usuário e problema; votar de novo substitui. O mesmo voto alimenta o índice de confiança e o ciclo de vida (docs/MOTOR_CONFIANCA.md). Aceito também em `nova`.
 ```json
-{ "valor": "confirma", "lat": -22.9520, "lng": -43.1867 }
+{ "valor": "sim", "lat": -22.9520, "lng": -43.1867 }
 ```
-`lat`/`lng` opcionais, mas **juntos ou nenhum** (só um deles → `400`; sem permissão de localização → peso de proximidade 1). → `200` com o detalhe atualizado. `404` se o problema não existe. O autor pode votar persistência.
-Erros: `422 autor-nao-vota-existencia`, `422 problema-resolvido`.
-
-### `PUT /problemas/{id}/votos/persistencia`
-```json
-{ "valor": "resolvido", "lat": -22.9520, "lng": -43.1867 }
-```
-→ `200` com o detalhe atualizado. Erros: `422 persistencia-indisponivel-em-nova`, `422 problema-resolvido`.
+`valor`: `sim` (está lá) ou `nao` (foi resolvido ou não foi encontrado). `lat`/`lng` opcionais, mas **juntos ou nenhum** (só um deles → `400`; sem permissão de localização → peso de proximidade 1). → `200` com o detalhe atualizado. `404` se o problema não existe.
+Erros: `422 autor-nao-vota`, `422 problema-resolvido`.
 
 > A API calcula a distância no PostGIS e **descarta** `lat`/`lng`; grava só `perfilNoMomento` e `distanciaMetros`.
 
@@ -252,8 +247,7 @@ Para o host e o monitoramento; o front não precisa chamar.
 | `email-ja-cadastrado` | 409 | cadastro com e-mail existente |
 | `categoria-nao-e-problema` | 422 | POST /problemas com categoria de incidente |
 | `categoria-nao-e-incidente` | 422 | POST /incidentes com categoria de problema |
-| `autor-nao-vota-existencia` | 422 | autor votando existência no próprio problema |
-| `persistencia-indisponivel-em-nova` | 422 | voto de persistência em problema `nova` |
+| `autor-nao-vota` | 422 | autor votando no próprio problema |
 | `problema-resolvido` | 422 | voto em problema `resolvida` |
 | `horario-fora-da-janela` | 422 | incidente com `ocorridoEm` fora de [agora − 24 h, agora] |
 | `limite-diario-incidentes` | 429 | 11º incidente da conta em 24 h |

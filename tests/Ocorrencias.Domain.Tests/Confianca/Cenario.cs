@@ -9,25 +9,20 @@ internal static class Cenario
     public static readonly DateTimeOffset T0 = new(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
 
     public static VotoFato Voto(
-        TipoVoto tipo,
         ValorVoto valor,
         Perfil perfil = Perfil.Cidadao,
         double? distancia = 100,
         DateTimeOffset? em = null,
         Guid? usuario = null) =>
-        new(usuario ?? Guid.NewGuid(), tipo, valor, perfil, distancia, em ?? T0);
+        new(usuario ?? Guid.NewGuid(), valor, perfil, distancia, em ?? T0);
 
-    public static VotoFato Confirma(Perfil perfil = Perfil.Cidadao, double? distancia = 100, DateTimeOffset? em = null, Guid? usuario = null) =>
-        Voto(TipoVoto.Existencia, ValorVoto.Positivo, perfil, distancia, em, usuario);
+    /// <summary>"Ainda está lá?" → Sim.</summary>
+    public static VotoFato Sim(Perfil perfil = Perfil.Cidadao, double? distancia = 100, DateTimeOffset? em = null, Guid? usuario = null) =>
+        Voto(ValorVoto.Positivo, perfil, distancia, em, usuario);
 
-    public static VotoFato NaoVi(Perfil perfil = Perfil.Cidadao, double? distancia = 100, DateTimeOffset? em = null, Guid? usuario = null) =>
-        Voto(TipoVoto.Existencia, ValorVoto.Negativo, perfil, distancia, em, usuario);
-
-    public static VotoFato Continua(Perfil perfil = Perfil.Cidadao, double? distancia = 100, DateTimeOffset? em = null, Guid? usuario = null) =>
-        Voto(TipoVoto.Persistencia, ValorVoto.Positivo, perfil, distancia, em, usuario);
-
-    public static VotoFato Resolvido(Perfil perfil = Perfil.Cidadao, double? distancia = 100, DateTimeOffset? em = null, Guid? usuario = null) =>
-        Voto(TipoVoto.Persistencia, ValorVoto.Negativo, perfil, distancia, em, usuario);
+    /// <summary>"Ainda está lá?" → Não (foi resolvido ou não foi encontrado).</summary>
+    public static VotoFato Nao(Perfil perfil = Perfil.Cidadao, double? distancia = 100, DateTimeOffset? em = null, Guid? usuario = null) =>
+        Voto(ValorVoto.Negativo, perfil, distancia, em, usuario);
 
     public static List<VotoFato> Repetir(int vezes, Func<VotoFato> criar) =>
         Enumerable.Range(0, vezes).Select(_ => criar()).ToList();

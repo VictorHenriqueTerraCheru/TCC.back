@@ -152,9 +152,9 @@ public sealed class AdminTests(ApiFactory fabrica)
         var antes = await autor.RegistrarProblemaAsync(lat, lng);
         var depois = await autor.RegistrarProblemaAsync(Cenarios.Norte(lat, 30), lng, categoriaId: 2);
 
-        await votante.VotarExistenciaAsync(antes.Id, "confirma");
+        await votante.VotarAsync(antes.Id, "sim");
         await AprovarAsync(admin, await SolicitarAsync(votante));
-        await votante.VotarExistenciaAsync(depois.Id, "confirma"); // mesmo token antigo (claim "cidadao")
+        await votante.VotarAsync(depois.Id, "sim"); // mesmo token antigo (claim "cidadao")
 
         var votos = await fabrica.NoBancoAsync(db => db.Votos.AsNoTracking()
             .Where(v => v.UsuarioId == votante.Id)

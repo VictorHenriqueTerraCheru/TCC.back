@@ -115,31 +115,19 @@ public sealed class Mundo
                     continue;
                 }
 
-                var ehAutor = usuario.Id == p.AutorId;
+                if (usuario.Id == p.AutorId)
+                {
+                    continue; // o autor não vota
+                }
+
                 var resolvidoDeFato = p.ResolucaoRealHora is { } r && hora >= r;
+                var (probabilidade, valor) = !p.Verdadeiro ? (c.ProbNaoFalso, ValorVoto.Negativo)
+                    : resolvidoDeFato ? (c.ProbNaoResolvido, ValorVoto.Negativo)
+                    : (c.ProbSim, ValorVoto.Positivo);
 
-                if (p.Verdadeiro && !resolvidoDeFato)
+                if (rnd.Chance(probabilidade))
                 {
-                    if (rnd.Chance(c.ProbConfirmar) && !ehAutor)
-                    {
-                        intencoes.Add(Votar(c, rnd, hora, usuario, TipoVoto.Existencia, ValorVoto.Positivo, distancia));
-                    }
-
-                    if (rnd.Chance(c.ProbContinua))
-                    {
-                        intencoes.Add(Votar(c, rnd, hora, usuario, TipoVoto.Persistencia, ValorVoto.Positivo, distancia));
-                    }
-                }
-                else if (p.Verdadeiro)
-                {
-                    if (rnd.Chance(c.ProbResolvido))
-                    {
-                        intencoes.Add(Votar(c, rnd, hora, usuario, TipoVoto.Persistencia, ValorVoto.Negativo, distancia));
-                    }
-                }
-                else if (rnd.Chance(c.ProbNaoVi) && !ehAutor)
-                {
-                    intencoes.Add(Votar(c, rnd, hora, usuario, TipoVoto.Existencia, ValorVoto.Negativo, distancia));
+                    intencoes.Add(Votar(c, rnd, hora, usuario, valor, distancia));
                 }
             }
         }
@@ -149,13 +137,13 @@ public sealed class Mundo
         return intencoes.OrderBy(i => i.Hora).ToList();
     }
 
-    private static Intencao Votar(Cenario c, Random rnd, double hora, Usuario u, TipoVoto tipo, ValorVoto valor, double distancia)
+    private static Intencao Votar(Cenario c, Random rnd, double hora, Usuario u, ValorVoto valor, double distancia)
     {
         if (rnd.Chance(c.ProbRuido))
         {
             valor = valor == ValorVoto.Positivo ? ValorVoto.Negativo : ValorVoto.Positivo;
         }
 
-        return new Intencao(hora, u.Id, tipo, valor, u.Perfil, distancia);
+        return new Intencao(hora, u.Id, valor, u.Perfil, distancia);
     }
 }

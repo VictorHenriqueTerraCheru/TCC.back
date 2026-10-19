@@ -24,10 +24,11 @@ public sealed class CicloDeVidaTests(ApiFactory fabrica)
     {
         var (lat, lng) = ApiFactory.PontoUnico();
         var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
-        for (var i = 0; i < 3; i++)
+        // 4 "não" a ~100 m contra os 5 "sim" sem GPS: R⁻ = 8, R⁺ = 5, p ≈ 0,62 ≥ 0,6.
+        for (var i = 0; i < 4; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();
-            await votante.VotarPersistenciaAsync(problema.Id, "resolvido", Cenarios.Norte(lat, 100), lng);
+            await votante.VotarAsync(problema.Id, "nao", Cenarios.Norte(lat, 100), lng);
         }
 
         (await DetalheAsync(problema.Id)).Status.Should().Be(StatusProblema.PossivelmenteResolvida);

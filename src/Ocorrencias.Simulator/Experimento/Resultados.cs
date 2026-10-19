@@ -9,6 +9,7 @@ public sealed record LinhaDiaria(
     int Dia,
     int FalsosExistentes,
     int FalsosAlta,
+    int FalsosResolvidos,
     int VerdadeirosAvaliados,
     int VerdadeirosBaixa,
     int VerdadeirosResolvidosIndevidamente)
