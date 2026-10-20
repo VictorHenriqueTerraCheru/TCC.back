@@ -237,6 +237,18 @@ O solicitante passa a `cidadaoVerificado` (vale para os votos seguintes). `409 v
 ```
 → `204`. `409 verificacao-ja-analisada`; `404` se o id não existe.
 
+### `GET /admin/usuarios?busca&perfil=cidadao|cidadaoVerificado|administrador&pagina&tamanho`
+Todos os usuários, do cadastro mais novo para o mais antigo. `busca` (até 100) procura trecho do nome ou do e-mail, sem diferenciar maiúsculas; `perfil` filtra; ambos opcionais. Parâmetro inválido → `400`.
+```json
+{ "itens": [ { "id": "uuid", "nome": "Mariana Souza", "email": "mariana@email.com", "perfil": "cidadaoVerificado", "criadoEm": "...", "verificadoEm": "..." } ], "pagina": 1, "tamanho": 20, "total": 57 }
+```
+
+### `PATCH /admin/usuarios/{id}/perfil`
+```json
+{ "perfil": "cidadao | cidadaoVerificado | administrador" }
+```
+→ `204`. Vale para os votos seguintes (o voto antigo mantém o `perfilNoMomento`). Virar `cidadaoVerificado` grava `verificadoEm` (mantém a data se já era verificado); voltar a `cidadao` zera. `422 proprio-perfil` (o admin não altera o próprio perfil); `404` se o id não existe; perfil inválido → `400`. A claim `perfil` do token do usuário alterado só muda num novo login (ver *Autenticação*); um admin rebaixado mantém o acesso de admin até o token dele expirar.
+
 ### `GET /admin/categorias`
 Todas as categorias, inclusive as desativadas.
 ```json
@@ -306,5 +318,6 @@ Para o host e o monitoramento; o front não precisa chamar.
 | `grupo-rotulo-duplicado` | 409 | POST/PUT /admin/grupos com rótulo já usado |
 | `grupo-em-uso` | 409 | DELETE /admin/grupos de grupo que tem categorias |
 | `verificacao-ja-analisada` | 409 | aprovar/recusar solicitação não pendente |
+| `proprio-perfil` | 422 | PATCH /admin/usuarios/{id}/perfil no próprio usuário |
 | `limite-requisicoes` | 429 | limite por IP da geocodificação excedido |
 | `banco-indisponivel` | 503 | GET /saude/banco sem conexão com o banco |
