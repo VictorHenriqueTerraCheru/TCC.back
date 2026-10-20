@@ -35,6 +35,21 @@ public enum TipoOcorrencia
     Incidente = 2,
 }
 
+/// <summary>Cor de um grupo de categorias: slot da paleta do front (tokens CSS por slot, claro e escuro).</summary>
+public enum CorGrupo
+{
+    Laranja = 1,
+    Ocre = 2,
+    Marrom = 3,
+    Vermelho = 4,
+    Terracota = 5,
+    Azul = 6,
+    VerdeAgua = 7,
+    Roxo = 8,
+    Rosa = 9,
+    Cinza = 10,
+}
+
 public enum TipoVinculo
 {
     MoradorRegiao = 1,

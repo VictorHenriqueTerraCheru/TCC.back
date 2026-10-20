@@ -147,6 +147,20 @@
         ],
         "type": "object"
       },
+      "CorGrupo": {
+        "enum": [
+          "laranja",
+          "ocre",
+          "marrom",
+          "vermelho",
+          "terracota",
+          "azul",
+          "verdeAgua",
+          "roxo",
+          "rosa",
+          "cinza"
+        ]
+      },
       "CriarCategoriaRequest": {
         "properties": {
           "grupo": {
@@ -170,6 +184,25 @@
         ],
         "type": "object"
       },
+      "CriarGrupoRequest": {
+        "properties": {
+          "cor": {
+            "$ref": "#/components/schemas/CorGrupo"
+          },
+          "rotulo": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoOcorrencia"
+          }
+        },
+        "required": [
+          "rotulo",
+          "tipo",
+          "cor"
+        ],
+        "type": "object"
+      },
       "EditarCategoriaRequest": {
         "properties": {
           "grupo": {
@@ -186,6 +219,26 @@
           "nome",
           "grupo",
           "icone"
+        ],
+        "type": "object"
+      },
+      "EditarGrupoRequest": {
+        "properties": {
+          "cor": {
+            "$ref": "#/components/schemas/CorGrupo"
+          },
+          "ordem": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "rotulo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rotulo",
+          "cor",
+          "ordem"
         ],
         "type": "object"
       },
@@ -210,6 +263,34 @@
           "media",
           "alta"
         ]
+      },
+      "GrupoResponse": {
+        "properties": {
+          "chave": {
+            "type": "string"
+          },
+          "cor": {
+            "$ref": "#/components/schemas/CorGrupo"
+          },
+          "ordem": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "rotulo": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoOcorrencia"
+          }
+        },
+        "required": [
+          "chave",
+          "rotulo",
+          "tipo",
+          "cor",
+          "ordem"
+        ],
+        "type": "object"
       },
       "HttpValidationProblemDetails": {
         "properties": {
@@ -1394,6 +1475,135 @@
         ]
       }
     },
+    "/api/v1/admin/grupos": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarGrupoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrupoResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/grupos/{chave}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chave",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chave",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarGrupoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrupoResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/api/v1/admin/verificacoes": {
       "get": {
         "parameters": [
@@ -1693,6 +1903,28 @@
         },
         "tags": [
           "Geocodificação"
+        ]
+      }
+    },
+    "/api/v1/grupos": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GrupoResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Categorias"
         ]
       }
     },

@@ -24,6 +24,17 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
 
     public async Task<Resultado<CategoriaAdminResponse>> CriarAsync(CriarCategoriaRequest request, CancellationToken ct)
     {
+        var grupo = await db.Grupos.FindAsync([request.Grupo], ct);
+        if (grupo is null)
+        {
+            return ErrosCategoria.GrupoInexistente;
+        }
+
+        if (grupo.Tipo != request.Tipo)
+        {
+            return ErrosCategoria.GrupoTipoIncompativel;
+        }
+
         var nome = request.Nome.Trim();
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
@@ -55,6 +66,17 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         if (categoria is null)
         {
             return ErroAplicacao.NaoEncontrado;
+        }
+
+        var grupo = await db.Grupos.FindAsync([request.Grupo], ct);
+        if (grupo is null)
+        {
+            return ErrosCategoria.GrupoInexistente;
+        }
+
+        if (grupo.Tipo != categoria.Tipo)
+        {
+            return ErrosCategoria.GrupoTipoIncompativel;
         }
 
         var nome = request.Nome.Trim();

@@ -11,6 +11,7 @@ using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Auth;
 using Ocorrencias.Api.Categorias;
+using Ocorrencias.Api.Grupos;
 using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Api.Persistence;
@@ -104,6 +105,7 @@ public static class DependencyInjection
     private static IServiceCollection AddServicos(this IServiceCollection services)
     {
         services.AddScoped<ICategoriaService, CategoriaService>();
+        services.AddScoped<IGrupoService, GrupoService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUsuarioService, UsuarioService>();
         services.AddScoped<IProblemaService, ProblemaService>();

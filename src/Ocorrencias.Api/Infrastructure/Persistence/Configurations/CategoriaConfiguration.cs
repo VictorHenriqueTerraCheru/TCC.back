@@ -15,6 +15,7 @@ public sealed class CategoriaConfiguration : IEntityTypeConfiguration<Categoria>
         b.Property(c => c.Icone).HasMaxLength(40);
         b.Property(c => c.Ativa).HasDefaultValue(true);
         b.HasIndex(c => c.Nome).IsUnique();
+        b.HasOne<GrupoCategoria>().WithMany().HasForeignKey(c => c.Grupo).OnDelete(DeleteBehavior.Restrict);
 
         // Dado inicial de docs/API.md; novas categorias nascem pelo CRUD de admin.
         b.HasData(

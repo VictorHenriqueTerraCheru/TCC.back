@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Categorias;
+using Ocorrencias.Api.Grupos;
 using Ocorrencias.Api.Tests.Infra;
 using Ocorrencias.Domain;
 
@@ -16,7 +17,7 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
 {
     private static string NomeUnico() => $"Categoria {Guid.NewGuid():N}"[..30];
 
-    private static Task<HttpResponseMessage> CriarAsync(Pessoa admin, string nome, string tipo = "incidente", string grupo = "clima", string icone = "inundacao") =>
+    private static Task<HttpResponseMessage> CriarAsync(Pessoa admin, string nome, string tipo = "incidente", string grupo = "seguranca", string icone = "inundacao") =>
         admin.Cliente.PostAsJsonAsync("/api/v1/admin/categorias", new { nome, grupo, tipo, icone }, ClienteApi.Json);
 
     private async Task DesativarAsync(Pessoa admin, params short[] ids)
@@ -31,11 +32,11 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
     public async Task Rotas_de_admin_exigem_perfil_administrador()
     {
         var cidadao = await fabrica.NovaPessoaAsync();
-        var corpo = new { nome = NomeUnico(), grupo = "clima", tipo = "incidente", icone = "inundacao" };
+        var corpo = new { nome = NomeUnico(), grupo = "seguranca", tipo = "incidente", icone = "inundacao" };
 
         (await cidadao.Cliente.GetAsync("/api/v1/admin/categorias")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await cidadao.Cliente.PostAsJsonAsync("/api/v1/admin/categorias", corpo, ClienteApi.Json)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await cidadao.Cliente.PutAsJsonAsync("/api/v1/admin/categorias/1", new { nome = "x", grupo = "clima", icone = "x" }, ClienteApi.Json))
+        (await cidadao.Cliente.PutAsJsonAsync("/api/v1/admin/categorias/1", new { nome = "x", grupo = "seguranca", icone = "x" }, ClienteApi.Json))
             .StatusCode.Should().Be(HttpStatusCode.Forbidden);
         (await cidadao.Cliente.PatchAsJsonAsync("/api/v1/admin/categorias/1/ativa", new { ativa = false }, ClienteApi.Json))
             .StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -55,7 +56,7 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
         try
         {
             resposta.StatusCode.Should().Be(HttpStatusCode.Created);
-            criada.Should().Be(new CategoriaAdminResponse((short)(maior + 1), nome, "clima", TipoOcorrencia.Incidente, "inundacao", true));
+            criada.Should().Be(new CategoriaAdminResponse((short)(maior + 1), nome, "seguranca", TipoOcorrencia.Incidente, "inundacao", true));
 
             var publica = (await (await fabrica.CreateClient().GetAsync("/api/v1/categorias")).LerJsonAsync()).EnumerateArray();
             publica.Select(c => c.GetProperty("id").GetInt32()).Should().Contain(criada.Id);
@@ -111,7 +112,7 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
 
     [Theory]
     [InlineData("", "clima", "incidente", "inundacao")]
-    [InlineData("Nome ok", "Clima Mau", "incidente", "inundacao")]
+    [InlineData("Nome ok", "", "incidente", "inundacao")]
     [InlineData("Nome ok", "clima", "incidente", "Icone Invalido")]
     [InlineData("Nome ok", "clima", "outro", "inundacao")]
     public async Task Criar_valida_o_corpo(string nome, string grupo, string tipo, string icone)
@@ -158,11 +159,11 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
         try
         {
             var resposta = await admin.Cliente.PutAsJsonAsync($"/api/v1/admin/categorias/{criada.Id}",
-                new { nome = novoNome, grupo = "tempo", icone = "chuva", tipo = "problema" }, ClienteApi.Json);
+                new { nome = novoNome, grupo = "transito", icone = "chuva", tipo = "problema" }, ClienteApi.Json);
 
             resposta.StatusCode.Should().Be(HttpStatusCode.OK);
             (await resposta.LerAsync<CategoriaAdminResponse>()).Should().Be(
-                new CategoriaAdminResponse(criada.Id, novoNome, "tempo", TipoOcorrencia.Incidente, "chuva", true));
+                new CategoriaAdminResponse(criada.Id, novoNome, "transito", TipoOcorrencia.Incidente, "chuva", true));
         }
         finally
         {
@@ -175,24 +176,42 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
     {
         var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
 
-        (await admin.Cliente.PutAsJsonAsync("/api/v1/admin/categorias/30000", new { nome = "x", grupo = "clima", icone = "x" }, ClienteApi.Json))
+        (await admin.Cliente.PutAsJsonAsync("/api/v1/admin/categorias/30000", new { nome = "x", grupo = "seguranca", icone = "x" }, ClienteApi.Json))
             .StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await admin.Cliente.PatchAsJsonAsync("/api/v1/admin/categorias/30000/ativa", new { ativa = true }, ClienteApi.Json))
             .StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
+    public async Task Grupo_inexistente_devolve_400_e_grupo_de_outro_tipo_devolve_422()
+    {
+        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
+
+        var inexistente = await CriarAsync(admin, NomeUnico(), "incidente", "naoExiste");
+        var incompativel = await CriarAsync(admin, NomeUnico(), "problema", "seguranca");
+        var editar = await admin.Cliente.PutAsJsonAsync("/api/v1/admin/categorias/1",
+            new { nome = "Buraco na via", grupo = "seguranca", icone = "buraco" }, ClienteApi.Json);
+
+        inexistente.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await inexistente.LerJsonAsync()).GetProperty("errors").TryGetProperty("grupo", out _).Should().BeTrue();
+        incompativel.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await incompativel.LerJsonAsync()).GetProperty("type").GetString().Should().Be("grupo-tipo-incompativel");
+        editar.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
     public async Task Grupo_novo_vale_no_filtro_de_problemas()
     {
         var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var grupo = $"g{Guid.NewGuid():N}"[..12];
-        var criada = await (await CriarAsync(admin, NomeUnico(), "problema", grupo, "x")).LerAsync<CategoriaAdminResponse>();
+        var grupo = await (await admin.Cliente.PostAsJsonAsync("/api/v1/admin/grupos",
+            new { rotulo = $"Grupo {Guid.NewGuid():N}"[..20], tipo = "problema", cor = "azul" }, ClienteApi.Json)).LerAsync<GrupoResponse>();
+        var criada = await (await CriarAsync(admin, NomeUnico(), "problema", grupo.Chave, "x")).LerAsync<CategoriaAdminResponse>();
         try
         {
             var area = "minLat=-23&maxLat=-22&minLng=-44&maxLng=-43";
 
-            (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}&grupos={grupo}")).StatusCode.Should().Be(HttpStatusCode.OK);
-            (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}&grupos={grupo}x")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}&grupos={grupo.Chave}")).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}&grupos={grupo.Chave}x")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         }
         finally
         {
