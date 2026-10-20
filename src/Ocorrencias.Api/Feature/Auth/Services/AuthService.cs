@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Persistence;
 
 namespace Ocorrencias.Api.Auth;
 
-public sealed class AuthService(UserManager<Usuario> usuarios, JwtTokenService jwt, TimeProvider relogio) : IAuthService
+public sealed class AuthService(UserManager<Usuario> usuarios, JwtTokenService jwt, TimeProvider relogio, AppDbContext db, IOptions<IdentityOptions> identity) : IAuthService
 {
     public async Task<Resultado<RespostaAuth>> CadastrarAsync(CadastrarRequest request)
     {
@@ -66,13 +67,33 @@ public sealed class AuthService(UserManager<Usuario> usuarios, JwtTokenService j
 
         if (!await usuarios.CheckPasswordAsync(usuario, request.Senha))
         {
-            // Conta uma falha; ao atingir o máximo o Identity define o fim do bloqueio.
-            await usuarios.AccessFailedAsync(usuario);
+            await RegistrarFalhaAsync(usuario.Id);
             return ErrosAuth.CredenciaisInvalidas;
         }
 
-        await usuarios.ResetAccessFailedCountAsync(usuario);
+        await db.Database.ExecuteSqlAsync(
+            $"UPDATE usuarios SET access_failed_count = 0 WHERE id = {usuario.Id} AND access_failed_count <> 0");
         return CriarResposta(usuario);
+    }
+
+    /// <summary>
+    /// Conta a falha e, ao atingir o máximo, define o fim do bloqueio e zera o contador (mesma regra do
+    /// <c>AccessFailedAsync</c> do Identity). Numa única instrução: o <c>AccessFailedAsync</c> lê e grava com
+    /// o concurrency stamp, então tentativas paralelas perdem contagens e driblariam o bloqueio.
+    /// O fim do bloqueio usa o relógio do banco, o mesmo critério de <c>IsLockedOutAsync</c> (relógio do sistema).
+    /// </summary>
+    private async Task RegistrarFalhaAsync(Guid usuarioId)
+    {
+        var lockout = identity.Value.Lockout;
+        var maximo = lockout.MaxFailedAccessAttempts;
+        var minutos = lockout.DefaultLockoutTimeSpan.TotalMinutes;
+
+        await db.Database.ExecuteSqlAsync($"""
+            UPDATE usuarios
+            SET access_failed_count = CASE WHEN access_failed_count + 1 >= {maximo} THEN 0 ELSE access_failed_count + 1 END,
+                lockout_end = CASE WHEN access_failed_count + 1 >= {maximo} THEN now() + {minutos} * interval '1 minute' ELSE lockout_end END
+            WHERE id = {usuarioId}
+            """);
     }
 
     private RespostaAuth CriarResposta(Usuario usuario)
