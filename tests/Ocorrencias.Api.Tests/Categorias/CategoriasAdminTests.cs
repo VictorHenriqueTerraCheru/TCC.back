@@ -194,6 +194,22 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
     }
 
     [Fact]
+    public async Task Tipo_numerico_e_corpo_de_ativa_sem_o_campo_devolvem_400()
+    {
+        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
+        var nome = NomeUnico();
+
+        var numerico = await admin.Cliente.PostAsJsonAsync("/api/v1/admin/categorias",
+            new { nome, grupo = "seguranca", tipo = 2, icone = "x" }, ClienteApi.Json);
+        var semAtiva = await admin.Cliente.PatchAsJsonAsync("/api/v1/admin/categorias/1/ativa", new { }, ClienteApi.Json);
+
+        numerico.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        semAtiva.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await fabrica.NoBancoAsync(db => db.Categorias.Where(c => c.Nome == nome).AnyAsync())).Should().BeFalse();
+        (await fabrica.NoBancoAsync(db => db.Categorias.Where(c => c.Id == 1).Select(c => c.Ativa).SingleAsync())).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Id_inexistente_devolve_404()
     {
         var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);

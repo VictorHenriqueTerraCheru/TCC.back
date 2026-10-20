@@ -11,7 +11,8 @@ public static class JsonConfig
         opcoes.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         // Números só como número: os defaults web aceitam "12" e fariam o OpenAPI declarar integer|string.
         opcoes.NumberHandling = JsonNumberHandling.Strict;
-        opcoes.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        // Enum só como string: sem allowIntegerValues o conversor aceitaria "tipo": 1 e IsInEnum() o validaria.
+        opcoes.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
         opcoes.Converters.Add(new DataUtcConverter());
     }
 

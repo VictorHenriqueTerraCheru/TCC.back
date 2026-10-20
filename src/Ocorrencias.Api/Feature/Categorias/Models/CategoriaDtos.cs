@@ -17,4 +17,8 @@ public sealed record CriarCategoriaRequest(string Nome, string Grupo, TipoOcorre
 /// <summary>O tipo (problema ou incidente) não muda depois de criada.</summary>
 public sealed record EditarCategoriaRequest(string Nome, string Grupo, string Icone);
 
-public sealed record AlterarAtivaCategoriaRequest(bool Ativa);
+/// <summary><c>required</c>: corpo sem <c>ativa</c> dá 400, em vez de assumir <c>false</c> e desativar a categoria.</summary>
+public sealed record AlterarAtivaCategoriaRequest
+{
+    public required bool Ativa { get; init; }
+}
