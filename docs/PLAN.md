@@ -2,11 +2,13 @@
 
 Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `dotnet test` verde e um commit. **Não pule a Etapa 1**: ela é o núcleo do TCC e destrava o Simulator em paralelo com o front.
 
+> Os nomes `Area/Acao` das etapas (ex.: `Problemas/Registrar`) são as operações de cada área. No código atual viram métodos do service da área (`IProblemaService.RegistrarAsync`), não pastas por ação.
+
 ---
 
 ## Etapa 0 — Esqueleto (≈ ½ dia)
 
-- Solution com os 5 projetos da árvore do `CLAUDE.md`; `Directory.Build.props` com `net10.0`, `Nullable`, `ImplicitUsings`, `LangVersion latest`.
+- Solution com os 6 projetos da árvore do `CLAUDE.md` (Domain, Api e Simulator em `src/`; um projeto de testes para cada em `tests/`); `Directory.Build.props` com `net10.0`, `Nullable`, `ImplicitUsings`, `LangVersion latest`.
 - `docker-compose.yml` com `postgis/postgis:16-3.4` (usuário/senha/banco `ocorrencias`).
 - `Program.cs` mínimo: OpenAPI + Scalar, ProblemDetails, `JsonStringEnumConverter` camelCase, CORS por configuração (`Cors:Origens`, com `http://localhost:5173` em Development), health checks em `GET /api/v1/saude` (aplicação) e `GET /api/v1/saude/banco` (banco; 503 se fora), anônimos e documentados no OpenAPI (tag `Saude`).
 - Garanta que o documento OpenAPI (`/openapi/v1.json`) descreva os enums como string e os campos anuláveis corretamente: o front gera os tipos TypeScript a partir dele.
@@ -23,7 +25,7 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `
 
 ## Etapa 2 — Dados e autenticação (≈ 1–2 dias)
 
-- `AppDbContext` com `UseNetTopologySuite()` e snake_case. Entidades: `Usuario : IdentityUser<Guid>` (+ `Nome`, `Perfil`, `CriadoEm`, `VerificadoEm`), `SolicitacaoVerificacao`, `Categoria` (seed dos 8 itens do `API.md`), `Problema` (`Point Localizacao` geography 4326, índice GIST), `Voto` (índice único `problema_id, usuario_id, tipo`), `Incidente` (`Point AreaAproximada` + GIST, índice em `registrado_em`).
+- `AppDbContext` com `UseNetTopologySuite()` e snake_case. Entidades: `Usuario : IdentityUser<Guid>` (+ `Nome`, `Perfil`, `CriadoEm`, `VerificadoEm`), `SolicitacaoVerificacao`, `Categoria` (seed dos 8 itens do `API.md`), `Problema` (`Point Localizacao` geography 4326, índice GIST), `Voto` (índice único `problema_id, usuario_id`: voto único "Ainda está lá?"), `Incidente` (`Point AreaAproximada` + GIST, índice em `registrado_em`).
 - Renomear as tabelas do Identity (`usuarios`, `usuarios_roles` etc.) — não usamos roles do Identity; perfil é coluna.
 - `JwtTokenService` (HS256, 7 dias, claims `sub`, `email`, `nome`, `perfil`). Policies `Autenticado` e `Administrador`.
 - Features `Auth/Cadastrar`, `Auth/Entrar`, `Usuarios/ObterMe`, `Usuarios/AtualizarMe`, `Categorias/Listar`.
