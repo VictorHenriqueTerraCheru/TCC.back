@@ -122,6 +122,23 @@ public sealed class GruposTests(ApiFactory fabrica)
     }
 
     [Fact]
+    public async Task Renomear_em_paralelo_para_o_mesmo_rotulo_deixa_so_um_vencer()
+    {
+        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
+        var a = await (await CriarAsync(admin, RotuloUnico())).LerAsync<GrupoResponse>();
+        var b = await (await CriarAsync(admin, RotuloUnico())).LerAsync<GrupoResponse>();
+        var alvo = RotuloUnico();
+
+        var respostas = await Task.WhenAll(
+            admin.Cliente.PutAsJsonAsync($"/api/v1/admin/grupos/{a.Chave}",
+                new { rotulo = alvo.ToLowerInvariant(), cor = "azul", ordem = 9 }, ClienteApi.Json),
+            admin.Cliente.PutAsJsonAsync($"/api/v1/admin/grupos/{b.Chave}",
+                new { rotulo = alvo.ToUpperInvariant(), cor = "azul", ordem = 9 }, ClienteApi.Json));
+
+        respostas.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
+    }
+
+    [Fact]
     public async Task Apagar_so_funciona_com_o_grupo_vazio()
     {
         var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);

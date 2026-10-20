@@ -9,7 +9,10 @@ namespace Ocorrencias.Api.Grupos;
 
 public sealed class GrupoService(AppDbContext db) : IGrupoService
 {
-    /// <summary>Serializa a criação: a chave única e a ordem seguinte são calculadas sobre o estado atual.</summary>
+    /// <summary>
+    /// Serializa criação e edição: a chave única e a ordem seguinte saem do estado atual, e a checagem de rótulo
+    /// (sem distinguir maiúsculas) não pode correr junto com outra, pois o índice do banco distingue.
+    /// </summary>
     private const long ChaveLockCriacao = 7_410_002;
 
     private const int TamanhoMaximoChave = 30;
@@ -53,13 +56,16 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
 
     public async Task<Resultado<GrupoResponse>> EditarAsync(string chave, EditarGrupoRequest request, CancellationToken ct)
     {
+        var rotulo = request.Rotulo.Trim();
+        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
+
         var grupo = await db.Grupos.FindAsync([chave], ct);
         if (grupo is null)
         {
             return ErroAplicacao.NaoEncontrado;
         }
 
-        var rotulo = request.Rotulo.Trim();
         if (await RotuloEmUsoAsync(rotulo, chave, ct))
         {
             return ErrosGrupo.RotuloDuplicado;
@@ -76,6 +82,8 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         {
             return ErrosGrupo.RotuloDuplicado;
         }
+
+        await transacao.CommitAsync(ct);
 
         return ParaResposta(grupo);
     }

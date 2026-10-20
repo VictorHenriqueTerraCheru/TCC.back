@@ -39,14 +39,46 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                     { "viaPublica", (short)1, 1, "Via pública", (short)1 }
                 });
 
-            // Categorias criadas pelo CRUD antes de existir cadastro de grupos podem ter grupo fora do seed:
-            // viram grupo (rótulo = chave + " (migrado)", cor cinza, tipo da categoria) para a FK abaixo não falhar.
+            // Categorias criadas pelo CRUD antes de existir cadastro de grupos podem ter grupo fora do seed, ou
+            // com tipo diferente do grupo de mesma chave (a mesma chave valia para problema e incidente).
+            // Cada par (grupo, tipo) sem grupo compatível vira grupo (rótulo = chave + " (migrado)", cinza, tipo da
+            // categoria). Se a chave já é de um grupo de outro tipo, as categorias passam para a chave
+            // <grupo>Estado / <grupo>Evento (com número no fim se ainda colidir), nunca para um tipo escolhido
+            // ao acaso. Assim a FK abaixo não falha e nenhuma categoria fica em grupo de tipo incompatível.
             migrationBuilder.Sql("""
-                INSERT INTO grupos_categoria (chave, rotulo, tipo, cor, ordem)
-                SELECT c.grupo, c.grupo || ' (migrado)', MIN(c.tipo), 10, 100 + (ROW_NUMBER() OVER (ORDER BY c.grupo))::int
-                FROM categorias c
-                WHERE NOT EXISTS (SELECT 1 FROM grupos_categoria g WHERE g.chave = c.grupo)
-                GROUP BY c.grupo;
+                DO $$
+                DECLARE
+                    par record;
+                    nova text;
+                    n int;
+                    proxima_ordem int := 100;
+                BEGIN
+                    FOR par IN
+                        SELECT DISTINCT c.grupo, c.tipo
+                        FROM categorias c
+                        WHERE NOT EXISTS (SELECT 1 FROM grupos_categoria g WHERE g.chave = c.grupo AND g.tipo = c.tipo)
+                        ORDER BY c.grupo, c.tipo
+                    LOOP
+                        nova := par.grupo;
+                        IF EXISTS (SELECT 1 FROM grupos_categoria WHERE chave = nova) THEN
+                            nova := left(par.grupo, 24) || CASE par.tipo WHEN 1 THEN 'Estado' ELSE 'Evento' END;
+                        END IF;
+                        n := 1;
+                        WHILE EXISTS (SELECT 1 FROM grupos_categoria WHERE chave = nova) LOOP
+                            n := n + 1;
+                            nova := left(par.grupo, 24) || CASE par.tipo WHEN 1 THEN 'Estado' ELSE 'Evento' END;
+                            nova := left(nova, 27) || n::text;
+                        END LOOP;
+
+                        proxima_ordem := proxima_ordem + 1;
+                        INSERT INTO grupos_categoria (chave, rotulo, tipo, cor, ordem)
+                        VALUES (nova, nova || ' (migrado)', par.tipo, 10, proxima_ordem);
+
+                        IF nova <> par.grupo THEN
+                            UPDATE categorias SET grupo = nova WHERE grupo = par.grupo AND tipo = par.tipo;
+                        END IF;
+                    END LOOP;
+                END $$;
                 """);
 
             migrationBuilder.CreateIndex(
