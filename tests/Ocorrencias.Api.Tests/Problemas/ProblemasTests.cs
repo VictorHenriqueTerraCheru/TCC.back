@@ -1,6 +1,7 @@
 using Ocorrencias.Api.Categorias;
 using System.Globalization;
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Tests.Infra;
@@ -260,5 +261,46 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         pagina1.Tamanho.Should().Be(2);
         pagina1.Itens.Select(i => i.Id).Should().Equal(ids[2], ids[1]);
         pagina2.Itens.Select(i => i.Id).Should().Equal(ids[0]);
+    }
+
+    [Fact]
+    public async Task Duplicatas_ignoram_resolvidas_e_trazem_confirmacoes_e_faixa()
+    {
+        var pessoa = await fabrica.NovaPessoaAsync();
+        var (lat, lng) = ApiFactory.PontoUnico();
+        var resolvida = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 10), lng);
+        await fabrica.NoBancoAsync(db => db.Problemas.Where(p => p.Id == resolvida.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, StatusProblema.Resolvida)));
+        var ativo = await fabrica.ProblemaAtivoAsync(Cenarios.Norte(lat, 20), lng); // 5 "sim": C = 62,5
+
+        var duplicatas = await (await pessoa.Cliente.GetAsync(Inv($"/api/v1/problemas/duplicatas?categoriaId=1&lat={lat}&lng={lng}")))
+            .LerAsync<List<BuscarDuplicatasResponse>>();
+
+        duplicatas.Should().ContainSingle();
+        duplicatas[0].Id.Should().Be(ativo.Id);
+        duplicatas[0].Faixa.Should().Be(FaixaConfianca.Media);
+        duplicatas[0].Confirmacoes.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task Recentes_ignoram_resolvidas_e_fora_do_raio_e_filtram_por_grupo()
+    {
+        var pessoa = await fabrica.NovaPessoaAsync();
+        var (lat, lng) = ApiFactory.PontoUnico();
+        var buraco = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 10), lng, categoriaId: 1);
+        var poste = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 20), lng, categoriaId: 3);
+        var resolvida = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 5), lng);
+        await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 200), lng); // fora de 50 m
+        await fabrica.NoBancoAsync(db => db.Problemas.Where(p => p.Id == resolvida.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, StatusProblema.Resolvida)));
+
+        var url = Inv($"/api/v1/problemas/recentes?lat={lat}&lng={lng}&raioKm=0.05");
+        var todos = await (await fabrica.CreateClient().GetAsync(url)).LerAsync<Paginado<ListarProblemasRecentesItem>>();
+        var eletrica = await (await fabrica.CreateClient().GetAsync(url + "&grupos=eletrica")).LerAsync<Paginado<ListarProblemasRecentesItem>>();
+
+        todos.Total.Should().Be(2);
+        todos.Itens.Select(i => i.Id).Should().BeEquivalentTo([buraco.Id, poste.Id]);
+        eletrica.Total.Should().Be(1);
+        eletrica.Itens.Select(i => i.Id).Should().Equal(poste.Id);
     }
 }
