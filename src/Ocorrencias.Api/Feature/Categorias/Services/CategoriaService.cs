@@ -6,7 +6,10 @@ namespace Ocorrencias.Api.Categorias;
 
 public sealed class CategoriaService(AppDbContext db) : ICategoriaService
 {
-    /// <summary>Serializa a criação: duas requisições simultâneas não calculam o mesmo <c>max(id)+1</c>.</summary>
+    /// <summary>
+    /// Serializa criação e edição: duas requisições simultâneas não calculam o mesmo <c>max(id)+1</c>
+    /// nem passam juntas pela checagem de nome (o índice do banco distingue maiúsculas).
+    /// </summary>
     private const long ChaveLockCriacao = 7_410_001;
 
     public Task<List<ListarCategoriasResponse>> ListarAsync(CancellationToken ct) =>
@@ -65,7 +68,7 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         }
         catch (DbUpdateException e) when (e.ViolouUnicidade())
         {
-            // Um PUT concorrente (que não toma o lock) renomeou outra categoria para este nome.
+            // Rede de segurança: o lock já serializa criação e edição.
             return ErrosCategoria.NomeDuplicado;
         }
         catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
@@ -80,6 +83,10 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
 
     public async Task<Resultado<CategoriaAdminResponse>> EditarAsync(short id, EditarCategoriaRequest request, CancellationToken ct)
     {
+        var nome = request.Nome.Trim();
+        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
+
         var categoria = await db.Categorias.FindAsync([id], ct);
         if (categoria is null)
         {
@@ -97,7 +104,6 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
             return ErrosCategoria.GrupoTipoIncompativel;
         }
 
-        var nome = request.Nome.Trim();
         if (await NomeEmUsoAsync(nome, id, ct))
         {
             return ErrosCategoria.NomeDuplicado;
@@ -119,6 +125,8 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
             // O grupo foi apagado entre a checagem e o salvamento.
             return ErrosCategoria.GrupoInexistente;
         }
+
+        await transacao.CommitAsync(ct);
 
         return ParaAdmin(categoria);
     }
