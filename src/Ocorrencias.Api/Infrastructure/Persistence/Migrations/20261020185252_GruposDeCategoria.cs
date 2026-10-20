@@ -50,6 +50,7 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                 DECLARE
                     par record;
                     nova text;
+                    novo_rotulo text;
                     n int;
                     proxima_ordem int := 100;
                 BEGIN
@@ -70,9 +71,17 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                             nova := left(nova, 27) || n::text;
                         END LOOP;
 
+                        -- Rótulo único sem distinguir caixa (chaves fooBar e foobar): é a regra do service.
+                        novo_rotulo := nova || ' (migrado)';
+                        n := 1;
+                        WHILE EXISTS (SELECT 1 FROM grupos_categoria WHERE lower(rotulo) = lower(novo_rotulo)) LOOP
+                            n := n + 1;
+                            novo_rotulo := left(nova, 20) || ' (migrado ' || n::text || ')';
+                        END LOOP;
+
                         proxima_ordem := proxima_ordem + 1;
                         INSERT INTO grupos_categoria (chave, rotulo, tipo, cor, ordem)
-                        VALUES (nova, nova || ' (migrado)', par.tipo, 10, proxima_ordem);
+                        VALUES (nova, novo_rotulo, par.tipo, 10, proxima_ordem);
 
                         IF nova <> par.grupo THEN
                             UPDATE categorias SET grupo = nova WHERE grupo = par.grupo AND tipo = par.tipo;

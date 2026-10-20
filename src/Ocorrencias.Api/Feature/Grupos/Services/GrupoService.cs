@@ -9,12 +9,6 @@ namespace Ocorrencias.Api.Grupos;
 
 public sealed class GrupoService(AppDbContext db) : IGrupoService
 {
-    /// <summary>
-    /// Serializa criação e edição: a chave única e a ordem seguinte saem do estado atual, e a checagem de rótulo
-    /// (sem distinguir maiúsculas) não pode correr junto com outra, pois o índice do banco distingue.
-    /// </summary>
-    private const long ChaveLockCriacao = 7_410_002;
-
     private const int TamanhoMaximoChave = 30;
 
     public Task<List<GrupoResponse>> ListarAsync(CancellationToken ct) =>
@@ -28,7 +22,7 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
     {
         var rotulo = request.Rotulo.Trim();
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
+        await db.Database.TomarAsync(ct);
 
         if (await RotuloEmUsoAsync(rotulo, null, ct))
         {
@@ -45,7 +39,7 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         }
         catch (DbUpdateException e) when (e.ViolouUnicidade())
         {
-            // Um PUT concorrente (que não toma o lock) deu este rótulo a outro grupo.
+            // Rede de segurança: o lock já serializa criação, edição e exclusão.
             return ErrosGrupo.RotuloDuplicado;
         }
 
@@ -58,7 +52,7 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
     {
         var rotulo = request.Rotulo.Trim();
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
+        await db.Database.TomarAsync(ct);
 
         var grupo = await db.Grupos.FindAsync([chave], ct);
         if (grupo is null)
@@ -90,6 +84,9 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
 
     public async Task<Resultado<Vazio>> ApagarAsync(string chave, CancellationToken ct)
     {
+        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.TomarAsync(ct);
+
         if (await db.Categorias.AnyAsync(c => c.Grupo == chave, ct))
         {
             return ErrosGrupo.EmUso;
@@ -98,13 +95,19 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         try
         {
             var linhas = await db.Grupos.Where(g => g.Chave == chave).ExecuteDeleteAsync(ct);
-            return linhas == 0 ? ErroAplicacao.NaoEncontrado : new Vazio();
+            if (linhas == 0)
+            {
+                return ErroAplicacao.NaoEncontrado;
+            }
+
+            await transacao.CommitAsync(ct);
+            return new Vazio();
         }
         catch (Exception e) when (e is DbUpdateException || e is PostgresException)
         {
             // ExecuteDelete não passa pelo SaveChanges: a violação sai como PostgresException.
             if (!e.ViolouChaveEstrangeira()) throw;
-            // Categoria criada neste grupo entre a checagem e o delete: a FK (Restrict) barrou.
+            // Rede de segurança: com o lock não há categoria nova entrando, mas a FK (Restrict) continua valendo.
             return ErrosGrupo.EmUso;
         }
     }

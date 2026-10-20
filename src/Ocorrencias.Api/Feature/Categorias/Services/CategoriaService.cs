@@ -6,12 +6,6 @@ namespace Ocorrencias.Api.Categorias;
 
 public sealed class CategoriaService(AppDbContext db) : ICategoriaService
 {
-    /// <summary>
-    /// Serializa criação e edição: duas requisições simultâneas não calculam o mesmo <c>max(id)+1</c>
-    /// nem passam juntas pela checagem de nome (o índice do banco distingue maiúsculas).
-    /// </summary>
-    private const long ChaveLockCriacao = 7_410_001;
-
     public Task<List<ListarCategoriasResponse>> ListarAsync(CancellationToken ct) =>
         db.Categorias
             .Where(c => c.Ativa)
@@ -27,6 +21,10 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
 
     public async Task<Resultado<CategoriaAdminResponse>> CriarAsync(CriarCategoriaRequest request, CancellationToken ct)
     {
+        var nome = request.Nome.Trim();
+        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.TomarAsync(ct);
+
         var grupo = await db.Grupos.FindAsync([request.Grupo], ct);
         if (grupo is null)
         {
@@ -37,10 +35,6 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         {
             return ErrosCategoria.GrupoTipoIncompativel;
         }
-
-        var nome = request.Nome.Trim();
-        await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
 
         if (await NomeEmUsoAsync(nome, null, ct))
         {
@@ -85,7 +79,7 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
     {
         var nome = request.Nome.Trim();
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
+        await db.Database.TomarAsync(ct);
 
         var categoria = await db.Categorias.FindAsync([id], ct);
         if (categoria is null)
