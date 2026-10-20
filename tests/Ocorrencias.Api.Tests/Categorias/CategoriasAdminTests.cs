@@ -171,6 +171,29 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
     }
 
     [Fact]
+    public async Task Renomear_em_paralelo_para_o_mesmo_nome_deixa_so_uma_vencer()
+    {
+        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
+        var a = await (await CriarAsync(admin, NomeUnico())).LerAsync<CategoriaAdminResponse>();
+        var b = await (await CriarAsync(admin, NomeUnico())).LerAsync<CategoriaAdminResponse>();
+        var alvo = NomeUnico();
+        try
+        {
+            var respostas = await Task.WhenAll(
+                admin.Cliente.PutAsJsonAsync($"/api/v1/admin/categorias/{a.Id}",
+                    new { nome = alvo.ToLowerInvariant(), grupo = "clima", icone = "x" }, ClienteApi.Json),
+                admin.Cliente.PutAsJsonAsync($"/api/v1/admin/categorias/{b.Id}",
+                    new { nome = alvo.ToUpperInvariant(), grupo = "clima", icone = "x" }, ClienteApi.Json));
+
+            respostas.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
+        }
+        finally
+        {
+            await DesativarAsync(admin, a.Id, b.Id);
+        }
+    }
+
+    [Fact]
     public async Task Id_inexistente_devolve_404()
     {
         var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);

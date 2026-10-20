@@ -6,7 +6,10 @@ namespace Ocorrencias.Api.Categorias;
 
 public sealed class CategoriaService(AppDbContext db) : ICategoriaService
 {
-    /// <summary>Serializa a criação: duas requisições simultâneas não calculam o mesmo <c>max(id)+1</c>.</summary>
+    /// <summary>
+    /// Serializa criação e edição: duas requisições simultâneas não calculam o mesmo <c>max(id)+1</c>
+    /// nem passam juntas pela checagem de nome (o índice do banco distingue maiúsculas).
+    /// </summary>
     private const long ChaveLockCriacao = 7_410_001;
 
     public Task<List<ListarCategoriasResponse>> ListarAsync(CancellationToken ct) =>
@@ -51,13 +54,16 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
 
     public async Task<Resultado<CategoriaAdminResponse>> EditarAsync(short id, EditarCategoriaRequest request, CancellationToken ct)
     {
+        var nome = request.Nome.Trim();
+        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
+
         var categoria = await db.Categorias.FindAsync([id], ct);
         if (categoria is null)
         {
             return ErroAplicacao.NaoEncontrado;
         }
 
-        var nome = request.Nome.Trim();
         if (await NomeEmUsoAsync(nome, id, ct))
         {
             return ErrosCategoria.NomeDuplicado;
@@ -67,6 +73,7 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         categoria.Grupo = request.Grupo;
         categoria.Icone = request.Icone;
         await db.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
 
         return ParaAdmin(categoria);
     }
