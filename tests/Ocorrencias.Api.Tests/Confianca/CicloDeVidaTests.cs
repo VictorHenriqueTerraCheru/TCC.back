@@ -72,4 +72,49 @@ public sealed class CicloDeVidaTests(ApiFactory fabrica)
         // Meia-vida de 14 dias: E⁺ = 2,5 → C = 100 × 2,5 / 5,5 ≈ 45,5.
         (await DetalheAsync(problema.Id)).Confianca.Should().Be(45.5);
     }
+
+    [Fact]
+    public async Task Job_nao_mexe_em_resolvido()
+    {
+        var autor = await fabrica.NovaPessoaAsync();
+        var (lat, lng) = ApiFactory.PontoUnico();
+        var problema = await autor.RegistrarProblemaAsync(lat, lng);
+        await fabrica.NoBancoAsync(db => db.Problemas.Where(p => p.Id == problema.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(p => p.Status, StatusProblema.Resolvida)
+            .SetProperty(p => p.Confianca, (decimal?)12.34m)));
+        var antes = await fabrica.NoBancoAsync(db => db.Problemas.AsNoTracking().SingleAsync(p => p.Id == problema.Id));
+
+        fabrica.Relogio.Advance(TimeSpan.FromDays(30));
+        await ProcessarAsync();
+
+        var depois = await fabrica.NoBancoAsync(db => db.Problemas.AsNoTracking().SingleAsync(p => p.Id == problema.Id));
+        depois.Status.Should().Be(StatusProblema.Resolvida);
+        depois.Confianca.Should().Be(12.34m);
+        depois.StatusAlteradoEm.Should().Be(antes.StatusAlteradoEm);
+    }
+
+    [Fact]
+    public async Task Job_conta_a_transicao_e_na_execucao_seguinte_nao_acha_mais_nada()
+    {
+        var autor = await fabrica.NovaPessoaAsync();
+        var (lat, lng) = ApiFactory.PontoUnico();
+        var problema = await autor.RegistrarProblemaAsync(lat, lng);
+        fabrica.Relogio.Advance(TimeSpan.FromHours(72));
+
+        (await ProcessarContandoAsync()).Should().BeGreaterThanOrEqualTo(1);
+        (await DetalheAsync(problema.Id)).Status.Should().Be(StatusProblema.Ativa);
+
+        // O banco é compartilhado: esvazia transições encadeadas de problemas de outros testes.
+        for (var i = 0; i < 5 && await ProcessarContandoAsync() > 0; i++)
+        {
+        }
+
+        (await ProcessarContandoAsync()).Should().Be(0);
+    }
+
+    private async Task<int> ProcessarContandoAsync()
+    {
+        await using var escopo = fabrica.Services.CreateAsyncScope();
+        return await escopo.ServiceProvider.GetRequiredService<ProcessadorCicloDeVida>().ProcessarAsync(CancellationToken.None);
+    }
 }
