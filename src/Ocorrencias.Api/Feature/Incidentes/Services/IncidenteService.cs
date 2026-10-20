@@ -15,7 +15,7 @@ public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geo
     public async Task<Resultado<IncidenteRegistrado>> RegistrarAsync(RegistrarIncidenteRequest request, Guid autorId, CancellationToken ct)
     {
         var categoria = await db.Categorias.FindAsync([request.CategoriaId], ct);
-        if (categoria is null)
+        if (categoria is not { Ativa: true })
         {
             return ErrosIncidente.CategoriaInexistente;
         }
@@ -126,7 +126,7 @@ public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geo
             .ToDictionaryAsync(g => g.CategoriaId, ct);
 
         var categorias = await db.Categorias
-            .Where(c => c.Tipo == TipoOcorrencia.Incidente)
+            .Where(c => c.Tipo == TipoOcorrencia.Incidente && c.Ativa)
             .OrderBy(c => c.Id)
             .Select(c => new { c.Id, c.Nome })
             .ToListAsync(ct);

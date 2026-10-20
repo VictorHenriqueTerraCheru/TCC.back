@@ -44,6 +44,10 @@ public sealed class ContratoTests(ApiFactory fabrica)
         "GET /api/v1/admin/verificacoes [admin]",
         "POST /api/v1/admin/verificacoes/{id:guid}/aprovar [admin]",
         "POST /api/v1/admin/verificacoes/{id:guid}/recusar [admin]",
+        "GET /api/v1/admin/categorias [admin]",
+        "POST /api/v1/admin/categorias [admin]",
+        "PUT /api/v1/admin/categorias/{id:int} [admin]",
+        "PATCH /api/v1/admin/categorias/{id:int}/ativa [admin]",
     ];
 
     [Fact]

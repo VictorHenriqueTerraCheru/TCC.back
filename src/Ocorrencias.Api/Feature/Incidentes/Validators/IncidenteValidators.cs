@@ -1,5 +1,6 @@
 using FluentValidation;
 using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Persistence;
 
 namespace Ocorrencias.Api.Incidentes;
 
@@ -15,14 +16,14 @@ public sealed class RegistrarIncidenteValidator : AbstractValidator<RegistrarInc
 
 public sealed class ObterCalorIncidentesValidator : AbstractValidator<ObterCalorIncidentesRequest>
 {
-    public ObterCalorIncidentesValidator()
+    public ObterCalorIncidentesValidator(AppDbContext db)
     {
         RuleFor(r => r.MinLat).Latitude();
         RuleFor(r => r.MaxLat).Latitude().GreaterThan(r => r.MinLat);
         RuleFor(r => r.MinLng).Longitude();
         RuleFor(r => r.MaxLng).Longitude().GreaterThan(r => r.MinLng);
         RuleFor(r => r.Dias).InclusiveBetween(1, LimitesIncidente.DiasCalorMaximo);
-        RuleFor(r => r.Grupos).ListaDeGrupos();
+        RuleFor(r => r.Grupos).ListaDeGrupos(db);
     }
 }
 

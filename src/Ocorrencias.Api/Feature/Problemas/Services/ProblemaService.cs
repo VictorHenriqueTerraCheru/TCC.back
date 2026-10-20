@@ -16,7 +16,7 @@ public sealed class ProblemaService(
     public async Task<Resultado<ObterDetalheProblemaResponse>> RegistrarAsync(RegistrarProblemaRequest request, Guid autorId, CancellationToken ct)
     {
         var categoria = await db.Categorias.FindAsync([request.CategoriaId], ct);
-        if (categoria is null)
+        if (categoria is not { Ativa: true })
         {
             return ErrosProblema.CategoriaInexistente;
         }

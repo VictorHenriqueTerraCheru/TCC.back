@@ -32,6 +32,7 @@ entity "categorias" as c {
   * grupo : varchar(30)
   * tipo : smallint
   * icone : varchar(40)
+  * ativa : boolean
 }
 entity "problemas" as p {
   * id : uuid <<PK>>

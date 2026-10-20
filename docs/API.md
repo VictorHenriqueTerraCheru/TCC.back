@@ -84,10 +84,11 @@ Para `registroIncidente`, `endereco` é o rótulo da área (ex.: "Praia de Botaf
 ## Categorias
 
 ### `GET /categorias` 🔓
+Só as categorias **ativas**. Os dados abaixo são o conjunto inicial; o administrador cria, edita e desativa categorias em runtime (ver *Admin*), então o front deve montar filtros e listas a partir desta resposta, tolerando `grupo` desconhecido e `icone` sem arte (usar um ícone padrão).
 ```json
 [ { "id": 1, "nome": "Buraco na via", "grupo": "viaPublica", "tipo": "problema", "icone": "buraco" } ]
 ```
-Seed fixo:
+Conjunto inicial (seed da migration):
 
 | id | nome | grupo | tipo | icone |
 |---|---|---|---|---|
@@ -229,6 +230,30 @@ O solicitante passa a `cidadaoVerificado` (vale para os votos seguintes). `409 v
 ```
 → `204`. `409 verificacao-ja-analisada`; `404` se o id não existe.
 
+### `GET /admin/categorias`
+Todas as categorias, inclusive as desativadas.
+```json
+[ { "id": 9, "nome": "Rua inundada", "grupo": "clima", "tipo": "incidente", "icone": "inundacao", "ativa": true } ]
+```
+
+### `POST /admin/categorias`
+```json
+{ "nome": "obrigatório, até 60, único (sem diferenciar maiúsculas)", "grupo": "camelCase, até 30 (ex.: clima)", "tipo": "problema | incidente", "icone": "minúsculas, números e hífen, até 40" }
+```
+→ `201` com a categoria (formato do `GET /admin/categorias`). O `id` é gerado pela API (maior id + 1). `grupo` novo nasce ao ser usado; não há CRUD de grupos. `409 nome-duplicado`.
+
+### `PUT /admin/categorias/{id}`
+```json
+{ "nome": "...", "grupo": "...", "icone": "..." }
+```
+→ `200` com a categoria. O `tipo` não muda depois de criada. `404` se o id não existe; `409 nome-duplicado`.
+
+### `PATCH /admin/categorias/{id}/ativa`
+```json
+{ "ativa": false }
+```
+→ `204`; `404` se o id não existe. Não há `DELETE`. Categoria inativa some de `GET /categorias` e da contagem de `GET /incidentes/area`, e `POST /problemas` / `POST /incidentes` com ela devolvem `400` em `errors.categoriaId`; problemas e incidentes já registrados continuam exibindo a categoria.
+
 ## Saúde
 
 Para o host e o monitoramento; o front não precisa chamar.
@@ -253,6 +278,7 @@ Para o host e o monitoramento; o front não precisa chamar.
 | `limite-diario-incidentes` | 429 | 11º incidente da conta em 24 h |
 | `verificacao-pendente-existente` | 409 | já existe solicitação pendente |
 | `ja-verificado` | 422 | usuário já verificado |
+| `nome-duplicado` | 409 | POST/PUT /admin/categorias com nome já usado |
 | `verificacao-ja-analisada` | 409 | aprovar/recusar solicitação não pendente |
 | `limite-requisicoes` | 429 | limite por IP da geocodificação excedido |
 | `banco-indisponivel` | 503 | GET /saude/banco sem conexão com o banco |

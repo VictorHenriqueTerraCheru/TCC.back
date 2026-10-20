@@ -7,13 +7,13 @@ namespace Ocorrencias.Api.Tests.Categorias;
 public sealed class CategoriasTests(ApiFactory fabrica)
 {
     [Fact]
-    public async Task Visitante_lista_o_seed_fixo_de_8_categorias()
+    public async Task Visitante_lista_as_categorias_ativas_com_o_seed_inicial()
     {
         var resposta = await fabrica.CreateClient().GetAsync("/api/v1/categorias");
         var categorias = (await resposta.LerJsonAsync()).EnumerateArray().ToList();
 
         resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        categorias.Select(c => c.GetProperty("id").GetInt32()).Should().Equal(1, 2, 3, 4, 5, 6, 7, 8);
+        categorias.Select(c => c.GetProperty("id").GetInt32()).Take(8).Should().Equal(1, 2, 3, 4, 5, 6, 7, 8);
 
         var buraco = categorias[0];
         buraco.GetProperty("nome").GetString().Should().Be("Buraco na via");
