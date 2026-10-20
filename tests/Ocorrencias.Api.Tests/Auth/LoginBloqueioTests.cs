@@ -40,6 +40,19 @@ public sealed class LoginBloqueioTests(ApiFactory fabrica)
     }
 
     [Fact]
+    public async Task Falhas_simultaneas_contam_todas_e_bloqueiam()
+    {
+        var email = ClienteApi.EmailUnico();
+        await _cliente.CadastrarAsync(email);
+
+        // Tentativas em paralelo não podem se atropelar: cada falha tem que contar.
+        var respostas = await Task.WhenAll(Enumerable.Range(0, MaximoFalhas).Select(_ => Login(email, "senha-errada")));
+        respostas.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Unauthorized);
+
+        (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task Antes_de_N_falhas_a_senha_certa_entra_e_zera_o_contador()
     {
         var email = ClienteApi.EmailUnico();
