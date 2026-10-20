@@ -211,4 +211,24 @@ public sealed class VotosTests(ApiFactory fabrica)
         detalhe.Status.Should().Be(StatusProblema.Ativa);
         detalhe.Confianca.Should().Be(62.5);
     }
+
+    [Fact]
+    public async Task Nao_ultimas_24h_inclui_exatamente_24h_e_descarta_o_mais_antigo()
+    {
+        var (_, problema, _, _) = await ProblemaNovoAsync();
+        var primeiro = await fabrica.NovaPessoaAsync();
+        var segundo = await fabrica.NovaPessoaAsync();
+        await primeiro.VotarAsync(problema.Id, "nao");
+        fabrica.Relogio.Advance(TimeSpan.FromHours(24));
+        await segundo.VotarAsync(problema.Id, "nao");
+
+        var noLimite = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))
+            .LerAsync<ObterDetalheProblemaResponse>();
+        fabrica.Relogio.Advance(TimeSpan.FromMinutes(1));
+        var depois = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))
+            .LerAsync<ObterDetalheProblemaResponse>();
+
+        noLimite.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 2, 2));
+        depois.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 2, 1));
+    }
 }
