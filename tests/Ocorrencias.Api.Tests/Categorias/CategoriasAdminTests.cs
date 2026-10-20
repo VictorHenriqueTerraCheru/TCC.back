@@ -215,9 +215,9 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
         {
             var respostas = await Task.WhenAll(
                 admin.Cliente.PutAsJsonAsync($"/api/v1/admin/categorias/{a.Id}",
-                    new { nome = alvo.ToLowerInvariant(), grupo = "clima", icone = "x" }, ClienteApi.Json),
+                    new { nome = alvo.ToLowerInvariant(), grupo = "seguranca", icone = "x" }, ClienteApi.Json),
                 admin.Cliente.PutAsJsonAsync($"/api/v1/admin/categorias/{b.Id}",
-                    new { nome = alvo.ToUpperInvariant(), grupo = "clima", icone = "x" }, ClienteApi.Json));
+                    new { nome = alvo.ToUpperInvariant(), grupo = "seguranca", icone = "x" }, ClienteApi.Json));
 
             respostas.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
         }
