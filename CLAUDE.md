@@ -67,7 +67,7 @@ Fluxo: **Module** (valida com `.Validar<T>()`, lê o usuário do token, monta `L
 3. **Incidente**: arredonde `lat/lng` para 3 casas **antes** de persistir; nunca exponha `autor_id` em resposta alguma.
 4. A configuração ativa da API é a **B** (`ConfiguracaoConfianca.B`), via `IOptions` só para o nome; os valores vêm do Domain.
 5. Use `IClock`/`TimeProvider` injetado — nunca `DateTime.Now` no código de negócio (os testes controlam o tempo).
-6. Unicidade de voto: índice único `(problema_id, usuario_id, tipo)`; votar de novo faz UPSERT (substitui valor, perfil, distância e `registrado_em`).
+6. Unicidade de voto: índice único `(problema_id, usuario_id)` (voto único "Ainda está lá?", sem coluna `tipo`); votar de novo faz UPSERT (substitui valor, perfil, distância e `registrado_em`).
 7. Toda mudança de voto recalcula `confianca` e avalia o ciclo de vida **na mesma transação**.
 8. Enums trafegam como string camelCase (`JsonStringEnumConverter(JsonNamingPolicy.CamelCase)`).
 9. **Geocodificação só pela API** (`IServicoGeocodificacao`): Nominatim com `User-Agent` próprio (`OcorrenciasUrbanasTCC/1.0 (+<url do projeto>[; <email>])` — sem User-Agent a resposta é 403; e-mail opcional via `Nominatim__Email`), `accept-language=pt-BR`, no máximo **1 requisição/s** (um `SemaphoreSlim` + intervalo mínimo, ou `System.Threading.RateLimiting`), cache por coordenada em 4 casas por 7 dias. O endereço de problemas e o rótulo de incidentes são calculados **no servidor**, nunca aceitos do cliente. Falha do Nominatim nunca derruba um registro (ver `API.md`).
