@@ -18,9 +18,16 @@ class SolicitacaoVerificacao {
 }
 class Categoria {
   nome
-  grupo
   tipo : TipoOcorrencia
   icone
+  ativa
+}
+class GrupoCategoria {
+  chave
+  rotulo
+  tipo : TipoOcorrencia
+  cor : CorGrupo
+  ordem
 }
 class Problema {
   descricao
@@ -50,6 +57,7 @@ Usuario "1" -- "0..*" Problema : registra
 Usuario "1" -- "0..*" Incidente : relata
 Usuario "1" -- "0..*" Voto : emite
 Problema "1" -- "0..*" Voto : recebe
+GrupoCategoria "1" -- "0..*" Categoria
 Categoria "1" -- "0..*" Problema
 Categoria "1" -- "0..*" Incidente
 package "Enumerações" {
@@ -61,6 +69,18 @@ enum Perfil {
 enum TipoOcorrencia {
   Problema
   Incidente
+}
+enum CorGrupo {
+  Laranja
+  Ocre
+  Marrom
+  Vermelho
+  Terracota
+  Azul
+  VerdeAgua
+  Roxo
+  Rosa
+  Cinza
 }
 enum StatusProblema {
   Nova

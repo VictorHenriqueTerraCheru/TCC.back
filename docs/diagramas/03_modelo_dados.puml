@@ -25,11 +25,19 @@ entity "solicitacoes_verificacao" as s {
   * criada_em : timestamptz
   analisada_em : timestamptz
 }
+entity "grupos_categoria" as g {
+  * chave : varchar(30) <<PK>>
+  --
+  * rotulo : varchar(40) <<UK>>
+  * tipo : smallint
+  * cor : smallint
+  * ordem : integer
+}
 entity "categorias" as c {
   * id : smallint <<PK>>
   --
   * nome : varchar(60)
-  * grupo : varchar(30)
+  * grupo : varchar(30) <<FK>>
   * tipo : smallint
   * icone : varchar(40)
   * ativa : boolean
@@ -76,6 +84,7 @@ u ||--o{ p
 u ||--o{ i
 u ||--o{ v
 p ||--o{ v
+g ||--o{ c
 c ||--o{ p
 c ||--o{ i
 @enduml

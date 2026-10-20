@@ -22,7 +22,7 @@ public static class RegrasValidacao
     public static IRuleBuilderOptions<T, double?> Longitude<T>(this IRuleBuilder<T, double?> regra) =>
         regra.InclusiveBetween(-180, 180);
 
-    /// <summary>Lista separada por vírgula de grupos de categoria (ex.: <c>viaPublica,eletrica</c>); vale qualquer grupo já usado por uma categoria.</summary>
+    /// <summary>Lista separada por vírgula de grupos de categoria (ex.: <c>viaPublica,eletrica</c>); vale qualquer grupo cadastrado.</summary>
     public static IRuleBuilderOptionsConditions<T, string?> ListaDeGrupos<T>(this IRuleBuilder<T, string?> regra, AppDbContext db) =>
         regra.CustomAsync(async (valor, contexto, ct) =>
         {
@@ -32,7 +32,7 @@ public static class RegrasValidacao
                 return;
             }
 
-            var conhecidos = await db.Categorias.Select(c => c.Grupo).Distinct().OrderBy(g => g).ToListAsync(ct);
+            var conhecidos = await db.Grupos.OrderBy(g => g.Ordem).Select(g => g.Chave).ToListAsync(ct);
             if (!pedidos.All(conhecidos.Contains))
             {
                 contexto.AddFailure("Grupo desconhecido. Valores aceitos: " + string.Join(", ", conhecidos) + ".");

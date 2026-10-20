@@ -6,12 +6,6 @@ namespace Ocorrencias.Api.Categorias;
 
 public sealed class CategoriaService(AppDbContext db) : ICategoriaService
 {
-    /// <summary>
-    /// Serializa criação e edição: duas requisições simultâneas não calculam o mesmo <c>max(id)+1</c>
-    /// nem passam juntas pela checagem de nome (o índice do banco distingue maiúsculas).
-    /// </summary>
-    private const long ChaveLockCriacao = 7_410_001;
-
     public Task<List<ListarCategoriasResponse>> ListarAsync(CancellationToken ct) =>
         db.Categorias
             .Where(c => c.Ativa)
@@ -29,7 +23,18 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
     {
         var nome = request.Nome.Trim();
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
+        await db.Database.TomarAsync(ct);
+
+        var grupo = await db.Grupos.FindAsync([request.Grupo], ct);
+        if (grupo is null)
+        {
+            return ErrosCategoria.GrupoInexistente;
+        }
+
+        if (grupo.Tipo != request.Tipo)
+        {
+            return ErrosCategoria.GrupoTipoIncompativel;
+        }
 
         if (await NomeEmUsoAsync(nome, null, ct))
         {
@@ -37,6 +42,11 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         }
 
         var maior = await db.Categorias.MaxAsync(c => (short?)c.Id, ct) ?? 0;
+        if (maior >= short.MaxValue)
+        {
+            return ErrosCategoria.LimiteDeCategorias;
+        }
+
         var categoria = new Categoria
         {
             Id = (short)(maior + 1),
@@ -46,7 +56,20 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
             Icone = request.Icone,
         };
         db.Categorias.Add(categoria);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        {
+            // Rede de segurança: o lock já serializa criação e edição.
+            return ErrosCategoria.NomeDuplicado;
+        }
+        catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
+        {
+            return ErrosCategoria.GrupoInexistente;
+        }
+
         await transacao.CommitAsync(ct);
 
         return ParaAdmin(categoria);
@@ -56,12 +79,23 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
     {
         var nome = request.Nome.Trim();
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveLockCriacao})", ct);
+        await db.Database.TomarAsync(ct);
 
         var categoria = await db.Categorias.FindAsync([id], ct);
         if (categoria is null)
         {
             return ErroAplicacao.NaoEncontrado;
+        }
+
+        var grupo = await db.Grupos.FindAsync([request.Grupo], ct);
+        if (grupo is null)
+        {
+            return ErrosCategoria.GrupoInexistente;
+        }
+
+        if (grupo.Tipo != categoria.Tipo)
+        {
+            return ErrosCategoria.GrupoTipoIncompativel;
         }
 
         if (await NomeEmUsoAsync(nome, id, ct))
@@ -72,7 +106,20 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         categoria.Nome = nome;
         categoria.Grupo = request.Grupo;
         categoria.Icone = request.Icone;
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        {
+            return ErrosCategoria.NomeDuplicado;
+        }
+        catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
+        {
+            // O grupo foi apagado entre a checagem e o salvamento.
+            return ErrosCategoria.GrupoInexistente;
+        }
+
         await transacao.CommitAsync(ct);
 
         return ParaAdmin(categoria);

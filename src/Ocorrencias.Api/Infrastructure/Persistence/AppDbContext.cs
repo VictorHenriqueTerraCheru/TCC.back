@@ -12,6 +12,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
 {
     public DbSet<SolicitacaoVerificacao> SolicitacoesVerificacao => Set<SolicitacaoVerificacao>();
     public DbSet<Categoria> Categorias => Set<Categoria>();
+    public DbSet<GrupoCategoria> Grupos => Set<GrupoCategoria>();
     public DbSet<Problema> Problemas => Set<Problema>();
     public DbSet<Voto> Votos => Set<Voto>();
     public DbSet<Incidente> Incidentes => Set<Incidente>();
@@ -54,6 +55,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         // Enums gravados como smallint (docs/diagramas/03_modelo_dados.puml).
         builder.Properties<Perfil>().HaveConversion<short>();
         builder.Properties<TipoOcorrencia>().HaveConversion<short>();
+        builder.Properties<CorGrupo>().HaveConversion<short>();
         builder.Properties<StatusProblema>().HaveConversion<short>();
         builder.Properties<ValorVoto>().HaveConversion<short>();
         builder.Properties<TipoVinculo>().HaveConversion<short>();

@@ -37,18 +37,19 @@ public sealed class CategoriaModule : IEndpointModule
     private static Task<List<CategoriaAdminResponse>> ListarTodas(ICategoriaService service, CancellationToken ct) =>
         service.ListarTodasAsync(ct);
 
-    private static async Task<Results<Created<CategoriaAdminResponse>, ProblemHttpResult>> Criar(
+    private static async Task<Results<Created<CategoriaAdminResponse>, ValidationProblem, ProblemHttpResult>> Criar(
         CriarCategoriaRequest request, ICategoriaService service, CancellationToken ct)
     {
         var r = await service.CriarAsync(request, ct);
         return r.Erro switch
         {
             null => TypedResults.Created("/api/v1/admin/categorias", r.Valor),
+            { Tipo: TipoErro.Campo } e => e.ParaValidacao(),
             var e => e.ParaProblema(),
         };
     }
 
-    private static async Task<Results<Ok<CategoriaAdminResponse>, NotFound, ProblemHttpResult>> Editar(
+    private static async Task<Results<Ok<CategoriaAdminResponse>, NotFound, ValidationProblem, ProblemHttpResult>> Editar(
         int id, EditarCategoriaRequest request, ICategoriaService service, CancellationToken ct)
     {
         if (id is < 1 or > short.MaxValue)
@@ -61,6 +62,7 @@ public sealed class CategoriaModule : IEndpointModule
         {
             null => TypedResults.Ok(r.Valor),
             { Tipo: TipoErro.NaoEncontrado } e => e.ParaNaoEncontrado(),
+            { Tipo: TipoErro.Campo } e => e.ParaValidacao(),
             var e => e.ParaProblema(),
         };
     }

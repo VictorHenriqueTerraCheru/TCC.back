@@ -10,14 +10,14 @@ public sealed record ListarCategoriasResponse(short Id, string Nome, string Grup
 /// <summary>Visão do administrador: inclui as desativadas.</summary>
 public sealed record CategoriaAdminResponse(short Id, string Nome, string Grupo, TipoOcorrencia Tipo, string Icone, bool Ativa);
 
-/// <param name="Grupo">camelCase, até 30 caracteres (ex.: <c>clima</c>). Grupo novo nasce ao ser usado.</param>
-/// <param name="Icone">Chave do ícone no front (minúsculas, números e hífen).</param>
+/// <param name="Grupo">Chave de um grupo existente (<c>GET /grupos</c>), do mesmo tipo da categoria.</param>
+/// <param name="Icone">Nome do ícone (Material Symbols, ex.: <c>flood</c>): minúsculas, números, hífen e sublinhado.</param>
 public sealed record CriarCategoriaRequest(string Nome, string Grupo, TipoOcorrencia Tipo, string Icone);
 
 /// <summary>O tipo (problema ou incidente) não muda depois de criada.</summary>
 public sealed record EditarCategoriaRequest(string Nome, string Grupo, string Icone);
 
-/// <summary><c>required</c>: corpo sem <c>ativa</c> dá 400, em vez de assumir <c>false</c> e desativar a categoria.</summary>
+/// <summary><c>required</c>: corpo sem o campo é 400, não "desativar".</summary>
 public sealed record AlterarAtivaCategoriaRequest
 {
     public required bool Ativa { get; init; }

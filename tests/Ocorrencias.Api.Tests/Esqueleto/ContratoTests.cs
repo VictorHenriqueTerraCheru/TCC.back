@@ -48,6 +48,10 @@ public sealed class ContratoTests(ApiFactory fabrica)
         "POST /api/v1/admin/categorias [admin]",
         "PUT /api/v1/admin/categorias/{id:int} [admin]",
         "PATCH /api/v1/admin/categorias/{id:int}/ativa [admin]",
+        "GET /api/v1/grupos [anonimo]",
+        "POST /api/v1/admin/grupos [admin]",
+        "PUT /api/v1/admin/grupos/{chave} [admin]",
+        "DELETE /api/v1/admin/grupos/{chave} [admin]",
     ];
 
     [Fact]

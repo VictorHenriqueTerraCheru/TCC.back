@@ -142,6 +142,9 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_categorias");
 
+                    b.HasIndex("Grupo")
+                        .HasDatabaseName("ix_categorias_grupo");
+
                     b.HasIndex("Nome")
                         .IsUnique()
                         .HasDatabaseName("ix_categorias_nome");
@@ -219,6 +222,83 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                             Grupo = "transito",
                             Icone = "acidente",
                             Nome = "Acidente de trânsito",
+                            Tipo = (short)2
+                        });
+                });
+
+            modelBuilder.Entity("Ocorrencias.Api.Persistence.GrupoCategoria", b =>
+                {
+                    b.Property<string>("Chave")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("chave");
+
+                    b.Property<short>("Cor")
+                        .HasColumnType("smallint")
+                        .HasColumnName("cor");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordem");
+
+                    b.Property<string>("Rotulo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("rotulo");
+
+                    b.Property<short>("Tipo")
+                        .HasColumnType("smallint")
+                        .HasColumnName("tipo");
+
+                    b.HasKey("Chave")
+                        .HasName("pk_grupos_categoria");
+
+                    b.HasIndex("Rotulo")
+                        .IsUnique()
+                        .HasDatabaseName("ix_grupos_categoria_rotulo");
+
+                    b.ToTable("grupos_categoria", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Chave = "viaPublica",
+                            Cor = (short)1,
+                            Ordem = 1,
+                            Rotulo = "Via pública",
+                            Tipo = (short)1
+                        },
+                        new
+                        {
+                            Chave = "eletrica",
+                            Cor = (short)2,
+                            Ordem = 2,
+                            Rotulo = "Elétrica",
+                            Tipo = (short)1
+                        },
+                        new
+                        {
+                            Chave = "limpeza",
+                            Cor = (short)3,
+                            Ordem = 3,
+                            Rotulo = "Limpeza",
+                            Tipo = (short)1
+                        },
+                        new
+                        {
+                            Chave = "seguranca",
+                            Cor = (short)4,
+                            Ordem = 4,
+                            Rotulo = "Segurança",
+                            Tipo = (short)2
+                        },
+                        new
+                        {
+                            Chave = "transito",
+                            Cor = (short)5,
+                            Ordem = 5,
+                            Rotulo = "Trânsito",
                             Tipo = (short)2
                         });
                 });
@@ -586,6 +666,16 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_usuarios_tokens_usuarios_user_id");
+                });
+
+            modelBuilder.Entity("Ocorrencias.Api.Persistence.Categoria", b =>
+                {
+                    b.HasOne("Ocorrencias.Api.Persistence.GrupoCategoria", null)
+                        .WithMany()
+                        .HasForeignKey("Grupo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_categorias_grupos_categoria_grupo");
                 });
 
             modelBuilder.Entity("Ocorrencias.Api.Persistence.Incidente", b =>
