@@ -53,11 +53,25 @@ public sealed class AuthService(UserManager<Usuario> usuarios, JwtTokenService j
     public async Task<Resultado<RespostaAuth>> EntrarAsync(EntrarRequest request)
     {
         var usuario = await usuarios.FindByEmailAsync(request.Email.Trim());
-        if (usuario is null || !await usuarios.CheckPasswordAsync(usuario, request.Senha))
+        if (usuario is null)
         {
             return ErrosAuth.CredenciaisInvalidas;
         }
 
+        // Conta bloqueada responde igual a credencial inválida (contrato: só 401), sem checar a senha.
+        if (await usuarios.IsLockedOutAsync(usuario))
+        {
+            return ErrosAuth.CredenciaisInvalidas;
+        }
+
+        if (!await usuarios.CheckPasswordAsync(usuario, request.Senha))
+        {
+            // Conta uma falha; ao atingir o máximo o Identity define o fim do bloqueio.
+            await usuarios.AccessFailedAsync(usuario);
+            return ErrosAuth.CredenciaisInvalidas;
+        }
+
+        await usuarios.ResetAccessFailedCountAsync(usuario);
         return CriarResposta(usuario);
     }
 

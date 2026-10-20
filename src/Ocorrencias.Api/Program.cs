@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAplicacao(builder.Configuration)
     .AddCorsConfigurado(builder.Configuration)
     .AddOpenApiConfigurado()
-    .AddAutenticacao()
+    .AddAutenticacao(builder.Configuration)
     .AddLimitesDeRequisicao(builder.Configuration);
 
 var app = builder.Build();

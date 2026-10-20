@@ -23,8 +23,12 @@ public static class AppConfiguration
             .AllowAnyMethod()));
     }
 
-    public static IServiceCollection AddAutenticacao(this IServiceCollection services)
+    public static IServiceCollection AddAutenticacao(this IServiceCollection services, IConfiguration configuracao)
     {
+        // Bloqueio de conta contra força bruta no login; ajustável por Lockout:MaximoFalhas e Lockout:Minutos.
+        var maximoFalhas = configuracao.GetValue("Lockout:MaximoFalhas", 5);
+        var minutosBloqueio = configuracao.GetValue("Lockout:Minutos", 15);
+
         services.AddOptions<JwtOptions>()
             .BindConfiguration(JwtOptions.Secao)
             .ValidateDataAnnotations()
@@ -42,6 +46,9 @@ public static class AppConfiguration
                 o.Password.RequireUppercase = false;
                 o.Password.RequireNonAlphanumeric = false;
                 o.Password.RequiredUniqueChars = 1;
+                o.Lockout.AllowedForNewUsers = true;
+                o.Lockout.MaxFailedAccessAttempts = maximoFalhas;
+                o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(minutosBloqueio);
             })
             .AddEntityFrameworkStores<AppDbContext>();
 
