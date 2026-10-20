@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Ocorrencias.Api.Persistence;
 using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Tests.Infra;
@@ -96,20 +97,25 @@ public sealed class CicloDeVidaTests(ApiFactory fabrica)
     [Fact]
     public async Task Job_conta_a_transicao_e_na_execucao_seguinte_nao_acha_mais_nada()
     {
+        // O banco e o relógio são compartilhados: sem isso, problemas de outros testes também
+        // ficariam elegíveis e a contagem exata dependeria da ordem de execução.
+        await RemoverProblemasAsync();
+
         var autor = await fabrica.NovaPessoaAsync();
         var (lat, lng) = ApiFactory.PontoUnico();
         var problema = await autor.RegistrarProblemaAsync(lat, lng);
         fabrica.Relogio.Advance(TimeSpan.FromHours(72));
 
-        (await ProcessarContandoAsync()).Should().BeGreaterThanOrEqualTo(1);
+        (await ProcessarContandoAsync()).Should().Be(1);
         (await DetalheAsync(problema.Id)).Status.Should().Be(StatusProblema.Ativa);
 
-        // O banco é compartilhado: esvazia transições encadeadas de problemas de outros testes.
-        for (var i = 0; i < 5 && await ProcessarContandoAsync() > 0; i++)
-        {
-        }
-
         (await ProcessarContandoAsync()).Should().Be(0);
+    }
+
+    private async Task RemoverProblemasAsync()
+    {
+        await using var escopo = fabrica.Services.CreateAsyncScope();
+        await escopo.ServiceProvider.GetRequiredService<AppDbContext>().Problemas.ExecuteDeleteAsync();
     }
 
     private async Task<int> ProcessarContandoAsync()
