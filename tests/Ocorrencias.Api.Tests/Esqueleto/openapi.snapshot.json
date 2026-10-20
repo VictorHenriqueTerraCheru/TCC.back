@@ -1,6 +1,17 @@
 {
   "components": {
     "schemas": {
+      "AlterarAtivaCategoriaRequest": {
+        "properties": {
+          "ativa": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ativa"
+        ],
+        "type": "object"
+      },
       "AtualizarMeRequest": {
         "properties": {
           "nome": {
@@ -80,6 +91,38 @@
         ],
         "type": "object"
       },
+      "CategoriaAdminResponse": {
+        "properties": {
+          "ativa": {
+            "type": "boolean"
+          },
+          "grupo": {
+            "type": "string"
+          },
+          "icone": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int16",
+            "type": "integer"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoOcorrencia"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "grupo",
+          "tipo",
+          "icone",
+          "ativa"
+        ],
+        "type": "object"
+      },
       "CategoriaResumo": {
         "properties": {
           "grupo": {
@@ -98,6 +141,48 @@
         },
         "required": [
           "id",
+          "nome",
+          "grupo",
+          "icone"
+        ],
+        "type": "object"
+      },
+      "CriarCategoriaRequest": {
+        "properties": {
+          "grupo": {
+            "type": "string"
+          },
+          "icone": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoOcorrencia"
+          }
+        },
+        "required": [
+          "nome",
+          "grupo",
+          "tipo",
+          "icone"
+        ],
+        "type": "object"
+      },
+      "EditarCategoriaRequest": {
+        "properties": {
+          "grupo": {
+            "type": "string"
+          },
+          "icone": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          }
+        },
+        "required": [
           "nome",
           "grupo",
           "icone"
@@ -1141,6 +1226,174 @@
   },
   "openapi": "3.1.1",
   "paths": {
+    "/api/v1/admin/categorias": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoriaAdminResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarCategoriaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoriaAdminResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/categorias/{id}": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarCategoriaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoriaAdminResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/categorias/{id}/ativa": {
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarAtivaCategoriaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/api/v1/admin/verificacoes": {
       "get": {
         "parameters": [

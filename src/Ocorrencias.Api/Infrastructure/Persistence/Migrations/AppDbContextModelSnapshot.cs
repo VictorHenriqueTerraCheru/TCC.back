@@ -111,6 +111,12 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("id");
 
+                    b.Property<bool>("Ativa")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("ativa");
+
                     b.Property<string>("Grupo")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -136,12 +142,17 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_categorias");
 
+                    b.HasIndex("Nome")
+                        .IsUnique()
+                        .HasDatabaseName("ix_categorias_nome");
+
                     b.ToTable("categorias", (string)null);
 
                     b.HasData(
                         new
                         {
                             Id = (short)1,
+                            Ativa = true,
                             Grupo = "viaPublica",
                             Icone = "buraco",
                             Nome = "Buraco na via",
@@ -150,6 +161,7 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = (short)2,
+                            Ativa = true,
                             Grupo = "viaPublica",
                             Icone = "calcada",
                             Nome = "Calçada danificada",
@@ -158,6 +170,7 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = (short)3,
+                            Ativa = true,
                             Grupo = "eletrica",
                             Icone = "poste",
                             Nome = "Poste apagado",
@@ -166,6 +179,7 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = (short)4,
+                            Ativa = true,
                             Grupo = "eletrica",
                             Icone = "fio",
                             Nome = "Fio caído",
@@ -174,6 +188,7 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = (short)5,
+                            Ativa = true,
                             Grupo = "limpeza",
                             Icone = "descarte",
                             Nome = "Descarte irregular",
@@ -182,6 +197,7 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = (short)6,
+                            Ativa = true,
                             Grupo = "limpeza",
                             Icone = "lixo",
                             Nome = "Lixo acumulado",
@@ -190,6 +206,7 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = (short)7,
+                            Ativa = true,
                             Grupo = "seguranca",
                             Icone = "roubo",
                             Nome = "Roubo",
@@ -198,6 +215,7 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = (short)8,
+                            Ativa = true,
                             Grupo = "transito",
                             Icone = "acidente",
                             Nome = "Acidente de trânsito",
