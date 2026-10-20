@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Persistence;
 
@@ -35,7 +36,16 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         var ordem = (await db.Grupos.MaxAsync(g => (int?)g.Ordem, ct) ?? 0) + 1;
         var grupo = new GrupoCategoria { Chave = chave, Rotulo = rotulo, Tipo = request.Tipo, Cor = request.Cor, Ordem = ordem };
         db.Grupos.Add(grupo);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        {
+            // Um PUT concorrente (que não toma o lock) deu este rótulo a outro grupo.
+            return ErrosGrupo.RotuloDuplicado;
+        }
+
         await transacao.CommitAsync(ct);
 
         return ParaResposta(grupo);
@@ -58,7 +68,14 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         grupo.Rotulo = rotulo;
         grupo.Cor = request.Cor;
         grupo.Ordem = request.Ordem;
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        {
+            return ErrosGrupo.RotuloDuplicado;
+        }
 
         return ParaResposta(grupo);
     }
@@ -75,8 +92,10 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
             var linhas = await db.Grupos.Where(g => g.Chave == chave).ExecuteDeleteAsync(ct);
             return linhas == 0 ? ErroAplicacao.NaoEncontrado : new Vazio();
         }
-        catch (DbUpdateException)
+        catch (Exception e) when (e is DbUpdateException || e is PostgresException)
         {
+            // ExecuteDelete não passa pelo SaveChanges: a violação sai como PostgresException.
+            if (!e.ViolouChaveEstrangeira()) throw;
             // Categoria criada neste grupo entre a checagem e o delete: a FK (Restrict) barrou.
             return ErrosGrupo.EmUso;
         }
@@ -123,8 +142,14 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
             chave.Append(chave.Length == 0 ? minuscula : char.ToUpperInvariant(minuscula[0]) + minuscula[1..]);
         }
 
-        var resultado = chave.Length > TamanhoMaximoChave ? chave.ToString(0, TamanhoMaximoChave) : chave.ToString();
-        return resultado.Length == 0 || !char.IsAsciiLetter(resultado[0]) ? "grupo" + resultado : resultado;
+        var texto = chave.ToString();
+        // O prefixo entra antes de cortar: a chave nunca passa de 30 caracteres.
+        if (texto.Length == 0 || !char.IsAsciiLetter(texto[0]))
+        {
+            texto = "grupo" + texto;
+        }
+
+        return texto.Length > TamanhoMaximoChave ? texto[..TamanhoMaximoChave] : texto;
     }
 
     private static GrupoResponse ParaResposta(GrupoCategoria g) => new(g.Chave, g.Rotulo, g.Tipo, g.Cor, g.Ordem);

@@ -40,10 +40,10 @@ namespace Ocorrencias.Api.Infrastructure.Persistence.Migrations
                 });
 
             // Categorias criadas pelo CRUD antes de existir cadastro de grupos podem ter grupo fora do seed:
-            // viram grupo (rótulo = chave, cor cinza, tipo da categoria) para a FK abaixo não falhar.
+            // viram grupo (rótulo = chave + " (migrado)", cor cinza, tipo da categoria) para a FK abaixo não falhar.
             migrationBuilder.Sql("""
                 INSERT INTO grupos_categoria (chave, rotulo, tipo, cor, ordem)
-                SELECT c.grupo, c.grupo, MIN(c.tipo), 10, 100 + (ROW_NUMBER() OVER (ORDER BY c.grupo))::int
+                SELECT c.grupo, c.grupo || ' (migrado)', MIN(c.tipo), 10, 100 + (ROW_NUMBER() OVER (ORDER BY c.grupo))::int
                 FROM categorias c
                 WHERE NOT EXISTS (SELECT 1 FROM grupos_categoria g WHERE g.chave = c.grupo)
                 GROUP BY c.grupo;

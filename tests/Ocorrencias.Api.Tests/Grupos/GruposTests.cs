@@ -22,6 +22,7 @@ public sealed class GruposTests(ApiFactory fabrica)
     [InlineData("  trânsito   lento! ", "transitoLento")]
     [InlineData("123 obras", "grupo123Obras")]
     [InlineData("!!!", "grupo")]
+    [InlineData("123456789012345678901234567890", "grupo1234567890123456789012345")]
     public void Chave_e_camelCase_sem_acento(string rotulo, string esperada) =>
         GrupoService.ChaveDe(rotulo).Should().Be(esperada);
 

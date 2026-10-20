@@ -79,14 +79,14 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
 
         var respostas = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => CriarAsync(admin, NomeUnico())));
         var ids = new List<short>();
-        foreach (var r in respostas)
-        {
-            r.StatusCode.Should().Be(HttpStatusCode.Created);
-            ids.Add((await r.LerAsync<CategoriaAdminResponse>()).Id);
-        }
-
         try
         {
+            foreach (var r in respostas)
+            {
+                r.StatusCode.Should().Be(HttpStatusCode.Created);
+                ids.Add((await r.LerAsync<CategoriaAdminResponse>()).Id);
+            }
+
             ids.Distinct().Should().HaveCount(6);
             ids.Order().Zip(ids.Order().Skip(1), (a, b) => b - a).Should().OnlyContain(d => d == 1);
         }
@@ -128,6 +128,18 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
         var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
         var pessoa = await fabrica.NovaPessoaAsync();
         var criada = await (await CriarAsync(admin, NomeUnico(), "problema", "limpeza", "entulho")).LerAsync<CategoriaAdminResponse>();
+        try
+        {
+            await VerificarDesativacaoAsync(admin, pessoa, criada);
+        }
+        finally
+        {
+            await DesativarAsync(admin, criada.Id);
+        }
+    }
+
+    private async Task VerificarDesativacaoAsync(Pessoa admin, Pessoa pessoa, CategoriaAdminResponse criada)
+    {
         var (lat, lng) = ApiFactory.PontoUnico();
 
         var antes = await pessoa.Cliente.PostAsJsonAsync("/api/v1/problemas", new { categoriaId = criada.Id, lat, lng }, ClienteApi.Json);
@@ -164,6 +176,27 @@ public sealed class CategoriasAdminTests(ApiFactory fabrica)
             resposta.StatusCode.Should().Be(HttpStatusCode.OK);
             (await resposta.LerAsync<CategoriaAdminResponse>()).Should().Be(
                 new CategoriaAdminResponse(criada.Id, novoNome, "transito", TipoOcorrencia.Incidente, "chuva", true));
+        }
+        finally
+        {
+            await DesativarAsync(admin, criada.Id);
+        }
+    }
+
+    [Fact]
+    public async Task Alterar_ativa_sem_o_campo_devolve_400_e_nao_desativa()
+    {
+        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
+        var criada = await (await CriarAsync(admin, NomeUnico())).LerAsync<CategoriaAdminResponse>();
+        try
+        {
+            var vazio = await admin.Cliente.PatchAsJsonAsync($"/api/v1/admin/categorias/{criada.Id}/ativa", new { }, ClienteApi.Json);
+            var errado = await admin.Cliente.PatchAsJsonAsync($"/api/v1/admin/categorias/{criada.Id}/ativa", new { ativo = false }, ClienteApi.Json);
+
+            vazio.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            errado.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            var publica = (await (await fabrica.CreateClient().GetAsync("/api/v1/categorias")).LerJsonAsync()).EnumerateArray();
+            publica.Select(c => c.GetProperty("id").GetInt32()).Should().Contain(criada.Id);
         }
         finally
         {

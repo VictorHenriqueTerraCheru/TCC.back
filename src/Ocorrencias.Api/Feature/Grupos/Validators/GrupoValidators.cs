@@ -18,6 +18,6 @@ public sealed class EditarGrupoValidator : AbstractValidator<EditarGrupoRequest>
     {
         RuleFor(r => r.Rotulo).NotEmpty().MaximumLength(40);
         RuleFor(r => r.Cor).IsInEnum();
-        RuleFor(r => r.Ordem).InclusiveBetween(1, 1000);
+        RuleFor(r => r.Ordem).InclusiveBetween(1, 100_000);
     }
 }

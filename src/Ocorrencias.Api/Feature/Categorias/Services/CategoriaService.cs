@@ -45,6 +45,11 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         }
 
         var maior = await db.Categorias.MaxAsync(c => (short?)c.Id, ct) ?? 0;
+        if (maior >= short.MaxValue)
+        {
+            return ErrosCategoria.LimiteDeCategorias;
+        }
+
         var categoria = new Categoria
         {
             Id = (short)(maior + 1),
@@ -54,7 +59,20 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
             Icone = request.Icone,
         };
         db.Categorias.Add(categoria);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        {
+            // Um PUT concorrente (que não toma o lock) renomeou outra categoria para este nome.
+            return ErrosCategoria.NomeDuplicado;
+        }
+        catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
+        {
+            return ErrosCategoria.GrupoInexistente;
+        }
+
         await transacao.CommitAsync(ct);
 
         return ParaAdmin(categoria);
@@ -88,7 +106,19 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         categoria.Nome = nome;
         categoria.Grupo = request.Grupo;
         categoria.Icone = request.Icone;
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        {
+            return ErrosCategoria.NomeDuplicado;
+        }
+        catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
+        {
+            // O grupo foi apagado entre a checagem e o salvamento.
+            return ErrosCategoria.GrupoInexistente;
+        }
 
         return ParaAdmin(categoria);
     }
