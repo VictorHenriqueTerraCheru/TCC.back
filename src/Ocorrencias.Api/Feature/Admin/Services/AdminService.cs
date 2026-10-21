@@ -86,6 +86,66 @@ public sealed class AdminService(AppDbContext db, TimeProvider relogio) : IAdmin
         return new Vazio();
     }
 
+    public async Task<Paginado<ListarUsuariosItem>> ListarUsuariosAsync(ListarUsuariosRequest request, CancellationToken ct)
+    {
+        var consulta = db.Users.AsQueryable();
+        if (request.Perfil is not null)
+        {
+            var perfil = Enum.Parse<Perfil>(request.Perfil, ignoreCase: true);
+            consulta = consulta.Where(u => u.Perfil == perfil);
+        }
+
+        if (request.Busca?.Trim() is { Length: > 0 } busca)
+        {
+            var padrao = $"%{busca.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
+            consulta = consulta.Where(u => EF.Functions.ILike(u.Nome, padrao) || EF.Functions.ILike(u.Email!, padrao));
+        }
+
+        var total = await consulta.CountAsync(ct);
+        var itens = await consulta
+            .OrderByDescending(u => u.CriadoEm)
+            .ThenBy(u => u.Id)
+            .Skip(Paginacao.Pular(request.Pagina, request.Tamanho))
+            .Take(request.Tamanho)
+            .Select(u => new ListarUsuariosItem(u.Id, u.Nome, u.Email!, u.Perfil, u.CriadoEm, u.VerificadoEm))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        return new Paginado<ListarUsuariosItem>(itens, request.Pagina, request.Tamanho, total);
+    }
+
+    /// <summary>
+    /// Vale para os votos SEGUINTES (o voto guarda <c>perfil_no_momento</c>). Virar verificado grava
+    /// <c>verificado_em</c> (mantém a data se já era); voltar a cidadão zera; administrador não mexe.
+    /// </summary>
+    public async Task<Resultado<Vazio>> AlterarPerfilAsync(Guid id, Guid adminId, AlterarPerfilRequest request, CancellationToken ct)
+    {
+        if (id == adminId)
+        {
+            return ErrosAdmin.ProprioPerfil;
+        }
+
+        var usuario = await db.Users.SingleOrDefaultAsync(u => u.Id == id, ct);
+        if (usuario is null)
+        {
+            return ErroAplicacao.NaoEncontrado;
+        }
+
+        usuario.Perfil = request.Perfil;
+        switch (request.Perfil)
+        {
+            case Perfil.CidadaoVerificado:
+                usuario.VerificadoEm ??= relogio.GetUtcNow();
+                break;
+            case Perfil.Cidadao:
+                usuario.VerificadoEm = null;
+                break;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return new Vazio();
+    }
+
     /// <summary>"Carlos Menezes" → "CM"; "Ana" → "A"; "maria da silva" → "MS".</summary>
     public static string Iniciais(string nome)
     {

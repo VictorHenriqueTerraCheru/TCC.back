@@ -12,6 +12,17 @@
         ],
         "type": "object"
       },
+      "AlterarPerfilRequest": {
+        "properties": {
+          "perfil": {
+            "$ref": "#/components/schemas/Perfil"
+          }
+        },
+        "required": [
+          "perfil"
+        ],
+        "type": "object"
+      },
       "AtualizarMeRequest": {
         "properties": {
           "nome": {
@@ -454,6 +465,38 @@
         ],
         "type": "object"
       },
+      "ListarUsuariosItem": {
+        "properties": {
+          "criadoEm": {
+            "format": "date-time"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "perfil": {
+            "$ref": "#/components/schemas/Perfil"
+          },
+          "verificadoEm": {
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "email",
+          "perfil",
+          "criadoEm",
+          "verificadoEm"
+        ],
+        "type": "object"
+      },
       "ListarVerificacoesItem": {
         "properties": {
           "criadaEm": {
@@ -885,6 +928,35 @@
           "itens": {
             "items": {
               "$ref": "#/components/schemas/ListarProblemasRecentesItem"
+            },
+            "type": "array"
+          },
+          "pagina": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "tamanho": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "itens",
+          "pagina",
+          "tamanho",
+          "total"
+        ],
+        "type": "object"
+      },
+      "PaginadoListarUsuariosItem": {
+        "properties": {
+          "itens": {
+            "items": {
+              "$ref": "#/components/schemas/ListarUsuariosItem"
             },
             "type": "array"
           },
@@ -1579,6 +1651,125 @@
               }
             },
             "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/usuarios": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "busca",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "perfil",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pagina",
+            "schema": {
+              "default": 1,
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tamanho",
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginadoListarUsuariosItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/usuarios/{id}/perfil": {
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarPerfilRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "content": {

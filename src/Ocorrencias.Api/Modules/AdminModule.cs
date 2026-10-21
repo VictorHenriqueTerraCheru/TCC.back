@@ -22,6 +22,16 @@ public sealed class AdminModule : IEndpointModule
             .Validar<RecusarVerificacaoRequest>()
             .RequireAuthorization(PoliticasAutorizacao.Administrador)
             .WithTags("Admin");
+
+        api.MapGet("/admin/usuarios", ListarUsuarios)
+            .Validar<ListarUsuariosRequest>()
+            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+            .WithTags("Admin");
+
+        api.MapPatch("/admin/usuarios/{id:guid}/perfil", AlterarPerfil)
+            .Validar<AlterarPerfilRequest>()
+            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+            .WithTags("Admin");
     }
 
     private static Task<Paginado<ListarVerificacoesItem>> ListarVerificacoes(
@@ -35,6 +45,14 @@ public sealed class AdminModule : IEndpointModule
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Recusar(
         Guid id, RecusarVerificacaoRequest request, ClaimsPrincipal principal, IAdminService service, CancellationToken ct) =>
         ParaHttp(await service.RecusarAsync(id, principal.ObterUsuarioId(), request, ct));
+
+    private static Task<Paginado<ListarUsuariosItem>> ListarUsuarios(
+        [AsParameters] ListarUsuariosRequest request, IAdminService service, CancellationToken ct) =>
+        service.ListarUsuariosAsync(request, ct);
+
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> AlterarPerfil(
+        Guid id, AlterarPerfilRequest request, ClaimsPrincipal principal, IAdminService service, CancellationToken ct) =>
+        ParaHttp(await service.AlterarPerfilAsync(id, principal.ObterUsuarioId(), request, ct));
 
     private static Results<NoContent, NotFound, ProblemHttpResult> ParaHttp(Resultado<Vazio> r) =>
         r.Erro switch
