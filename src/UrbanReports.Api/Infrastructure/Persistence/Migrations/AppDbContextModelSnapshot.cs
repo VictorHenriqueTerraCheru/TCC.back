@@ -46,12 +46,12 @@ namespace UrbanReports.Api.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_usuarios_claims");
+                        .HasName("pk_user_claims");
 
                     b.HasIndex("UserId")
-                        .HasDatabaseName("ix_usuarios_claims_user_id");
+                        .HasDatabaseName("ix_user_claims_user_id");
 
-                    b.ToTable("usuarios_claims", (string)null);
+                    b.ToTable("user_claims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
@@ -73,12 +73,12 @@ namespace UrbanReports.Api.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("LoginProvider", "ProviderKey")
-                        .HasName("pk_usuarios_logins");
+                        .HasName("pk_user_logins");
 
                     b.HasIndex("UserId")
-                        .HasDatabaseName("ix_usuarios_logins_user_id");
+                        .HasDatabaseName("ix_user_logins_user_id");
 
-                    b.ToTable("usuarios_logins", (string)null);
+                    b.ToTable("user_logins", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
@@ -100,401 +100,339 @@ namespace UrbanReports.Api.Infrastructure.Persistence.Migrations
                         .HasColumnName("value");
 
                     b.HasKey("UserId", "LoginProvider", "Name")
-                        .HasName("pk_usuarios_tokens");
+                        .HasName("pk_user_tokens");
 
-                    b.ToTable("usuarios_tokens", (string)null);
+                    b.ToTable("user_tokens", (string)null);
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Categoria", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Category", b =>
                 {
                     b.Property<short>("Id")
                         .HasColumnType("smallint")
                         .HasColumnName("id");
 
-                    b.Property<bool>("Ativa")
+                    b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
-                        .HasColumnName("ativa");
+                        .HasColumnName("active");
 
-                    b.Property<string>("Grupo")
+                    b.Property<string>("Group")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
-                        .HasColumnName("grupo");
+                        .HasColumnName("group");
 
-                    b.Property<string>("Icone")
+                    b.Property<string>("Icon")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
-                        .HasColumnName("icone");
+                        .HasColumnName("icon");
 
-                    b.Property<string>("Nome")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)")
-                        .HasColumnName("nome");
+                        .HasColumnName("name");
 
-                    b.Property<short>("Tipo")
+                    b.Property<short>("Type")
                         .HasColumnType("smallint")
-                        .HasColumnName("tipo");
+                        .HasColumnName("type");
 
                     b.HasKey("Id")
-                        .HasName("pk_categorias");
+                        .HasName("pk_categories");
 
-                    b.HasIndex("Grupo")
-                        .HasDatabaseName("ix_categorias_grupo");
+                    b.HasIndex("Group")
+                        .HasDatabaseName("ix_categories_group");
 
-                    b.HasIndex("Nome")
+                    b.HasIndex("Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_categorias_nome");
+                        .HasDatabaseName("ix_categories_name");
 
-                    b.ToTable("categorias", (string)null);
+                    b.ToTable("categories", (string)null);
 
                     b.HasData(
                         new
                         {
                             Id = (short)1,
-                            Ativa = true,
-                            Grupo = "viaPublica",
-                            Icone = "buraco",
-                            Nome = "Buraco na via",
-                            Tipo = (short)1
+                            Active = true,
+                            Group = "viaPublica",
+                            Icon = "buraco",
+                            Name = "Buraco na via",
+                            Type = (short)1
                         },
                         new
                         {
                             Id = (short)2,
-                            Ativa = true,
-                            Grupo = "viaPublica",
-                            Icone = "calcada",
-                            Nome = "Calçada danificada",
-                            Tipo = (short)1
+                            Active = true,
+                            Group = "viaPublica",
+                            Icon = "calcada",
+                            Name = "Calçada danificada",
+                            Type = (short)1
                         },
                         new
                         {
                             Id = (short)3,
-                            Ativa = true,
-                            Grupo = "eletrica",
-                            Icone = "poste",
-                            Nome = "Poste apagado",
-                            Tipo = (short)1
+                            Active = true,
+                            Group = "eletrica",
+                            Icon = "poste",
+                            Name = "Poste apagado",
+                            Type = (short)1
                         },
                         new
                         {
                             Id = (short)4,
-                            Ativa = true,
-                            Grupo = "eletrica",
-                            Icone = "fio",
-                            Nome = "Fio caído",
-                            Tipo = (short)1
+                            Active = true,
+                            Group = "eletrica",
+                            Icon = "fio",
+                            Name = "Fio caído",
+                            Type = (short)1
                         },
                         new
                         {
                             Id = (short)5,
-                            Ativa = true,
-                            Grupo = "limpeza",
-                            Icone = "descarte",
-                            Nome = "Descarte irregular",
-                            Tipo = (short)1
+                            Active = true,
+                            Group = "limpeza",
+                            Icon = "descarte",
+                            Name = "Descarte irregular",
+                            Type = (short)1
                         },
                         new
                         {
                             Id = (short)6,
-                            Ativa = true,
-                            Grupo = "limpeza",
-                            Icone = "lixo",
-                            Nome = "Lixo acumulado",
-                            Tipo = (short)1
+                            Active = true,
+                            Group = "limpeza",
+                            Icon = "lixo",
+                            Name = "Lixo acumulado",
+                            Type = (short)1
                         },
                         new
                         {
                             Id = (short)7,
-                            Ativa = true,
-                            Grupo = "seguranca",
-                            Icone = "roubo",
-                            Nome = "Roubo",
-                            Tipo = (short)2
+                            Active = true,
+                            Group = "seguranca",
+                            Icon = "roubo",
+                            Name = "Roubo",
+                            Type = (short)2
                         },
                         new
                         {
                             Id = (short)8,
-                            Ativa = true,
-                            Grupo = "transito",
-                            Icone = "acidente",
-                            Nome = "Acidente de trânsito",
-                            Tipo = (short)2
+                            Active = true,
+                            Group = "transito",
+                            Icon = "acidente",
+                            Name = "Acidente de trânsito",
+                            Type = (short)2
                         });
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.GrupoCategoria", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.CategoryGroup", b =>
                 {
-                    b.Property<string>("Chave")
+                    b.Property<string>("Key")
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
-                        .HasColumnName("chave");
+                        .HasColumnName("key");
 
-                    b.Property<short>("Cor")
+                    b.Property<short>("Color")
                         .HasColumnType("smallint")
-                        .HasColumnName("cor");
+                        .HasColumnName("color");
 
-                    b.Property<int>("Ordem")
-                        .HasColumnType("integer")
-                        .HasColumnName("ordem");
-
-                    b.Property<string>("Rotulo")
+                    b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
-                        .HasColumnName("rotulo");
+                        .HasColumnName("label");
 
-                    b.Property<short>("Tipo")
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<short>("Type")
                         .HasColumnType("smallint")
-                        .HasColumnName("tipo");
+                        .HasColumnName("type");
 
-                    b.HasKey("Chave")
-                        .HasName("pk_grupos_categoria");
+                    b.HasKey("Key")
+                        .HasName("pk_category_groups");
 
-                    b.HasIndex("Rotulo")
+                    b.HasIndex("Label")
                         .IsUnique()
-                        .HasDatabaseName("ix_grupos_categoria_rotulo");
+                        .HasDatabaseName("ix_category_groups_label");
 
-                    b.ToTable("grupos_categoria", (string)null);
+                    b.ToTable("category_groups", (string)null);
 
                     b.HasData(
                         new
                         {
-                            Chave = "viaPublica",
-                            Cor = (short)1,
-                            Ordem = 1,
-                            Rotulo = "Via pública",
-                            Tipo = (short)1
+                            Key = "viaPublica",
+                            Color = (short)1,
+                            Label = "Via pública",
+                            SortOrder = 1,
+                            Type = (short)1
                         },
                         new
                         {
-                            Chave = "eletrica",
-                            Cor = (short)2,
-                            Ordem = 2,
-                            Rotulo = "Elétrica",
-                            Tipo = (short)1
+                            Key = "eletrica",
+                            Color = (short)2,
+                            Label = "Elétrica",
+                            SortOrder = 2,
+                            Type = (short)1
                         },
                         new
                         {
-                            Chave = "limpeza",
-                            Cor = (short)3,
-                            Ordem = 3,
-                            Rotulo = "Limpeza",
-                            Tipo = (short)1
+                            Key = "limpeza",
+                            Color = (short)3,
+                            Label = "Limpeza",
+                            SortOrder = 3,
+                            Type = (short)1
                         },
                         new
                         {
-                            Chave = "seguranca",
-                            Cor = (short)4,
-                            Ordem = 4,
-                            Rotulo = "Segurança",
-                            Tipo = (short)2
+                            Key = "seguranca",
+                            Color = (short)4,
+                            Label = "Segurança",
+                            SortOrder = 4,
+                            Type = (short)2
                         },
                         new
                         {
-                            Chave = "transito",
-                            Cor = (short)5,
-                            Ordem = 5,
-                            Rotulo = "Trânsito",
-                            Tipo = (short)2
+                            Key = "transito",
+                            Color = (short)5,
+                            Label = "Trânsito",
+                            SortOrder = 5,
+                            Type = (short)2
                         });
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Incidente", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Incident", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Point>("AreaAproximada")
+                    b.Property<Point>("ApproximateArea")
                         .IsRequired()
                         .HasColumnType("geography(Point,4326)")
-                        .HasColumnName("area_aproximada");
+                        .HasColumnName("approximate_area");
 
-                    b.Property<Guid>("AutorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("autor_id");
-
-                    b.Property<short>("CategoriaId")
-                        .HasColumnType("smallint")
-                        .HasColumnName("categoria_id");
-
-                    b.Property<DateTimeOffset>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("ocorrido_em");
-
-                    b.Property<short>("RaioMetros")
-                        .HasColumnType("smallint")
-                        .HasColumnName("raio_metros");
-
-                    b.Property<DateTimeOffset>("RegistradoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("registrado_em");
-
-                    b.Property<string>("RotuloArea")
+                    b.Property<string>("AreaLabel")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
-                        .HasColumnName("rotulo_area");
+                        .HasColumnName("area_label");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_id");
+
+                    b.Property<short>("CategoryId")
+                        .HasColumnType("smallint")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<short>("RadiusMeters")
+                        .HasColumnType("smallint")
+                        .HasColumnName("radius_meters");
+
+                    b.Property<DateTimeOffset>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("registered_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_incidentes");
+                        .HasName("pk_incidents");
 
-                    b.HasIndex("AreaAproximada")
-                        .HasDatabaseName("ix_incidentes_area_aproximada");
+                    b.HasIndex("ApproximateArea")
+                        .HasDatabaseName("ix_incidents_approximate_area");
 
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("AreaAproximada"), "gist");
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("ApproximateArea"), "gist");
 
-                    b.HasIndex("CategoriaId")
-                        .HasDatabaseName("ix_incidentes_categoria_id");
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_incidents_category_id");
 
-                    b.HasIndex("OcorridoEm")
-                        .HasDatabaseName("ix_incidentes_ocorrido_em");
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("ix_incidents_occurred_at");
 
-                    b.HasIndex("AutorId", "RegistradoEm")
-                        .HasDatabaseName("ix_incidentes_autor_id_registrado_em");
+                    b.HasIndex("AuthorId", "RegisteredAt")
+                        .HasDatabaseName("ix_incidents_author_id_registered_at");
 
-                    b.ToTable("incidentes", (string)null);
+                    b.ToTable("incidents", (string)null);
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Problema", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Issue", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("AutorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("autor_id");
-
-                    b.Property<short>("CategoriaId")
-                        .HasColumnType("smallint")
-                        .HasColumnName("categoria_id");
-
-                    b.Property<DateTimeOffset?>("CondicaoResolucaoDesde")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("condicao_resolucao_desde");
-
-                    b.Property<decimal?>("Confianca")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)")
-                        .HasColumnName("confianca");
-
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criado_em");
-
-                    b.Property<string>("Descricao")
-                        .HasMaxLength(280)
-                        .HasColumnType("character varying(280)")
-                        .HasColumnName("descricao");
-
-                    b.Property<string>("EnderecoAproximado")
+                    b.Property<string>("ApproximateAddress")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
-                        .HasColumnName("endereco_aproximado");
+                        .HasColumnName("approximate_address");
 
-                    b.Property<Point>("Localizacao")
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_id");
+
+                    b.Property<short>("CategoryId")
+                        .HasColumnType("smallint")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)")
+                        .HasColumnName("description");
+
+                    b.Property<Point>("Location")
                         .IsRequired()
                         .HasColumnType("geography(Point,4326)")
-                        .HasColumnName("localizacao");
+                        .HasColumnName("location");
+
+                    b.Property<DateTimeOffset?>("ResolutionConditionSince")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolution_condition_since");
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint")
                         .HasColumnName("status");
 
-                    b.Property<DateTimeOffset>("StatusAlteradoEm")
+                    b.Property<DateTimeOffset>("StatusChangedAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("status_alterado_em");
+                        .HasColumnName("status_changed_at");
+
+                    b.Property<decimal?>("TrustScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("trust_score");
 
                     b.HasKey("Id")
-                        .HasName("pk_problemas");
+                        .HasName("pk_issues");
 
-                    b.HasIndex("CategoriaId")
-                        .HasDatabaseName("ix_problemas_categoria_id");
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_issues_category_id");
 
-                    b.HasIndex("Localizacao")
-                        .HasDatabaseName("ix_problemas_localizacao");
+                    b.HasIndex("Location")
+                        .HasDatabaseName("ix_issues_location");
 
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Localizacao"), "gist");
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Location"), "gist");
 
                     b.HasIndex("Status")
-                        .HasDatabaseName("ix_problemas_status");
+                        .HasDatabaseName("ix_issues_status");
 
-                    b.HasIndex("AutorId", "CriadoEm")
-                        .HasDatabaseName("ix_problemas_autor_id_criado_em");
+                    b.HasIndex("AuthorId", "CreatedAt")
+                        .HasDatabaseName("ix_issues_author_id_created_at");
 
-                    b.ToTable("problemas", (string)null);
+                    b.ToTable("issues", (string)null);
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.SolicitacaoVerificacao", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset?>("AnalisadaEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("analisada_em");
-
-                    b.Property<Guid?>("AnalisadaPorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("analisada_por_id");
-
-                    b.Property<DateTimeOffset>("CriadaEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criada_em");
-
-                    b.Property<string>("Justificativa")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("justificativa");
-
-                    b.Property<string>("MotivoRecusa")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("motivo_recusa");
-
-                    b.Property<short>("Status")
-                        .HasColumnType("smallint")
-                        .HasColumnName("status");
-
-                    b.Property<short>("TipoVinculo")
-                        .HasColumnType("smallint")
-                        .HasColumnName("tipo_vinculo");
-
-                    b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("usuario_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_solicitacoes_verificacao");
-
-                    b.HasIndex("AnalisadaPorId")
-                        .HasDatabaseName("ix_solicitacoes_verificacao_analisada_por_id");
-
-                    b.HasIndex("UsuarioId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_solicitacoes_verificacao_usuario_pendente")
-                        .HasFilter("status = 1");
-
-                    b.HasIndex("Status", "CriadaEm")
-                        .HasDatabaseName("ix_solicitacoes_verificacao_status_criada_em");
-
-                    b.HasIndex("UsuarioId", "CriadaEm")
-                        .HasDatabaseName("ix_solicitacoes_verificacao_usuario_id_criada_em");
-
-                    b.ToTable("solicitacoes_verificacao", (string)null);
-                });
-
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Usuario", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -510,9 +448,9 @@ namespace UrbanReports.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("concurrency_stamp");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criado_em");
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -531,11 +469,11 @@ namespace UrbanReports.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
 
-                    b.Property<string>("Nome")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
-                        .HasColumnName("nome");
+                        .HasColumnName("name");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -549,11 +487,7 @@ namespace UrbanReports.Api.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text")
-                        .HasColumnName("senha_hash");
-
-                    b.Property<short>("Perfil")
-                        .HasColumnType("smallint")
-                        .HasColumnName("perfil");
+                        .HasColumnName("password_hash");
 
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text")
@@ -562,6 +496,10 @@ namespace UrbanReports.Api.Infrastructure.Persistence.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean")
                         .HasColumnName("phone_number_confirmed");
+
+                    b.Property<short>("Role")
+                        .HasColumnType("smallint")
+                        .HasColumnName("role");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text")
@@ -576,194 +514,256 @@ namespace UrbanReports.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("user_name");
 
-                    b.Property<DateTimeOffset?>("VerificadoEm")
+                    b.Property<DateTimeOffset?>("VerifiedAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("verificado_em");
+                        .HasColumnName("verified_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_usuarios");
+                        .HasName("pk_users");
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
-                        .HasDatabaseName("ix_usuarios_normalized_email");
+                        .HasDatabaseName("ix_users_normalized_email");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
-                        .HasDatabaseName("ix_usuarios_normalized_user_name");
+                        .HasDatabaseName("ix_users_normalized_user_name");
 
-                    b.ToTable("usuarios", (string)null);
+                    b.ToTable("users", (string)null);
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Voto", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.VerificationRequest", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<int?>("DistanciaMetros")
-                        .HasColumnType("integer")
-                        .HasColumnName("distancia_metros");
-
-                    b.Property<short>("PerfilNoMomento")
+                    b.Property<short>("AffiliationType")
                         .HasColumnType("smallint")
-                        .HasColumnName("perfil_no_momento");
+                        .HasColumnName("affiliation_type");
 
-                    b.Property<Guid>("ProblemaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("problema_id");
-
-                    b.Property<DateTimeOffset>("RegistradoEm")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("registrado_em");
+                        .HasColumnName("created_at");
 
-                    b.Property<Guid>("UsuarioId")
+                    b.Property<string>("Justification")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("justification");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<Guid?>("ReviewedById")
                         .HasColumnType("uuid")
-                        .HasColumnName("usuario_id");
+                        .HasColumnName("reviewed_by_id");
 
-                    b.Property<short>("Valor")
+                    b.Property<short>("Status")
                         .HasColumnType("smallint")
-                        .HasColumnName("valor");
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_votos");
+                        .HasName("pk_verification_requests");
 
-                    b.HasIndex("ProblemaId", "UsuarioId")
+                    b.HasIndex("ReviewedById")
+                        .HasDatabaseName("ix_verification_requests_reviewed_by_id");
+
+                    b.HasIndex("UserId")
                         .IsUnique()
-                        .HasDatabaseName("ix_votos_problema_id_usuario_id");
+                        .HasDatabaseName("ix_verification_requests_user_pending")
+                        .HasFilter("status = 1");
 
-                    b.HasIndex("UsuarioId", "RegistradoEm")
-                        .HasDatabaseName("ix_votos_usuario_id_registrado_em");
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_verification_requests_status_created_at");
 
-                    b.ToTable("votos", (string)null);
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_verification_requests_user_id_created_at");
+
+                    b.ToTable("verification_requests", (string)null);
+                });
+
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Vote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("DistanceMeters")
+                        .HasColumnType("integer")
+                        .HasColumnName("distance_meters");
+
+                    b.Property<Guid>("IssueId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("issue_id");
+
+                    b.Property<DateTimeOffset>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("registered_at");
+
+                    b.Property<short>("RoleAtVote")
+                        .HasColumnType("smallint")
+                        .HasColumnName("role_at_vote");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<short>("Value")
+                        .HasColumnType("smallint")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_votes");
+
+                    b.HasIndex("IssueId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_votes_issue_id_user_id");
+
+                    b.HasIndex("UserId", "RegisteredAt")
+                        .HasDatabaseName("ix_votes_user_id_registered_at");
+
+                    b.ToTable("votes", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
-                    b.HasOne("UrbanReports.Api.Persistence.Usuario", null)
+                    b.HasOne("UrbanReports.Api.Persistence.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_usuarios_claims_usuarios_user_id");
+                        .HasConstraintName("fk_user_claims_users_user_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
                 {
-                    b.HasOne("UrbanReports.Api.Persistence.Usuario", null)
+                    b.HasOne("UrbanReports.Api.Persistence.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_usuarios_logins_usuarios_user_id");
+                        .HasConstraintName("fk_user_logins_users_user_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
                 {
-                    b.HasOne("UrbanReports.Api.Persistence.Usuario", null)
+                    b.HasOne("UrbanReports.Api.Persistence.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_usuarios_tokens_usuarios_user_id");
+                        .HasConstraintName("fk_user_tokens_users_user_id");
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Categoria", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Category", b =>
                 {
-                    b.HasOne("UrbanReports.Api.Persistence.GrupoCategoria", null)
+                    b.HasOne("UrbanReports.Api.Persistence.CategoryGroup", null)
                         .WithMany()
-                        .HasForeignKey("Grupo")
+                        .HasForeignKey("Group")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_categorias_grupos_categoria_grupo");
+                        .HasConstraintName("fk_categories_category_groups_group");
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Incidente", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Incident", b =>
                 {
-                    b.HasOne("UrbanReports.Api.Persistence.Usuario", "Autor")
+                    b.HasOne("UrbanReports.Api.Persistence.User", "Author")
                         .WithMany()
-                        .HasForeignKey("AutorId")
+                        .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_incidentes_usuarios_autor_id");
+                        .HasConstraintName("fk_incidents_users_author_id");
 
-                    b.HasOne("UrbanReports.Api.Persistence.Categoria", "Categoria")
+                    b.HasOne("UrbanReports.Api.Persistence.Category", "Category")
                         .WithMany()
-                        .HasForeignKey("CategoriaId")
+                        .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_incidentes_categorias_categoria_id");
+                        .HasConstraintName("fk_incidents_categories_category_id");
 
-                    b.Navigation("Autor");
+                    b.Navigation("Author");
 
-                    b.Navigation("Categoria");
+                    b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Problema", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Issue", b =>
                 {
-                    b.HasOne("UrbanReports.Api.Persistence.Usuario", "Autor")
+                    b.HasOne("UrbanReports.Api.Persistence.User", "Author")
                         .WithMany()
-                        .HasForeignKey("AutorId")
+                        .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_problemas_usuarios_autor_id");
+                        .HasConstraintName("fk_issues_users_author_id");
 
-                    b.HasOne("UrbanReports.Api.Persistence.Categoria", "Categoria")
+                    b.HasOne("UrbanReports.Api.Persistence.Category", "Category")
                         .WithMany()
-                        .HasForeignKey("CategoriaId")
+                        .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_problemas_categorias_categoria_id");
+                        .HasConstraintName("fk_issues_categories_category_id");
 
-                    b.Navigation("Autor");
+                    b.Navigation("Author");
 
-                    b.Navigation("Categoria");
+                    b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.SolicitacaoVerificacao", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.VerificationRequest", b =>
                 {
-                    b.HasOne("UrbanReports.Api.Persistence.Usuario", "AnalisadaPor")
+                    b.HasOne("UrbanReports.Api.Persistence.User", "ReviewedBy")
                         .WithMany()
-                        .HasForeignKey("AnalisadaPorId")
+                        .HasForeignKey("ReviewedById")
                         .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_solicitacoes_verificacao_usuarios_analisada_por_id");
+                        .HasConstraintName("fk_verification_requests_users_reviewed_by_id");
 
-                    b.HasOne("UrbanReports.Api.Persistence.Usuario", "Usuario")
+                    b.HasOne("UrbanReports.Api.Persistence.User", "User")
                         .WithMany()
-                        .HasForeignKey("UsuarioId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_solicitacoes_verificacao_usuarios_usuario_id");
+                        .HasConstraintName("fk_verification_requests_users_user_id");
 
-                    b.Navigation("AnalisadaPor");
+                    b.Navigation("ReviewedBy");
 
-                    b.Navigation("Usuario");
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Voto", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Vote", b =>
                 {
-                    b.HasOne("UrbanReports.Api.Persistence.Problema", "Problema")
-                        .WithMany("Votos")
-                        .HasForeignKey("ProblemaId")
+                    b.HasOne("UrbanReports.Api.Persistence.Issue", "Issue")
+                        .WithMany("Votes")
+                        .HasForeignKey("IssueId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_votos_problemas_problema_id");
+                        .HasConstraintName("fk_votes_issues_issue_id");
 
-                    b.HasOne("UrbanReports.Api.Persistence.Usuario", "Usuario")
+                    b.HasOne("UrbanReports.Api.Persistence.User", "User")
                         .WithMany()
-                        .HasForeignKey("UsuarioId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_votos_usuarios_usuario_id");
+                        .HasConstraintName("fk_votes_users_user_id");
 
-                    b.Navigation("Problema");
+                    b.Navigation("Issue");
 
-                    b.Navigation("Usuario");
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("UrbanReports.Api.Persistence.Problema", b =>
+            modelBuilder.Entity("UrbanReports.Api.Persistence.Issue", b =>
                 {
-                    b.Navigation("Votos");
+                    b.Navigation("Votes");
                 });
 #pragma warning restore 612, 618
         }

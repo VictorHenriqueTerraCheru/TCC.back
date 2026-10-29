@@ -4,33 +4,33 @@ using FluentValidation;
 
 namespace UrbanReports.Api.Common;
 
-public static class Validacao
+public static class Validation
 {
-    public static void ConfigurarGlobal()
+    public static void ConfigureGlobal()
     {
         ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("pt-BR");
         ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
-        ValidatorOptions.Global.PropertyNameResolver = (_, membro, _) =>
-            membro is null ? null : JsonNamingPolicy.CamelCase.ConvertName(membro.Name);
+        ValidatorOptions.Global.PropertyNameResolver = (_, member, _) =>
+            member is null ? null : JsonNamingPolicy.CamelCase.ConvertName(member.Name);
     }
 
-    public static RouteHandlerBuilder Validar<T>(this RouteHandlerBuilder builder) =>
-        builder.AddEndpointFilter<FiltroValidacao<T>>().ProducesValidationProblem();
+    public static RouteHandlerBuilder Validate<T>(this RouteHandlerBuilder builder) =>
+        builder.AddEndpointFilter<ValidationFilter<T>>().ProducesValidationProblem();
 
-    private sealed class FiltroValidacao<T>(IValidator<T> validador) : IEndpointFilter
+    private sealed class ValidationFilter<T>(IValidator<T> validator) : IEndpointFilter
     {
-        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext contexto, EndpointFilterDelegate proximo)
+        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
         {
-            var argumento = contexto.Arguments.OfType<T>().FirstOrDefault();
-            if (argumento is null)
+            var argument = context.Arguments.OfType<T>().FirstOrDefault();
+            if (argument is null)
             {
-                return await proximo(contexto);
+                return await next(context);
             }
 
-            var resultado = await validador.ValidateAsync(argumento, contexto.HttpContext.RequestAborted);
-            return resultado.IsValid
-                ? await proximo(contexto)
-                : TypedResults.ValidationProblem(resultado.ToDictionary());
+            var result = await validator.ValidateAsync(argument, context.HttpContext.RequestAborted);
+            return result.IsValid
+                ? await next(context)
+                : TypedResults.ValidationProblem(result.ToDictionary());
         }
     }
 }

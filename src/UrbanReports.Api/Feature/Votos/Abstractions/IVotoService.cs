@@ -1,10 +1,10 @@
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Problemas;
+using UrbanReports.Api.Issues;
 
-namespace UrbanReports.Api.Votos;
+namespace UrbanReports.Api.Votes;
 
-public interface IVotoService
+public interface IVoteService
 {
-    Task<Resultado<ObterDetalheProblemaResponse>> VotarAsync(
-        Guid problemaId, Guid usuarioId, VotarRequest request, CancellationToken ct);
+    Task<Result<GetIssueDetailResponse>> VoteAsync(
+        Guid issueId, Guid userId, VoteRequest request, CancellationToken ct);
 }

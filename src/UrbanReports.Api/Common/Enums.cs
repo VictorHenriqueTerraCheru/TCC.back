@@ -1,71 +1,71 @@
 namespace UrbanReports.Api.Common;
 
-public enum Perfil
+public enum Role
 {
-    Cidadao = 1,
-    CidadaoVerificado = 2,
-    Administrador = 3,
+    Citizen = 1,
+    VerifiedCitizen = 2,
+    Administrator = 3,
 }
 
-public enum ValorVoto
+public enum VoteValue
 {
-    Positivo = 1,
-    Negativo = 2,
+    Positive = 1,
+    Negative = 2,
 }
 
-public enum StatusProblema
+public enum IssueStatus
 {
-    Nova = 1,
-    Ativa = 2,
-    PossivelmenteResolvida = 3,
-    Resolvida = 4,
+    New = 1,
+    Active = 2,
+    PossiblyResolved = 3,
+    Resolved = 4,
 }
 
-public enum FaixaConfianca
+public enum TrustBand
 {
-    Baixa = 1,
-    Media = 2,
-    Alta = 3,
+    Low = 1,
+    Medium = 2,
+    High = 3,
 }
 
-public enum TipoOcorrencia
+public enum ReportType
 {
-    Problema = 1,
-    Incidente = 2,
+    Issue = 1,
+    Incident = 2,
 }
 
-public enum CorGrupo
+public enum GroupColor
 {
     Laranja = 1,
-    Ocre = 2,
-    Marrom = 3,
-    Vermelho = 4,
-    Terracota = 5,
-    Azul = 6,
-    VerdeAgua = 7,
-    Roxo = 8,
-    Rosa = 9,
-    Cinza = 10,
+    Ochre = 2,
+    Brown = 3,
+    Red = 4,
+    Terracotta = 5,
+    Blue = 6,
+    Teal = 7,
+    Purple = 8,
+    Pink = 9,
+    Gray = 10,
 }
 
-public enum TipoVinculo
+public enum AffiliationType
 {
-    MoradorRegiao = 1,
-    TrabalhaRegiao = 2,
-    ServidorPublico = 3,
-    Outro = 4,
+    LivesInArea = 1,
+    WorksInArea = 2,
+    PublicServant = 3,
+    Other = 4,
 }
 
-public enum StatusVerificacao
+public enum VerificationStatus
 {
-    Pendente = 1,
-    Aprovada = 2,
-    Recusada = 3,
+    Pending = 1,
+    Approved = 2,
+    Rejected = 3,
 }
 
-public enum NivelConcentracao
+public enum ConcentrationLevel
 {
-    Baixa = 1,
-    Media = 2,
-    Alta = 3,
+    Low = 1,
+    Medium = 2,
+    High = 3,
 }

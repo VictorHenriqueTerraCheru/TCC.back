@@ -1,10 +1,10 @@
-namespace UrbanReports.Api.Confianca;
+namespace UrbanReports.Api.Trust;
 
-public sealed class CicloDeVidaOptions
+public sealed class LifecycleOptions
 {
-    public const string Secao = "CicloDeVida";
+    public const string Section = "Lifecycle";
 
-    public bool Habilitado { get; set; } = true;
+    public bool Enabled { get; set; } = true;
 
-    public TimeSpan Intervalo { get; set; } = TimeSpan.FromMinutes(15);
+    public TimeSpan Interval { get; set; } = TimeSpan.FromMinutes(15);
 }

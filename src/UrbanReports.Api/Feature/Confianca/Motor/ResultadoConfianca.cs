@@ -1,5 +1,5 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Confianca.Motor;
+namespace UrbanReports.Api.Trust.Engine;
 
-public sealed record ResultadoConfianca(double Indice, FaixaConfianca Faixa, double EPositivo, double ENegativo);
+public sealed record TrustResult(double Score, TrustBand Band, double PositiveEvidence, double NegativeEvidence);

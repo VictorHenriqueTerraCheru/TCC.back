@@ -1,6 +1,6 @@
 namespace UrbanReports.Api.Common;
 
-public static class PoliticasCors
+public static class CorsPolicies
 {
     public const string Front = "Front";
 }

@@ -4,7 +4,7 @@ namespace UrbanReports.Api.Auth;
 
 public interface IAuthService
 {
-    Task<Resultado<RespostaAuth>> CadastrarAsync(CadastrarRequest request);
+    Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request);
 
-    Task<Resultado<RespostaAuth>> EntrarAsync(EntrarRequest request);
+    Task<Result<AuthResponse>> LoginAsync(LoginRequest request);
 }

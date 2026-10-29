@@ -1,14 +1,14 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Grupos;
+namespace UrbanReports.Api.Groups;
 
-public interface IGrupoService
+public interface IGroupService
 {
-    Task<List<GrupoResponse>> ListarAsync(CancellationToken ct);
+    Task<List<GroupResponse>> ListAsync(CancellationToken ct);
 
-    Task<Resultado<GrupoResponse>> CriarAsync(CriarGrupoRequest request, CancellationToken ct);
+    Task<Result<GroupResponse>> CreateAsync(CreateGroupRequest request, CancellationToken ct);
 
-    Task<Resultado<GrupoResponse>> EditarAsync(string chave, EditarGrupoRequest request, CancellationToken ct);
+    Task<Result<GroupResponse>> EditAsync(string key, EditGroupRequest request, CancellationToken ct);
 
-    Task<Resultado<Vazio>> ApagarAsync(string chave, CancellationToken ct);
+    Task<Result<Empty>> DeleteAsync(string key, CancellationToken ct);
 }

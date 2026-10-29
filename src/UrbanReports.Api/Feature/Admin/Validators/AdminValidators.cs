@@ -3,47 +3,47 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Admin;
 
-public sealed class ListarVerificacoesValidator : AbstractValidator<ListarVerificacoesRequest>
+public sealed class ListVerificationsValidator : AbstractValidator<ListVerificationsRequest>
 {
-    private static readonly HashSet<string> NomesStatus = new(Enum.GetNames<StatusVerificacao>(), StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> StatusNames = new(Enum.GetNames<VerificationStatus>(), StringComparer.OrdinalIgnoreCase);
 
-    public ListarVerificacoesValidator()
+    public ListVerificationsValidator()
     {
         RuleFor(r => r.Status)
-            .Must(s => s is null || NomesStatus.Contains(s))
+            .Must(s => s is null || StatusNames.Contains(s))
             .WithMessage("Status desconhecido. Valores aceitos: pendente, aprovada, recusada.");
-        RuleFor(r => r.Pagina).InclusiveBetween(1, Paginacao.PaginaMaxima);
-        RuleFor(r => r.Tamanho).InclusiveBetween(1, Paginacao.TamanhoMaximo);
+        RuleFor(r => r.Page).InclusiveBetween(1, Pagination.MaxPage);
+        RuleFor(r => r.PageSize).InclusiveBetween(1, Pagination.MaxPageSize);
     }
 }
 
-public sealed class RecusarVerificacaoValidator : AbstractValidator<RecusarVerificacaoRequest>
+public sealed class RejectVerificationValidator : AbstractValidator<RejectVerificationRequest>
 {
-    public RecusarVerificacaoValidator()
+    public RejectVerificationValidator()
     {
-        RuleFor(r => r.Motivo).NotEmpty().MaximumLength(500);
+        RuleFor(r => r.Reason).NotEmpty().MaximumLength(500);
     }
 }
 
-public sealed class ListarUsuariosValidator : AbstractValidator<ListarUsuariosRequest>
+public sealed class ListUsersValidator : AbstractValidator<ListUsersRequest>
 {
-    private static readonly HashSet<string> NomesPerfil = new(Enum.GetNames<Perfil>(), StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> RoleNames = new(Enum.GetNames<Role>(), StringComparer.OrdinalIgnoreCase);
 
-    public ListarUsuariosValidator()
+    public ListUsersValidator()
     {
-        RuleFor(r => r.Busca).MaximumLength(100);
-        RuleFor(r => r.Perfil)
-            .Must(p => p is null || NomesPerfil.Contains(p))
+        RuleFor(r => r.Search).MaximumLength(100);
+        RuleFor(r => r.Role)
+            .Must(p => p is null || RoleNames.Contains(p))
             .WithMessage("Perfil desconhecido. Valores aceitos: cidadao, cidadaoVerificado, administrador.");
-        RuleFor(r => r.Pagina).InclusiveBetween(1, Paginacao.PaginaMaxima);
-        RuleFor(r => r.Tamanho).InclusiveBetween(1, Paginacao.TamanhoMaximo);
+        RuleFor(r => r.Page).InclusiveBetween(1, Pagination.MaxPage);
+        RuleFor(r => r.PageSize).InclusiveBetween(1, Pagination.MaxPageSize);
     }
 }
 
-public sealed class AlterarPerfilValidator : AbstractValidator<AlterarPerfilRequest>
+public sealed class ChangeRoleValidator : AbstractValidator<ChangeRoleRequest>
 {
-    public AlterarPerfilValidator()
+    public ChangeRoleValidator()
     {
-        RuleFor(r => r.Perfil).IsInEnum();
+        RuleFor(r => r.Role).IsInEnum();
     }
 }

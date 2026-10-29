@@ -1,23 +1,23 @@
 using FluentValidation;
 
-namespace UrbanReports.Api.Grupos;
+namespace UrbanReports.Api.Groups;
 
-public sealed class CriarGrupoValidator : AbstractValidator<CriarGrupoRequest>
+public sealed class CreateGroupValidator : AbstractValidator<CreateGroupRequest>
 {
-    public CriarGrupoValidator()
+    public CreateGroupValidator()
     {
-        RuleFor(r => r.Rotulo).NotEmpty().MaximumLength(40);
-        RuleFor(r => r.Tipo).IsInEnum();
-        RuleFor(r => r.Cor).IsInEnum();
+        RuleFor(r => r.Label).NotEmpty().MaximumLength(40);
+        RuleFor(r => r.Type).IsInEnum();
+        RuleFor(r => r.Color).IsInEnum();
     }
 }
 
-public sealed class EditarGrupoValidator : AbstractValidator<EditarGrupoRequest>
+public sealed class EditGroupValidator : AbstractValidator<EditGroupRequest>
 {
-    public EditarGrupoValidator()
+    public EditGroupValidator()
     {
-        RuleFor(r => r.Rotulo).NotEmpty().MaximumLength(40);
-        RuleFor(r => r.Cor).IsInEnum();
-        RuleFor(r => r.Ordem).InclusiveBetween(1, 100_000);
+        RuleFor(r => r.Label).NotEmpty().MaximumLength(40);
+        RuleFor(r => r.Color).IsInEnum();
+        RuleFor(r => r.SortOrder).InclusiveBetween(1, 100_000);
     }
 }

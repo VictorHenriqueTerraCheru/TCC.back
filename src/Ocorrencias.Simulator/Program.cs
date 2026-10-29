@@ -27,7 +27,7 @@ catch (Exception e) when (e is ArgumentException or IOException or System.Text.J
 var c = opcoes.Cenario;
 Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
     $"Cenário: {c.Usuarios} usuários, {c.Problemas} problemas, {c.Dias} dias; p_passagem = {c.ProbabilidadePassagemEfetiva:G4}/h ({c.ElegiveisMedios:F0} elegíveis médios)."));
-Console.WriteLine($"Configurações: {string.Join(", ", opcoes.Configuracoes.Select(x => x.Nome))} | variantes: {string.Join(", ", opcoes.Variantes)} | sementes: {opcoes.Sementes.Count} | k: 1..{c.KMaximo}");
+Console.WriteLine($"Configurações: {string.Join(", ", opcoes.Configuracoes.Select(x => x.Name))} | variantes: {string.Join(", ", opcoes.Variantes)} | sementes: {opcoes.Sementes.Count} | k: 1..{c.KMaximo}");
 
 var cronometro = Stopwatch.StartNew();
 var resultado = Executor.Executar(c, opcoes.Configuracoes, opcoes.Variantes, opcoes.Sementes);

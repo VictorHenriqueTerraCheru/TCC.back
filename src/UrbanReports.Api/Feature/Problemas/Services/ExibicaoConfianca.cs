@@ -1,18 +1,18 @@
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 
-namespace UrbanReports.Api.Problemas;
+namespace UrbanReports.Api.Issues;
 
-public static class ExibicaoConfianca
+public static class TrustDisplay
 {
-    public static (double? Confianca, FaixaConfianca? Faixa) Calcular(StatusProblema status, decimal? confianca, ConfiguracaoConfianca cfg)
+    public static (double? TrustScore, TrustBand? Band) Calculate(IssueStatus status, decimal? trust, TrustConfiguration cfg)
     {
-        if (status == StatusProblema.Nova || confianca is not { } valor)
+        if (status == IssueStatus.New || trust is not { } value)
         {
             return (null, null);
         }
 
-        var indice = (double)valor;
-        return (Math.Round(indice, 1, MidpointRounding.AwayFromZero), MotorConfianca.ClassificarFaixa(indice, cfg));
+        var score = (double)value;
+        return (Math.Round(score, 1, MidpointRounding.AwayFromZero), TrustEngine.ClassifyBand(score, cfg));
     }
 }

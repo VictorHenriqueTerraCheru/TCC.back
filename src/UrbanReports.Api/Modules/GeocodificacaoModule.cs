@@ -1,24 +1,24 @@
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Geocoding;
 
 namespace UrbanReports.Api.Modules;
 
-public sealed class GeocodificacaoModule : IEndpointModule
+public sealed class GeocodingModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapGet("/geocodificacao/reversa", Reversa)
-            .Validar<ReversaRequest>()
-            .RequireRateLimiting(PoliticasLimite.Geocodificacao)
+        api.MapGet("/geocoding/reverse", Reverse)
+            .Validate<ReverseRequest>()
+            .RequireRateLimiting(RateLimitPolicies.Geocoding)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .AllowAnonymous()
-            .WithTags("Geocodificação");
+            .WithTags("Geocoding");
     }
 
-    private static async Task<ReversaResponse> Reversa(
-        [AsParameters] ReversaRequest request, IServicoGeocodificacao geocodificacao, CancellationToken ct)
+    private static async Task<ReverseResponse> Reverse(
+        [AsParameters] ReverseRequest request, IGeocodingService geocoding, CancellationToken ct)
     {
-        var e = await geocodificacao.ReversaAsync(request.Lat, request.Lng, ct);
-        return new ReversaResponse(e.Disponivel, e.Endereco, e.Logradouro, e.Numero, e.Bairro, e.Cidade, e.Uf, e.RotuloArea);
+        var e = await geocoding.ReverseAsync(request.Lat, request.Lng, ct);
+        return new ReverseResponse(e.Available, e.Address, e.Street, e.Number, e.Neighborhood, e.City, e.State, e.AreaLabel);
     }
 }

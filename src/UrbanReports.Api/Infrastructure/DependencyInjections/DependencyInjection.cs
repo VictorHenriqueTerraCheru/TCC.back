@@ -2,110 +2,110 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Saude;
+using UrbanReports.Api.Health;
 using UrbanReports.Api.Admin;
-using UrbanReports.Api.Verificacao;
-using UrbanReports.Api.Incidentes;
-using UrbanReports.Api.Votos;
-using UrbanReports.Api.Problemas;
-using UrbanReports.Api.Usuarios;
+using UrbanReports.Api.Verification;
+using UrbanReports.Api.Incidents;
+using UrbanReports.Api.Votes;
+using UrbanReports.Api.Issues;
+using UrbanReports.Api.Users;
 using UrbanReports.Api.Auth;
-using UrbanReports.Api.Categorias;
-using UrbanReports.Api.Grupos;
-using UrbanReports.Api.Confianca;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Categories;
+using UrbanReports.Api.Groups;
+using UrbanReports.Api.Trust;
+using UrbanReports.Api.Geocoding;
 using UrbanReports.Api.Persistence;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 
 namespace UrbanReports.Api.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddAplicacao(this IServiceCollection services, IConfiguration configuracao) =>
+    public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration) =>
         services
-            .AddTratamentoDeErros()
+            .AddErrorHandling()
             .AddJson()
-            .AddRelogio()
-            .AddValidacao()
-            .AddPersistencia(configuracao)
-            .AddGeocodificacao()
-            .AddConfianca(configuracao)
-            .AddServicos();
+            .AddClock()
+            .AddValidation()
+            .AddPersistence(configuration)
+            .AddGeocoding()
+            .AddTrust(configuration)
+            .AddServices();
 
-    private static IServiceCollection AddTratamentoDeErros(this IServiceCollection services) =>
+    private static IServiceCollection AddErrorHandling(this IServiceCollection services) =>
         services.AddProblemDetails();
 
     private static IServiceCollection AddJson(this IServiceCollection services) =>
-        services.ConfigureHttpJsonOptions(o => JsonConfig.Configurar(o.SerializerOptions));
+        services.ConfigureHttpJsonOptions(o => JsonConfig.Configure(o.SerializerOptions));
 
-    private static IServiceCollection AddRelogio(this IServiceCollection services) =>
-        services.AddSingleton<TimeProvider>(new RelogioPostgres());
+    private static IServiceCollection AddClock(this IServiceCollection services) =>
+        services.AddSingleton<TimeProvider>(new PostgresClock());
 
-    private static IServiceCollection AddValidacao(this IServiceCollection services)
+    private static IServiceCollection AddValidation(this IServiceCollection services)
     {
-        Validacao.ConfigurarGlobal();
+        Validation.ConfigureGlobal();
         return services.AddValidatorsFromAssemblyContaining<Program>();
     }
 
-    private static IServiceCollection AddPersistencia(this IServiceCollection services, IConfiguration configuracao)
+    private static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
     {
-        var conexao = configuracao.GetConnectionString("Default")
+        var connection = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("Connection string 'Default' não configurada (ConnectionStrings__Default).");
 
         services.AddDbContext<AppDbContext>(o => o
-            .UseNpgsql(conexao, npgsql => npgsql.UseNetTopologySuite(geographyAsDefault: true))
+            .UseNpgsql(connection, npgsql => npgsql.UseNetTopologySuite(geographyAsDefault: true))
             .UseSnakeCaseNamingConvention());
 
         return services;
     }
 
-    internal static IServiceCollection AddGeocodificacao(this IServiceCollection services)
+    internal static IServiceCollection AddGeocoding(this IServiceCollection services)
     {
         services.AddOptions<NominatimOptions>()
-            .BindConfiguration(NominatimOptions.Secao)
+            .BindConfiguration(NominatimOptions.Section)
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        services.AddHttpClient(NominatimClient.NomeHttpClient, (sp, http) =>
+        services.AddHttpClient(NominatimClient.HttpClientName, (sp, http) =>
             {
-                var opcoes = sp.GetRequiredService<IOptions<NominatimOptions>>().Value;
-                http.BaseAddress = new Uri(opcoes.UrlBase);
-                http.Timeout = opcoes.Timeout;
-                http.DefaultRequestHeaders.UserAgent.ParseAdd(opcoes.UserAgent);
+                var options = sp.GetRequiredService<IOptions<NominatimOptions>>().Value;
+                http.BaseAddress = new Uri(options.UrlBase);
+                http.Timeout = options.Timeout;
+                http.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
                 http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("pt-BR");
             })
             .RemoveAllLoggers();
 
         services.AddSingleton<INominatimClient, NominatimClient>();
-        services.AddSingleton<IServicoGeocodificacao, ServicoGeocodificacao>();
+        services.AddSingleton<IGeocodingService, GeocodingService>();
 
         return services;
     }
 
-    private static IServiceCollection AddConfianca(this IServiceCollection services, IConfiguration configuracao)
+    private static IServiceCollection AddTrust(this IServiceCollection services, IConfiguration configuration)
     {
-        var nome = configuracao.GetValue("Confianca:Configuracao", ConfiguracaoConfianca.B.Nome)!;
-        services.AddSingleton(ConfiguracaoConfianca.PorNome(nome));
+        var name = configuration.GetValue("Trust:Configuration", TrustConfiguration.B.Name)!;
+        services.AddSingleton(TrustConfiguration.ByName(name));
 
-        services.AddOptions<CicloDeVidaOptions>().BindConfiguration(CicloDeVidaOptions.Secao);
-        services.AddScoped<ProcessadorCicloDeVida>();
-        services.AddHostedService<CicloDeVidaJob>();
+        services.AddOptions<LifecycleOptions>().BindConfiguration(LifecycleOptions.Section);
+        services.AddScoped<LifecycleProcessor>();
+        services.AddHostedService<LifecycleJob>();
 
         return services;
     }
 
-    private static IServiceCollection AddServicos(this IServiceCollection services)
+    private static IServiceCollection AddServices(this IServiceCollection services)
     {
-        services.AddScoped<ICategoriaService, CategoriaService>();
-        services.AddScoped<IGrupoService, GrupoService>();
+        services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IUsuarioService, UsuarioService>();
-        services.AddScoped<IProblemaService, ProblemaService>();
-        services.AddScoped<IVotoService, VotoService>();
-        services.AddScoped<IIncidenteService, IncidenteService>();
-        services.AddScoped<IVerificacaoService, VerificacaoService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IIssueService, IssueService>();
+        services.AddScoped<IVoteService, VoteService>();
+        services.AddScoped<IIncidentService, IncidentService>();
+        services.AddScoped<IVerificationService, VerificationService>();
         services.AddScoped<IAdminService, AdminService>();
-        services.AddScoped<ISaudeService, SaudeService>();
+        services.AddScoped<IHealthService, HealthService>();
         return services;
     }
 }

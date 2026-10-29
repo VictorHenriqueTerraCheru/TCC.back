@@ -1,35 +1,35 @@
 using Microsoft.EntityFrameworkCore;
 using UrbanReports.Api.Persistence;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 
-namespace UrbanReports.Api.Confianca;
+namespace UrbanReports.Api.Trust;
 
-public static class RecalculoProblema
+public static class IssueRecalculation
 {
-    public static async Task<Problema?> CarregarComBloqueioAsync(AppDbContext db, Guid problemaId, CancellationToken ct)
+    public static async Task<Issue?> LoadWithLockAsync(AppDbContext db, Guid issueId, CancellationToken ct)
     {
-        var problemas = await db.Problemas
-            .FromSql($"SELECT * FROM problemas WHERE id = {problemaId} FOR UPDATE")
+        var issues = await db.Issues
+            .FromSql($"SELECT * FROM issues WHERE id = {issueId} FOR UPDATE")
             .ToListAsync(ct);
-        return problemas.SingleOrDefault();
+        return issues.SingleOrDefault();
     }
 
-    public static void Aplicar(Problema problema, IEnumerable<Voto> votos, DateTimeOffset agora, ConfiguracaoConfianca cfg)
+    public static void Apply(Issue issue, IEnumerable<Vote> votes, DateTimeOffset now, TrustConfiguration cfg)
     {
-        var fatos = votos
-            .Select(v => new VotoFato(v.UsuarioId, v.Valor, v.PerfilNoMomento, v.DistanciaMetros, v.RegistradoEm))
+        var facts = votes
+            .Select(v => new VoteFact(v.UserId, v.Value, v.RoleAtVote, v.DistanceMeters, v.RegisteredAt))
             .ToList();
 
-        var resultado = MotorConfianca.CalcularConfianca(fatos, agora, cfg);
-        var estado = MotorConfianca.AvaliarCicloDeVida(
-            new EstadoProblema(problema.Status, problema.CriadoEm, problema.StatusAlteradoEm, problema.CondicaoResolucaoDesde),
-            fatos,
-            agora,
+        var result = TrustEngine.CalculateTrust(facts, now, cfg);
+        var state = TrustEngine.EvaluateLifecycle(
+            new IssueState(issue.Status, issue.CreatedAt, issue.StatusChangedAt, issue.ResolutionConditionSince),
+            facts,
+            now,
             cfg);
 
-        problema.Confianca = Math.Round((decimal)resultado.Indice, 2, MidpointRounding.AwayFromZero);
-        problema.Status = estado.Status;
-        problema.StatusAlteradoEm = estado.StatusAlteradoEm;
-        problema.CondicaoResolucaoDesde = estado.CondicaoResolucaoDesde;
+        issue.TrustScore = Math.Round((decimal)result.Score, 2, MidpointRounding.AwayFromZero);
+        issue.Status = state.Status;
+        issue.StatusChangedAt = state.StatusChangedAt;
+        issue.ResolutionConditionSince = state.ResolutionConditionSince;
     }
 }

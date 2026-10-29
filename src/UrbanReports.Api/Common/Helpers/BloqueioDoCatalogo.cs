@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace UrbanReports.Api.Common;
 
-public static class BloqueioDoCatalogo
+public static class CatalogLock
 {
-    private const long Chave = 7_410_001;
+    private const long Key = 7_410_001;
 
-    public static Task TomarAsync(this DatabaseFacade banco, CancellationToken ct) =>
-        banco.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({Chave})", ct);
+    public static Task TakeAsync(this DatabaseFacade database, CancellationToken ct) =>
+        database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({Key})", ct);
 }

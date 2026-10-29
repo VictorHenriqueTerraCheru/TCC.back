@@ -1,19 +1,19 @@
 using System.Runtime.CompilerServices;
 
-namespace UrbanReports.Api.Tests.Confianca.Motor;
+namespace UrbanReports.Api.Tests.Trust.Engine;
 
-public sealed class PurezaDoMotorTests
+public sealed class EnginePurityTests
 {
     [Fact]
-    public void Motor_so_usa_bcl()
+    public void Engine_uses_only_bcl()
     {
-        var pasta = Path.Combine(RaizDoRepositorio(), "src", "UrbanReports.Api", "Feature", "Confianca", "Motor");
-        Directory.Exists(pasta).Should().BeTrue(pasta);
+        var folder = Path.Combine(RepositoryRoot(), "src", "UrbanReports.Api", "Feature", "Confianca", "Motor");
+        Directory.Exists(folder).Should().BeTrue(folder);
 
-        var arquivos = Directory.GetFiles(pasta, "*.cs");
-        arquivos.Should().HaveCountGreaterThanOrEqualTo(5);
+        var files = Directory.GetFiles(folder, "*.cs");
+        files.Should().HaveCountGreaterThanOrEqualTo(5);
 
-        var usings = arquivos
+        var usings = files
             .SelectMany(File.ReadLines)
             .Select(l => l.Trim())
             .Where(l => l.StartsWith("using ", StringComparison.Ordinal) && l.EndsWith(';'))
@@ -23,9 +23,9 @@ public sealed class PurezaDoMotorTests
         usings.Should().OnlyContain(u => u == "System" || u.StartsWith("System.", StringComparison.Ordinal) || u == "UrbanReports.Api.Common");
     }
 
-    private static string RaizDoRepositorio([CallerFilePath] string arquivo = "")
+    private static string RepositoryRoot([CallerFilePath] string file = "")
     {
-        var dir = new DirectoryInfo(Path.GetDirectoryName(arquivo)!);
+        var dir = new DirectoryInfo(Path.GetDirectoryName(file)!);
         while (dir is not null && dir.GetFiles("*.slnx").Length == 0)
         {
             dir = dir.Parent;

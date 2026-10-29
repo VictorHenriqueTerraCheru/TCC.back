@@ -1,57 +1,57 @@
 using System.Globalization;
-using UrbanReports.Api.Problemas;
+using UrbanReports.Api.Issues;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 
-namespace UrbanReports.Api.Tests.Problemas;
+namespace UrbanReports.Api.Tests.Issues;
 
-public sealed class ExibicaoConfiancaTests
+public sealed class TrustDisplayTests
 {
     [Theory]
-    [InlineData("0", 0.0, FaixaConfianca.Baixa)]
-    [InlineData("39.9", 39.9, FaixaConfianca.Baixa)]
-    [InlineData("40", 40.0, FaixaConfianca.Media)]
-    [InlineData("69.9", 69.9, FaixaConfianca.Media)]
-    [InlineData("70", 70.0, FaixaConfianca.Alta)]
-    [InlineData("100", 100.0, FaixaConfianca.Alta)]
-    public void Faixa_muda_exatamente_em_40_e_70(string gravado, double exibido, FaixaConfianca faixa)
+    [InlineData("0", 0.0, TrustBand.Low)]
+    [InlineData("39.9", 39.9, TrustBand.Low)]
+    [InlineData("40", 40.0, TrustBand.Medium)]
+    [InlineData("69.9", 69.9, TrustBand.Medium)]
+    [InlineData("70", 70.0, TrustBand.High)]
+    [InlineData("100", 100.0, TrustBand.High)]
+    public void Band_changes_exactly_at_40_and_70(string written, double shown, TrustBand band)
     {
-        var (confianca, faixaCalculada) = ExibicaoConfianca.Calcular(
-            StatusProblema.Ativa, decimal.Parse(gravado, CultureInfo.InvariantCulture), ConfiguracaoConfianca.B);
+        var (trust, calculatedBand) = TrustDisplay.Calculate(
+            IssueStatus.Active, decimal.Parse(written, CultureInfo.InvariantCulture), TrustConfiguration.B);
 
-        confianca.Should().Be(exibido);
-        faixaCalculada.Should().Be(faixa);
+        trust.Should().Be(shown);
+        calculatedBand.Should().Be(band);
     }
 
     [Theory]
     [InlineData("45.46", 45.5)]
     [InlineData("45.44", 45.4)]
     [InlineData("62.50", 62.5)]
-    public void Exibe_com_uma_casa_decimal(string gravado, double esperado)
+    public void Shows_one_decimal_place(string written, double expected)
     {
-        var (confianca, _) = ExibicaoConfianca.Calcular(
-            StatusProblema.Ativa, decimal.Parse(gravado, CultureInfo.InvariantCulture), ConfiguracaoConfianca.B);
+        var (trust, _) = TrustDisplay.Calculate(
+            IssueStatus.Active, decimal.Parse(written, CultureInfo.InvariantCulture), TrustConfiguration.B);
 
-        confianca.Should().Be(esperado);
+        trust.Should().Be(expected);
     }
 
     [Fact]
-    public void Nova_nao_exibe_confianca_mesmo_com_valor_gravado()
+    public void New_does_not_show_trust_even_with_stored_value()
     {
-        var (confianca, faixa) = ExibicaoConfianca.Calcular(StatusProblema.Nova, 62.5m, ConfiguracaoConfianca.B);
+        var (trust, band) = TrustDisplay.Calculate(IssueStatus.New, 62.5m, TrustConfiguration.B);
 
-        confianca.Should().BeNull();
-        faixa.Should().BeNull();
+        trust.Should().BeNull();
+        band.Should().BeNull();
     }
 
     [Theory]
-    [InlineData(StatusProblema.Ativa)]
-    [InlineData(StatusProblema.PossivelmenteResolvida)]
-    public void Sem_confianca_gravada_nao_exibe_nada(StatusProblema status)
+    [InlineData(IssueStatus.Active)]
+    [InlineData(IssueStatus.PossiblyResolved)]
+    public void No_stored_trust_shows_nothing(IssueStatus status)
     {
-        var (confianca, faixa) = ExibicaoConfianca.Calcular(status, null, ConfiguracaoConfianca.B);
+        var (trust, band) = TrustDisplay.Calculate(status, null, TrustConfiguration.B);
 
-        confianca.Should().BeNull();
-        faixa.Should().BeNull();
+        trust.Should().BeNull();
+        band.Should().BeNull();
     }
 }

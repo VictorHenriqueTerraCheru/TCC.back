@@ -1,12 +1,12 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Grupos;
+namespace UrbanReports.Api.Groups;
 
-public static class ErrosGrupo
+public static class GroupErrors
 {
-    public static readonly ErroAplicacao RotuloDuplicado = ErroAplicacao.Regra(
-        StatusCodes.Status409Conflict, "grupo-rotulo-duplicado", "Já existe um grupo com este nome.");
+    public static readonly ApplicationError DuplicateLabel = ApplicationError.Rule(
+        StatusCodes.Status409Conflict, "duplicate-group-label", "Já existe um grupo com este nome.");
 
-    public static readonly ErroAplicacao EmUso = ErroAplicacao.Regra(
-        StatusCodes.Status409Conflict, "grupo-em-uso", "O grupo tem categorias e não pode ser apagado.");
+    public static readonly ApplicationError InUse = ApplicationError.Rule(
+        StatusCodes.Status409Conflict, "group-in-use", "O grupo tem categorias e não pode ser apagado.");
 }

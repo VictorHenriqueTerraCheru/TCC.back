@@ -5,15 +5,15 @@ namespace UrbanReports.Api.Common;
 
 public static class JsonConfig
 {
-    public static void Configurar(JsonSerializerOptions opcoes)
+    public static void Configure(JsonSerializerOptions options)
     {
-        opcoes.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        opcoes.NumberHandling = JsonNumberHandling.Strict;
-        opcoes.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
-        opcoes.Converters.Add(new DataUtcConverter());
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.NumberHandling = JsonNumberHandling.Strict;
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
+        options.Converters.Add(new UtcDateTimeConverter());
     }
 
-    private sealed class DataUtcConverter : JsonConverter<DateTimeOffset>
+    private sealed class UtcDateTimeConverter : JsonConverter<DateTimeOffset>
     {
         public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
             reader.GetDateTimeOffset();

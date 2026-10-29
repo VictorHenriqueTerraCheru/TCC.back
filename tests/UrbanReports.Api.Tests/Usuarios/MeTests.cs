@@ -1,75 +1,75 @@
 using System.Net;
 using System.Net.Http.Json;
-using UrbanReports.Api.Usuarios;
+using UrbanReports.Api.Users;
 using UrbanReports.Api.Tests.Infra;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Tests.Usuarios;
+namespace UrbanReports.Api.Tests.Users;
 
-[Collection(ApiCollection.Nome)]
-public sealed class MeTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class MeTests(ApiFactory factory)
 {
     [Fact]
-    public async Task Me_sem_token_devolve_401()
+    public async Task Me_without_token_returns_401()
     {
-        var resposta = await fabrica.CreateClient().GetAsync("/api/v1/me");
+        var response = await factory.CreateClient().GetAsync("/api/v1/me");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Me_com_token_invalido_devolve_401()
+    public async Task Me_with_invalid_token_returns_401()
     {
-        var cliente = fabrica.CreateClient().Autenticado("nao.e.um-jwt");
+        var client = factory.CreateClient().Authenticated("nao.e.um-jwt");
 
-        var resposta = await cliente.GetAsync("/api/v1/me");
+        var response = await client.GetAsync("/api/v1/me");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Cadastro_login_e_me_funcionam_em_sequencia()
+    public async Task Register_login_and_me_work_in_sequence()
     {
-        var cliente = fabrica.CreateClient();
-        var auth = await cliente.CadastrarAsync();
+        var client = factory.CreateClient();
+        var auth = await client.RegisterAsync();
 
-        var resposta = await cliente.Autenticado(auth.Token).GetAsync("/api/v1/me");
-        var me = await resposta.LerAsync<ObterMeResponse>();
+        var response = await client.Authenticated(auth.Token).GetAsync("/api/v1/me");
+        var me = await response.ReadAsync<GetMeResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        me.Id.Should().Be(auth.Usuario.Id);
-        me.Email.Should().Be(auth.Usuario.Email);
-        me.Perfil.Should().Be(Perfil.Cidadao);
-        me.CriadoEm.Should().Be(fabrica.Relogio.GetUtcNow());
-        me.VerificadoEm.Should().BeNull();
-        me.TotalRegistros.Should().Be(0);
-        me.TotalVotos.Should().Be(0);
-        me.Verificacao.Should().BeNull();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        me.Id.Should().Be(auth.User.Id);
+        me.Email.Should().Be(auth.User.Email);
+        me.Role.Should().Be(Role.Citizen);
+        me.CreatedAt.Should().Be(factory.Clock.GetUtcNow());
+        me.VerifiedAt.Should().BeNull();
+        me.TotalReports.Should().Be(0);
+        me.TotalVotes.Should().Be(0);
+        me.Verification.Should().BeNull();
     }
 
     [Fact]
-    public async Task Patch_me_atualiza_o_nome()
+    public async Task Patch_me_updates_the_name()
     {
-        var cliente = fabrica.CreateClient();
-        var auth = await cliente.CadastrarAsync();
-        cliente.Autenticado(auth.Token);
+        var client = factory.CreateClient();
+        var auth = await client.RegisterAsync();
+        client.Authenticated(auth.Token);
 
-        var resposta = await cliente.PatchAsJsonAsync("/api/v1/me", new { nome = "  Mariana S.  " }, ClienteApi.Json);
-        var me = await resposta.LerAsync<ObterMeResponse>();
+        var response = await client.PatchAsJsonAsync("/api/v1/me", new { name = "  Mariana S.  " }, ApiClient.Json);
+        var me = await response.ReadAsync<GetMeResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        me.Nome.Should().Be("Mariana S.");
-        (await (await cliente.GetAsync("/api/v1/me")).LerAsync<ObterMeResponse>()).Nome.Should().Be("Mariana S.");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        me.Name.Should().Be("Mariana S.");
+        (await (await client.GetAsync("/api/v1/me")).ReadAsync<GetMeResponse>()).Name.Should().Be("Mariana S.");
     }
 
     [Fact]
-    public async Task Patch_me_com_nome_vazio_devolve_400()
+    public async Task Patch_me_with_empty_name_returns_400()
     {
-        var cliente = fabrica.CreateClient();
-        cliente.Autenticado((await cliente.CadastrarAsync()).Token);
+        var client = factory.CreateClient();
+        client.Authenticated((await client.RegisterAsync()).Token);
 
-        var resposta = await cliente.PatchAsJsonAsync("/api/v1/me", new { nome = "" }, ClienteApi.Json);
+        var response = await client.PatchAsJsonAsync("/api/v1/me", new { name = "" }, ApiClient.Json);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }

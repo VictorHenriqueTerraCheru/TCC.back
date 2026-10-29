@@ -1,9 +1,9 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Grupos;
+namespace UrbanReports.Api.Groups;
 
-public sealed record GrupoResponse(string Chave, string Rotulo, TipoOcorrencia Tipo, CorGrupo Cor, int Ordem);
+public sealed record GroupResponse(string Key, string Label, ReportType Type, GroupColor Color, int SortOrder);
 
-public sealed record CriarGrupoRequest(string Rotulo, TipoOcorrencia Tipo, CorGrupo Cor);
+public sealed record CreateGroupRequest(string Label, ReportType Type, GroupColor Color);
 
-public sealed record EditarGrupoRequest(string Rotulo, CorGrupo Cor, int Ordem);
+public sealed record EditGroupRequest(string Label, GroupColor Color, int SortOrder);

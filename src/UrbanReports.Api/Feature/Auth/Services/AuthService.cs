@@ -7,90 +7,90 @@ using UrbanReports.Api.Persistence;
 
 namespace UrbanReports.Api.Auth;
 
-public sealed class AuthService(UserManager<Usuario> usuarios, JwtTokenService jwt, TimeProvider relogio, AppDbContext db, IOptions<IdentityOptions> identity) : IAuthService
+public sealed class AuthService(UserManager<User> users, JwtTokenService jwt, TimeProvider clock, AppDbContext db, IOptions<IdentityOptions> identity) : IAuthService
 {
-    public async Task<Resultado<RespostaAuth>> CadastrarAsync(CadastrarRequest request)
+    public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request)
     {
         var email = request.Email.Trim();
-        if (await usuarios.FindByEmailAsync(email) is not null)
+        if (await users.FindByEmailAsync(email) is not null)
         {
-            return ErrosAuth.EmailJaCadastrado;
+            return AuthErrors.EmailAlreadyRegistered;
         }
 
-        var usuario = new Usuario
+        var user = new User
         {
             Id = Guid.CreateVersion7(),
-            Nome = request.Nome.Trim(),
+            Name = request.Name.Trim(),
             Email = email,
             UserName = email,
-            CriadoEm = relogio.GetUtcNow(),
+            CreatedAt = clock.GetUtcNow(),
         };
 
-        IdentityResult resultado;
+        IdentityResult result;
         try
         {
-            resultado = await usuarios.CreateAsync(usuario, request.Senha);
+            result = await users.CreateAsync(user, request.Password);
         }
         catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            return ErrosAuth.EmailJaCadastrado;
+            return AuthErrors.EmailAlreadyRegistered;
         }
 
-        if (!resultado.Succeeded)
+        if (!result.Succeeded)
         {
-            if (resultado.Errors.Any(e => e.Code is nameof(IdentityErrorDescriber.DuplicateEmail) or nameof(IdentityErrorDescriber.DuplicateUserName)))
+            if (result.Errors.Any(e => e.Code is nameof(IdentityErrorDescriber.DuplicateEmail) or nameof(IdentityErrorDescriber.DuplicateUserName)))
             {
-                return ErrosAuth.EmailJaCadastrado;
+                return AuthErrors.EmailAlreadyRegistered;
             }
 
             throw new InvalidOperationException(
-                "Falha ao criar usuário: " + string.Join("; ", resultado.Errors.Select(e => e.Code)));
+                "Falha ao criar usuário: " + string.Join("; ", result.Errors.Select(e => e.Code)));
         }
 
-        return CriarResposta(usuario);
+        return CreateResponse(user);
     }
 
-    public async Task<Resultado<RespostaAuth>> EntrarAsync(EntrarRequest request)
+    public async Task<Result<AuthResponse>> LoginAsync(LoginRequest request)
     {
-        var usuario = await usuarios.FindByEmailAsync(request.Email.Trim());
-        if (usuario is null)
+        var user = await users.FindByEmailAsync(request.Email.Trim());
+        if (user is null)
         {
-            return ErrosAuth.CredenciaisInvalidas;
+            return AuthErrors.InvalidCredentials;
         }
 
-        if (await usuarios.IsLockedOutAsync(usuario))
+        if (await users.IsLockedOutAsync(user))
         {
-            return ErrosAuth.CredenciaisInvalidas;
+            return AuthErrors.InvalidCredentials;
         }
 
-        if (!await usuarios.CheckPasswordAsync(usuario, request.Senha))
+        if (!await users.CheckPasswordAsync(user, request.Password))
         {
-            await RegistrarFalhaAsync(usuario.Id);
-            return ErrosAuth.CredenciaisInvalidas;
+            await RecordFailureAsync(user.Id);
+            return AuthErrors.InvalidCredentials;
         }
 
         await db.Database.ExecuteSqlAsync(
-            $"UPDATE usuarios SET access_failed_count = 0 WHERE id = {usuario.Id} AND access_failed_count <> 0");
-        return CriarResposta(usuario);
+            $"UPDATE users SET access_failed_count = 0 WHERE id = {user.Id} AND access_failed_count <> 0");
+        return CreateResponse(user);
     }
 
-    private async Task RegistrarFalhaAsync(Guid usuarioId)
+    private async Task RecordFailureAsync(Guid userId)
     {
         var lockout = identity.Value.Lockout;
-        var maximo = lockout.MaxFailedAccessAttempts;
-        var minutos = lockout.DefaultLockoutTimeSpan.TotalMinutes;
+        var max = lockout.MaxFailedAccessAttempts;
+        var minutes = lockout.DefaultLockoutTimeSpan.TotalMinutes;
 
         await db.Database.ExecuteSqlAsync($"""
-            UPDATE usuarios
-            SET access_failed_count = CASE WHEN access_failed_count + 1 >= {maximo} THEN 0 ELSE access_failed_count + 1 END,
-                lockout_end = CASE WHEN access_failed_count + 1 >= {maximo} THEN now() + {minutos} * interval '1 minute' ELSE lockout_end END
-            WHERE id = {usuarioId}
+            UPDATE users
+            SET access_failed_count = CASE WHEN access_failed_count + 1 >= {max} THEN 0 ELSE access_failed_count + 1 END,
+                lockout_end = CASE WHEN access_failed_count + 1 >= {max} THEN now() + {minutes} * interval '1 minute' ELSE lockout_end END
+            WHERE id = {userId}
             """);
     }
 
-    private RespostaAuth CriarResposta(Usuario usuario)
+    private AuthResponse CreateResponse(User user)
     {
-        var (token, expiraEm) = jwt.Gerar(usuario);
-        return new RespostaAuth(token, expiraEm, new RespostaAuth.UsuarioResumo(usuario.Id, usuario.Nome, usuario.Email!, usuario.Perfil));
+        var (token, expiresAt) = jwt.Generate(user);
+        return new AuthResponse(token, expiresAt, new AuthResponse.UserSummary(user.Id, user.Name, user.Email!, user.Role));
     }
 }

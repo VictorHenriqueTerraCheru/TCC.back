@@ -1,19 +1,19 @@
 using System.Net;
 using System.Net.Http.Json;
-using UrbanReports.Api.Categorias;
-using UrbanReports.Api.Grupos;
+using UrbanReports.Api.Categories;
+using UrbanReports.Api.Groups;
 using UrbanReports.Api.Tests.Infra;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Tests.Grupos;
+namespace UrbanReports.Api.Tests.Groups;
 
-[Collection(ApiCollection.Nome)]
-public sealed class GruposTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class GroupsTests(ApiFactory factory)
 {
-    private static string RotuloUnico(string prefixo = "Grupo") => $"{prefixo} {Guid.NewGuid():N}"[..28];
+    private static string UniqueLabel(string prefix = "Grupo") => $"{prefix} {Guid.NewGuid():N}"[..28];
 
-    private static Task<HttpResponseMessage> CriarAsync(Pessoa admin, string rotulo, string tipo = "problema", string cor = "azul") =>
-        admin.Cliente.PostAsJsonAsync("/api/v1/admin/grupos", new { rotulo, tipo, cor }, ClienteApi.Json);
+    private static Task<HttpResponseMessage> CreateAsync(Person admin, string label, string type = "issue", string color = "blue") =>
+        admin.Client.PostAsJsonAsync("/api/v1/admin/groups", new { label, type, color }, ApiClient.Json);
 
     [Theory]
     [InlineData("Água e esgoto", "aguaEEsgoto")]
@@ -22,146 +22,146 @@ public sealed class GruposTests(ApiFactory fabrica)
     [InlineData("123 obras", "grupo123Obras")]
     [InlineData("!!!", "grupo")]
     [InlineData("123456789012345678901234567890", "grupo1234567890123456789012345")]
-    public void Chave_e_camelCase_sem_acento(string rotulo, string esperada) =>
-        GrupoService.ChaveDe(rotulo).Should().Be(esperada);
+    public void Key_is_camelCase_without_accent(string label, string expected) =>
+        GroupService.KeyOf(label).Should().Be(expected);
 
     [Fact]
-    public async Task Visitante_lista_o_seed_em_ordem()
+    public async Task Visitor_lists_the_seed_in_order()
     {
-        var resposta = await fabrica.CreateClient().GetAsync("/api/v1/grupos");
-        var grupos = await resposta.LerAsync<List<GrupoResponse>>();
+        var response = await factory.CreateClient().GetAsync("/api/v1/groups");
+        var groups = await response.ReadAsync<List<GroupResponse>>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        grupos.Take(5).Select(g => g.Chave).Should().Equal("viaPublica", "eletrica", "limpeza", "seguranca", "transito");
-        grupos[0].Should().Be(new GrupoResponse("viaPublica", "Via pública", TipoOcorrencia.Problema, CorGrupo.Laranja, 1));
-        grupos[3].Tipo.Should().Be(TipoOcorrencia.Incidente);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        groups.Take(5).Select(g => g.Key).Should().Equal("viaPublica", "eletrica", "limpeza", "seguranca", "transito");
+        groups[0].Should().Be(new GroupResponse("viaPublica", "Via pública", ReportType.Issue, GroupColor.Laranja, 1));
+        groups[3].Type.Should().Be(ReportType.Incident);
     }
 
     [Fact]
-    public async Task Rotas_de_admin_exigem_perfil_administrador()
+    public async Task Admin_routes_require_administrator_role()
     {
-        var cidadao = await fabrica.NovaPessoaAsync();
+        var citizen = await factory.NewPersonAsync();
 
-        (await CriarAsync(cidadao, RotuloUnico())).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await cidadao.Cliente.PutAsJsonAsync("/api/v1/admin/grupos/limpeza", new { rotulo = "x", cor = "azul", ordem = 1 }, ClienteApi.Json))
+        (await CreateAsync(citizen, UniqueLabel())).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await citizen.Client.PutAsJsonAsync("/api/v1/admin/groups/limpeza", new { label = "x", color = "blue", sortOrder = 1 }, ApiClient.Json))
             .StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await cidadao.Cliente.DeleteAsync("/api/v1/admin/grupos/limpeza")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await fabrica.CreateClient().DeleteAsync("/api/v1/admin/grupos/limpeza")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await citizen.Client.DeleteAsync("/api/v1/admin/groups/limpeza")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await factory.CreateClient().DeleteAsync("/api/v1/admin/groups/limpeza")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Criar_gera_chave_sem_acento_e_ordem_no_fim()
+    public async Task Create_generates_key_without_accent_and_order_at_the_end()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var rotulo = RotuloUnico("Água");
-        var maior = (await (await fabrica.CreateClient().GetAsync("/api/v1/grupos")).LerAsync<List<GrupoResponse>>()).Max(g => g.Ordem);
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var label = UniqueLabel("Água");
+        var greater = (await (await factory.CreateClient().GetAsync("/api/v1/groups")).ReadAsync<List<GroupResponse>>()).Max(g => g.SortOrder);
 
-        var resposta = await CriarAsync(admin, rotulo, "incidente", "verdeAgua");
-        var criado = await resposta.LerAsync<GrupoResponse>();
+        var response = await CreateAsync(admin, label, "incident", "teal");
+        var created = await response.ReadAsync<GroupResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
-        criado.Chave.Should().StartWith("agua").And.MatchRegex("^[a-z][a-zA-Z0-9]*$");
-        criado.Should().Be(new GrupoResponse(criado.Chave, rotulo, TipoOcorrencia.Incidente, CorGrupo.VerdeAgua, maior + 1));
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        created.Key.Should().StartWith("agua").And.MatchRegex("^[a-z][a-zA-Z0-9]*$");
+        created.Should().Be(new GroupResponse(created.Key, label, ReportType.Incident, GroupColor.Teal, greater + 1));
     }
 
     [Fact]
-    public async Task Rotulo_duplicado_ignora_maiusculas_e_chave_repetida_ganha_sufixo()
+    public async Task Duplicate_label_ignores_case_and_repeated_key_gets_suffix()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var rotulo = RotuloUnico("Zona");
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var label = UniqueLabel("Zona");
 
-        var primeiro = await (await CriarAsync(admin, rotulo)).LerAsync<GrupoResponse>();
-        var duplicado = await CriarAsync(admin, rotulo.ToUpperInvariant());
-        var mesmaChave = await CriarAsync(admin, rotulo + "!");
+        var first = await (await CreateAsync(admin, label)).ReadAsync<GroupResponse>();
+        var duplicate = await CreateAsync(admin, label.ToUpperInvariant());
+        var sameKey = await CreateAsync(admin, label + "!");
 
-        duplicado.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await duplicado.LerJsonAsync()).GetProperty("type").GetString().Should().Be("grupo-rotulo-duplicado");
-        mesmaChave.StatusCode.Should().Be(HttpStatusCode.Created);
-        (await mesmaChave.LerAsync<GrupoResponse>()).Chave.Should().Be(primeiro.Chave + "2");
+        duplicate.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await duplicate.ReadJsonAsync()).GetProperty("type").GetString().Should().Be("duplicate-group-label");
+        sameKey.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await sameKey.ReadAsync<GroupResponse>()).Key.Should().Be(first.Key + "2");
     }
 
     [Theory]
-    [InlineData("", "problema", "azul")]
-    [InlineData("Ok", "outro", "azul")]
-    [InlineData("Ok", "problema", "turquesa")]
-    public async Task Criar_valida_o_corpo(string rotulo, string tipo, string cor)
+    [InlineData("", "issue", "blue")]
+    [InlineData("Ok", "other", "blue")]
+    [InlineData("Ok", "issue", "turquesa")]
+    public async Task Create_validates_the_body(string label, string type, string color)
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
+        var admin = await factory.NewPersonAsync(Role.Administrator);
 
-        (await CriarAsync(admin, rotulo, tipo, cor)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await CreateAsync(admin, label, type, color)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task Editar_troca_rotulo_cor_e_ordem_mas_nao_o_tipo_nem_a_chave()
+    public async Task Edit_changes_label_color_and_order_but_not_type_or_key()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var criado = await (await CriarAsync(admin, RotuloUnico())).LerAsync<GrupoResponse>();
-        var novo = RotuloUnico("Novo");
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var created = await (await CreateAsync(admin, UniqueLabel())).ReadAsync<GroupResponse>();
+        var newLabel = UniqueLabel("Novo");
 
-        var resposta = await admin.Cliente.PutAsJsonAsync($"/api/v1/admin/grupos/{criado.Chave}",
-            new { rotulo = novo, cor = "roxo", ordem = 99, tipo = "incidente" }, ClienteApi.Json);
+        var response = await admin.Client.PutAsJsonAsync($"/api/v1/admin/groups/{created.Key}",
+            new { label = newLabel, color = "purple", sortOrder = 99, type = "incident" }, ApiClient.Json);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await resposta.LerAsync<GrupoResponse>()).Should().Be(new GrupoResponse(criado.Chave, novo, TipoOcorrencia.Problema, CorGrupo.Roxo, 99));
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await response.ReadAsync<GroupResponse>()).Should().Be(new GroupResponse(created.Key, newLabel, ReportType.Issue, GroupColor.Purple, 99));
     }
 
     [Fact]
-    public async Task Editar_para_rotulo_de_outro_grupo_devolve_409_e_chave_inexistente_404()
+    public async Task Edit_to_another_group_label_returns_409_and_missing_key_404()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var criado = await (await CriarAsync(admin, RotuloUnico())).LerAsync<GrupoResponse>();
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var created = await (await CreateAsync(admin, UniqueLabel())).ReadAsync<GroupResponse>();
 
-        var conflito = await admin.Cliente.PutAsJsonAsync($"/api/v1/admin/grupos/{criado.Chave}",
-            new { rotulo = "limpeza", cor = "azul", ordem = 9 }, ClienteApi.Json);
-        var inexistente = await admin.Cliente.PutAsJsonAsync("/api/v1/admin/grupos/naoExiste",
-            new { rotulo = "x", cor = "azul", ordem = 9 }, ClienteApi.Json);
+        var conflict = await admin.Client.PutAsJsonAsync($"/api/v1/admin/groups/{created.Key}",
+            new { label = "limpeza", color = "blue", sortOrder = 9 }, ApiClient.Json);
+        var missing = await admin.Client.PutAsJsonAsync("/api/v1/admin/groups/naoExiste",
+            new { label = "x", color = "blue", sortOrder = 9 }, ApiClient.Json);
 
-        conflito.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        inexistente.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        conflict.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task Renomear_em_paralelo_para_o_mesmo_rotulo_deixa_so_um_vencer()
+    public async Task Parallel_rename_to_the_same_label_lets_only_one_win()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var a = await (await CriarAsync(admin, RotuloUnico())).LerAsync<GrupoResponse>();
-        var b = await (await CriarAsync(admin, RotuloUnico())).LerAsync<GrupoResponse>();
-        var alvo = RotuloUnico();
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var a = await (await CreateAsync(admin, UniqueLabel())).ReadAsync<GroupResponse>();
+        var b = await (await CreateAsync(admin, UniqueLabel())).ReadAsync<GroupResponse>();
+        var target = UniqueLabel();
 
-        var respostas = await Task.WhenAll(
-            admin.Cliente.PutAsJsonAsync($"/api/v1/admin/grupos/{a.Chave}",
-                new { rotulo = alvo.ToLowerInvariant(), cor = "azul", ordem = 9 }, ClienteApi.Json),
-            admin.Cliente.PutAsJsonAsync($"/api/v1/admin/grupos/{b.Chave}",
-                new { rotulo = alvo.ToUpperInvariant(), cor = "azul", ordem = 9 }, ClienteApi.Json));
+        var responses = await Task.WhenAll(
+            admin.Client.PutAsJsonAsync($"/api/v1/admin/groups/{a.Key}",
+                new { label = target.ToLowerInvariant(), color = "blue", sortOrder = 9 }, ApiClient.Json),
+            admin.Client.PutAsJsonAsync($"/api/v1/admin/groups/{b.Key}",
+                new { label = target.ToUpperInvariant(), color = "blue", sortOrder = 9 }, ApiClient.Json));
 
-        respostas.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
+        responses.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
     }
 
     [Fact]
-    public async Task Apagar_so_funciona_com_o_grupo_vazio()
+    public async Task Delete_only_works_on_an_empty_group()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var vazio = await (await CriarAsync(admin, RotuloUnico())).LerAsync<GrupoResponse>();
-        var ocupado = await (await CriarAsync(admin, RotuloUnico())).LerAsync<GrupoResponse>();
-        var categoria = await (await admin.Cliente.PostAsJsonAsync("/api/v1/admin/categorias",
-            new { nome = RotuloUnico("Cat"), grupo = ocupado.Chave, tipo = "problema", icone = "x" }, ClienteApi.Json)).LerAsync<CategoriaAdminResponse>();
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var empty = await (await CreateAsync(admin, UniqueLabel())).ReadAsync<GroupResponse>();
+        var busy = await (await CreateAsync(admin, UniqueLabel())).ReadAsync<GroupResponse>();
+        var category = await (await admin.Client.PostAsJsonAsync("/api/v1/admin/categories",
+            new { name = UniqueLabel("Cat"), group = busy.Key, type = "issue", icon = "x" }, ApiClient.Json)).ReadAsync<CategoryAdminResponse>();
         try
         {
-            var apagou = await admin.Cliente.DeleteAsync($"/api/v1/admin/grupos/{vazio.Chave}");
-            var barrou = await admin.Cliente.DeleteAsync($"/api/v1/admin/grupos/{ocupado.Chave}");
-            await admin.Cliente.PatchAsJsonAsync($"/api/v1/admin/categorias/{categoria.Id}/ativa", new { ativa = false }, ClienteApi.Json);
-            var aindaBarra = await admin.Cliente.DeleteAsync($"/api/v1/admin/grupos/{ocupado.Chave}");
-            var denovo = await admin.Cliente.DeleteAsync($"/api/v1/admin/grupos/{vazio.Chave}");
+            var deleted = await admin.Client.DeleteAsync($"/api/v1/admin/groups/{empty.Key}");
+            var blocked = await admin.Client.DeleteAsync($"/api/v1/admin/groups/{busy.Key}");
+            await admin.Client.PatchAsJsonAsync($"/api/v1/admin/categories/{category.Id}/active", new { active = false }, ApiClient.Json);
+            var stillBlocks = await admin.Client.DeleteAsync($"/api/v1/admin/groups/{busy.Key}");
+            var again = await admin.Client.DeleteAsync($"/api/v1/admin/groups/{empty.Key}");
 
-            apagou.StatusCode.Should().Be(HttpStatusCode.NoContent);
-            barrou.StatusCode.Should().Be(HttpStatusCode.Conflict);
-            (await barrou.LerJsonAsync()).GetProperty("type").GetString().Should().Be("grupo-em-uso");
-            aindaBarra.StatusCode.Should().Be(HttpStatusCode.Conflict);
-            denovo.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            deleted.StatusCode.Should().Be(HttpStatusCode.NoContent);
+            blocked.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            (await blocked.ReadJsonAsync()).GetProperty("type").GetString().Should().Be("group-in-use");
+            stillBlocks.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            again.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
         finally
         {
-            await admin.Cliente.PatchAsJsonAsync($"/api/v1/admin/categorias/{categoria.Id}/ativa", new { ativa = false }, ClienteApi.Json);
+            await admin.Client.PatchAsJsonAsync($"/api/v1/admin/categories/{category.Id}/active", new { active = false }, ApiClient.Json);
         }
     }
 }

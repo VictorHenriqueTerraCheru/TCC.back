@@ -5,14 +5,14 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUserContext<Usuario, Guid>(options)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUserContext<User, Guid>(options)
 {
-    public DbSet<SolicitacaoVerificacao> SolicitacoesVerificacao => Set<SolicitacaoVerificacao>();
-    public DbSet<Categoria> Categorias => Set<Categoria>();
-    public DbSet<GrupoCategoria> Grupos => Set<GrupoCategoria>();
-    public DbSet<Problema> Problemas => Set<Problema>();
-    public DbSet<Voto> Votos => Set<Voto>();
-    public DbSet<Incidente> Incidentes => Set<Incidente>();
+    public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<CategoryGroup> Groups => Set<CategoryGroup>();
+    public DbSet<Issue> Issues => Set<Issue>();
+    public DbSet<Vote> Votes => Set<Vote>();
+    public DbSet<Incident> Incidents => Set<Incident>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -20,37 +20,37 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
 
         builder.HasPostgresExtension("postgis");
 
-        builder.Entity<IdentityUserClaim<Guid>>().ToTable("usuarios_claims");
-        builder.Entity<IdentityUserLogin<Guid>>().ToTable("usuarios_logins");
-        builder.Entity<IdentityUserToken<Guid>>().ToTable("usuarios_tokens");
+        builder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");
+        builder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
+        builder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        RenomearChavesEstrangeirasParaUsuarios(builder);
+        RenameForeignKeysToUsers(builder);
     }
 
-    private static void RenomearChavesEstrangeirasParaUsuarios(ModelBuilder builder)
+    private static void RenameForeignKeysToUsers(ModelBuilder builder)
     {
-        var usuario = builder.Model.FindEntityType(typeof(Usuario))!;
-        var chaves = builder.Model.GetEntityTypes()
+        var user = builder.Model.FindEntityType(typeof(User))!;
+        var keys = builder.Model.GetEntityTypes()
             .SelectMany(e => e.GetDeclaredForeignKeys())
-            .Where(fk => fk.PrincipalEntityType == usuario);
+            .Where(fk => fk.PrincipalEntityType == user);
 
-        foreach (var fk in chaves)
+        foreach (var fk in keys)
         {
-            var colunas = string.Join("_", fk.Properties.Select(p => p.GetColumnName()));
-            fk.SetConstraintName($"fk_{fk.DeclaringEntityType.GetTableName()}_usuarios_{colunas}");
+            var columns = string.Join("_", fk.Properties.Select(p => p.GetColumnName()));
+            fk.SetConstraintName($"fk_{fk.DeclaringEntityType.GetTableName()}_users_{columns}");
         }
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder builder)
     {
-        builder.Properties<Perfil>().HaveConversion<short>();
-        builder.Properties<TipoOcorrencia>().HaveConversion<short>();
-        builder.Properties<CorGrupo>().HaveConversion<short>();
-        builder.Properties<StatusProblema>().HaveConversion<short>();
-        builder.Properties<ValorVoto>().HaveConversion<short>();
-        builder.Properties<TipoVinculo>().HaveConversion<short>();
-        builder.Properties<StatusVerificacao>().HaveConversion<short>();
+        builder.Properties<Role>().HaveConversion<short>();
+        builder.Properties<ReportType>().HaveConversion<short>();
+        builder.Properties<GroupColor>().HaveConversion<short>();
+        builder.Properties<IssueStatus>().HaveConversion<short>();
+        builder.Properties<VoteValue>().HaveConversion<short>();
+        builder.Properties<AffiliationType>().HaveConversion<short>();
+        builder.Properties<VerificationStatus>().HaveConversion<short>();
     }
 }

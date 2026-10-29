@@ -4,13 +4,13 @@ namespace UrbanReports.Api.Admin;
 
 public interface IAdminService
 {
-    Task<Paginado<ListarVerificacoesItem>> ListarVerificacoesAsync(ListarVerificacoesRequest request, CancellationToken ct);
+    Task<Paged<ListVerificationsItem>> ListVerificationsAsync(ListVerificationsRequest request, CancellationToken ct);
 
-    Task<Resultado<Vazio>> AprovarAsync(Guid id, Guid adminId, CancellationToken ct);
+    Task<Result<Empty>> ApproveAsync(Guid id, Guid adminId, CancellationToken ct);
 
-    Task<Resultado<Vazio>> RecusarAsync(Guid id, Guid adminId, RecusarVerificacaoRequest request, CancellationToken ct);
+    Task<Result<Empty>> RejectAsync(Guid id, Guid adminId, RejectVerificationRequest request, CancellationToken ct);
 
-    Task<Paginado<ListarUsuariosItem>> ListarUsuariosAsync(ListarUsuariosRequest request, CancellationToken ct);
+    Task<Paged<ListUsersItem>> ListUsersAsync(ListUsersRequest request, CancellationToken ct);
 
-    Task<Resultado<Vazio>> AlterarPerfilAsync(Guid id, Guid adminId, AlterarPerfilRequest request, CancellationToken ct);
+    Task<Result<Empty>> ChangeRoleAsync(Guid id, Guid adminId, ChangeRoleRequest request, CancellationToken ct);
 }

@@ -2,46 +2,46 @@ using System.Net;
 using Microsoft.AspNetCore.Hosting;
 using UrbanReports.Api.Tests.Infra;
 
-namespace UrbanReports.Api.Tests.Saude;
+namespace UrbanReports.Api.Tests.Health;
 
-[Collection(ApiCollection.Nome)]
-public sealed class SaudeTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class HealthTests(ApiFactory factory)
 {
     [Fact]
-    public async Task Aplicacao_responde_200_sem_autenticacao()
+    public async Task Application_returns_200_without_authentication()
     {
-        var resposta = await fabrica.CreateClient().GetAsync("/api/v1/saude");
+        var response = await factory.CreateClient().GetAsync("/api/v1/health");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await resposta.LerJsonAsync()).GetProperty("status").GetString().Should().Be("saudavel");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await response.ReadJsonAsync()).GetProperty("status").GetString().Should().Be("healthy");
     }
 
     [Fact]
-    public async Task Banco_acessivel_responde_200_sem_autenticacao()
+    public async Task Reachable_database_returns_200_without_authentication()
     {
-        var resposta = await fabrica.CreateClient().GetAsync("/api/v1/saude/banco");
+        var response = await factory.CreateClient().GetAsync("/api/v1/health/database");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await resposta.LerJsonAsync()).GetProperty("status").GetString().Should().Be("saudavel");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await response.ReadJsonAsync()).GetProperty("status").GetString().Should().Be("healthy");
     }
 
     [Fact]
-    public async Task Banco_inacessivel_responde_503_banco_indisponivel()
+    public async Task Unreachable_database_returns_503_database_unavailable()
     {
-        await using var semBanco = fabrica.WithWebHostBuilder(b => b.UseSetting(
+        await using var withoutDatabase = factory.WithWebHostBuilder(b => b.UseSetting(
             "ConnectionStrings:Default", "Host=127.0.0.1;Port=1;Database=x;Username=x;Password=x;Timeout=2"));
 
-        var resposta = await semBanco.CreateClient().GetAsync("/api/v1/saude/banco");
+        var response = await withoutDatabase.CreateClient().GetAsync("/api/v1/health/database");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
-        (await resposta.LerJsonAsync()).GetProperty("type").GetString().Should().Be("banco-indisponivel");
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await response.ReadJsonAsync()).GetProperty("type").GetString().Should().Be("database-unavailable");
     }
 
     [Fact]
-    public async Task Rota_antiga_health_nao_existe_mais()
+    public async Task Old_health_route_is_gone()
     {
-        var resposta = await fabrica.CreateClient().GetAsync("/health");
+        var response = await factory.CreateClient().GetAsync("/health");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

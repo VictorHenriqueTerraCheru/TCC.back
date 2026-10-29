@@ -1,12 +1,12 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Votos;
+namespace UrbanReports.Api.Votes;
 
-public static class ErrosVoto
+public static class VoteErrors
 {
-    public static readonly ErroAplicacao AutorNaoVota = ErroAplicacao.Regra(
-        StatusCodes.Status422UnprocessableEntity, "autor-nao-vota", "Quem registrou o problema não vota nele.");
+    public static readonly ApplicationError AuthorCannotVote = ApplicationError.Rule(
+        StatusCodes.Status422UnprocessableEntity, "author-cannot-vote", "Quem registrou o problema não vota nele.");
 
-    public static readonly ErroAplicacao ProblemaResolvido = ErroAplicacao.Regra(
-        StatusCodes.Status422UnprocessableEntity, "problema-resolvido", "O problema já foi resolvido e não recebe mais votos.");
+    public static readonly ApplicationError IssueResolved = ApplicationError.Rule(
+        StatusCodes.Status422UnprocessableEntity, "issue-resolved", "O problema já foi resolvido e não recebe mais votos.");
 }

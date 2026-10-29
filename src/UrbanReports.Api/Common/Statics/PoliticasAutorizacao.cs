@@ -1,7 +1,7 @@
 namespace UrbanReports.Api.Common;
 
-public static class PoliticasAutorizacao
+public static class AuthorizationPolicies
 {
-    public const string Autenticado = "Autenticado";
-    public const string Administrador = "Administrador";
+    public const string Authenticated = "Authenticated";
+    public const string Administrator = "Administrator";
 }

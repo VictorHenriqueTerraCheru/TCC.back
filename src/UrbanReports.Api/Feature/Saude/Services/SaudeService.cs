@@ -1,26 +1,26 @@
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Persistence;
 
-namespace UrbanReports.Api.Saude;
+namespace UrbanReports.Api.Health;
 
-public sealed class SaudeService(AppDbContext db, ILogger<SaudeService> logger) : ISaudeService
+public sealed class HealthService(AppDbContext db, ILogger<HealthService> logger) : IHealthService
 {
-    public async Task<Resultado<StatusSaudeResponse>> VerificarBancoAsync(CancellationToken ct)
+    public async Task<Result<HealthStatusResponse>> VerifyDatabaseAsync(CancellationToken ct)
     {
         try
         {
             if (await db.Database.CanConnectAsync(ct))
             {
-                return StatusSaudeResponse.Saudavel;
+                return HealthStatusResponse.Healthy;
             }
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
             logger.LogWarning(e, "Health check do banco falhou.");
-            return ErrosSaude.BancoIndisponivel;
+            return HealthErrors.DatabaseUnavailable;
         }
 
         logger.LogWarning("Health check do banco falhou: sem conexão.");
-        return ErrosSaude.BancoIndisponivel;
+        return HealthErrors.DatabaseUnavailable;
     }
 }

@@ -2,29 +2,29 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Admin;
 
-public sealed record ListarVerificacoesRequest(string? Status = null, int Pagina = 1, int Tamanho = Paginacao.TamanhoPadrao);
+public sealed record ListVerificationsRequest(string? Status = null, int Page = 1, int PageSize = Pagination.DefaultPageSize);
 
-public sealed record ListarVerificacoesItem(
+public sealed record ListVerificationsItem(
     Guid Id,
-    ListarVerificacoesUsuarioResumo Usuario,
-    TipoVinculo TipoVinculo,
-    string Justificativa,
-    StatusVerificacao Status,
-    DateTimeOffset CriadaEm,
-    string? MotivoRecusa);
+    ListVerificationsUserSummary User,
+    AffiliationType AffiliationType,
+    string Justification,
+    VerificationStatus Status,
+    DateTimeOffset CreatedAt,
+    string? RejectionReason);
 
-public sealed record ListarVerificacoesUsuarioResumo(Guid Id, string Nome, string Iniciais);
+public sealed record ListVerificationsUserSummary(Guid Id, string Name, string Initials);
 
-public sealed record RecusarVerificacaoRequest(string Motivo);
+public sealed record RejectVerificationRequest(string Reason);
 
-public sealed record ListarUsuariosRequest(string? Busca = null, string? Perfil = null, int Pagina = 1, int Tamanho = Paginacao.TamanhoPadrao);
+public sealed record ListUsersRequest(string? Search = null, string? Role = null, int Page = 1, int PageSize = Pagination.DefaultPageSize);
 
-public sealed record ListarUsuariosItem(
+public sealed record ListUsersItem(
     Guid Id,
-    string Nome,
+    string Name,
     string Email,
-    Perfil Perfil,
-    DateTimeOffset CriadoEm,
-    DateTimeOffset? VerificadoEm);
+    Role Role,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? VerifiedAt);
 
-public sealed record AlterarPerfilRequest(Perfil Perfil);
+public sealed record ChangeRoleRequest(Role Role);

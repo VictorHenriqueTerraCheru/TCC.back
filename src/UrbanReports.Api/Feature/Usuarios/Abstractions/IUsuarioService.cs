@@ -1,12 +1,12 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Usuarios;
+namespace UrbanReports.Api.Users;
 
-public interface IUsuarioService
+public interface IUserService
 {
-    Task<Resultado<ObterMeResponse>> ObterMeAsync(Guid usuarioId, CancellationToken ct);
+    Task<Result<GetMeResponse>> GetMeAsync(Guid userId, CancellationToken ct);
 
-    Task<Resultado<ObterMeResponse>> AtualizarMeAsync(Guid usuarioId, AtualizarMeRequest request, CancellationToken ct);
+    Task<Result<GetMeResponse>> UpdateMeAsync(Guid userId, UpdateMeRequest request, CancellationToken ct);
 
-    Task<Paginado<ObterHistoricoItem>> ObterHistoricoAsync(Guid usuarioId, ObterHistoricoRequest request, CancellationToken ct);
+    Task<Paged<GetHistoryItem>> GetHistoryAsync(Guid userId, GetHistoryRequest request, CancellationToken ct);
 }

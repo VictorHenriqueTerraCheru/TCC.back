@@ -9,56 +9,56 @@ public sealed class AdminModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapGet("/admin/verificacoes", ListarVerificacoes)
-            .Validar<ListarVerificacoesRequest>()
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapGet("/admin/verifications", ListVerifications)
+            .Validate<ListVerificationsRequest>()
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapPost("/admin/verificacoes/{id:guid}/aprovar", Aprovar)
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapPost("/admin/verifications/{id:guid}/approve", Approve)
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapPost("/admin/verificacoes/{id:guid}/recusar", Recusar)
-            .Validar<RecusarVerificacaoRequest>()
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapPost("/admin/verifications/{id:guid}/reject", Reject)
+            .Validate<RejectVerificationRequest>()
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapGet("/admin/usuarios", ListarUsuarios)
-            .Validar<ListarUsuariosRequest>()
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapGet("/admin/users", ListUsers)
+            .Validate<ListUsersRequest>()
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapPatch("/admin/usuarios/{id:guid}/perfil", AlterarPerfil)
-            .Validar<AlterarPerfilRequest>()
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapPatch("/admin/users/{id:guid}/role", ChangeRole)
+            .Validate<ChangeRoleRequest>()
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
     }
 
-    private static Task<Paginado<ListarVerificacoesItem>> ListarVerificacoes(
-        [AsParameters] ListarVerificacoesRequest request, IAdminService service, CancellationToken ct) =>
-        service.ListarVerificacoesAsync(request, ct);
+    private static Task<Paged<ListVerificationsItem>> ListVerifications(
+        [AsParameters] ListVerificationsRequest request, IAdminService service, CancellationToken ct) =>
+        service.ListVerificationsAsync(request, ct);
 
-    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Aprovar(
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Approve(
         Guid id, ClaimsPrincipal principal, IAdminService service, CancellationToken ct) =>
-        ParaHttp(await service.AprovarAsync(id, principal.ObterUsuarioId(), ct));
+        ToHttp(await service.ApproveAsync(id, principal.GetUserId(), ct));
 
-    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Recusar(
-        Guid id, RecusarVerificacaoRequest request, ClaimsPrincipal principal, IAdminService service, CancellationToken ct) =>
-        ParaHttp(await service.RecusarAsync(id, principal.ObterUsuarioId(), request, ct));
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Reject(
+        Guid id, RejectVerificationRequest request, ClaimsPrincipal principal, IAdminService service, CancellationToken ct) =>
+        ToHttp(await service.RejectAsync(id, principal.GetUserId(), request, ct));
 
-    private static Task<Paginado<ListarUsuariosItem>> ListarUsuarios(
-        [AsParameters] ListarUsuariosRequest request, IAdminService service, CancellationToken ct) =>
-        service.ListarUsuariosAsync(request, ct);
+    private static Task<Paged<ListUsersItem>> ListUsers(
+        [AsParameters] ListUsersRequest request, IAdminService service, CancellationToken ct) =>
+        service.ListUsersAsync(request, ct);
 
-    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> AlterarPerfil(
-        Guid id, AlterarPerfilRequest request, ClaimsPrincipal principal, IAdminService service, CancellationToken ct) =>
-        ParaHttp(await service.AlterarPerfilAsync(id, principal.ObterUsuarioId(), request, ct));
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> ChangeRole(
+        Guid id, ChangeRoleRequest request, ClaimsPrincipal principal, IAdminService service, CancellationToken ct) =>
+        ToHttp(await service.ChangeRoleAsync(id, principal.GetUserId(), request, ct));
 
-    private static Results<NoContent, NotFound, ProblemHttpResult> ParaHttp(Resultado<Vazio> r) =>
-        r.Erro switch
+    private static Results<NoContent, NotFound, ProblemHttpResult> ToHttp(Result<Empty> r) =>
+        r.Error switch
         {
             null => TypedResults.NoContent(),
-            { Tipo: TipoErro.NaoEncontrado } e => e.ParaNaoEncontrado(),
-            var e => e.ParaProblema(),
+            { Kind: ErrorType.NotFound } e => e.ToNotFound(),
+            var e => e.ToProblem(),
         };
 }

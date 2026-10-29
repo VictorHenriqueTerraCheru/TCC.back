@@ -4,60 +4,60 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
-namespace UrbanReports.Api.Geocodificacao;
+namespace UrbanReports.Api.Geocoding;
 
-public interface IServicoGeocodificacao
+public interface IGeocodingService
 {
-    Task<EnderecoGeocodificado> ReversaAsync(double lat, double lng, CancellationToken ct);
+    Task<GeocodedAddress> ReverseAsync(double lat, double lng, CancellationToken ct);
 }
 
-public sealed class ServicoGeocodificacao(
+public sealed class GeocodingService(
     INominatimClient nominatim,
-    IOptions<NominatimOptions> opcoes,
-    ILogger<ServicoGeocodificacao> logger) : IServicoGeocodificacao, IDisposable
+    IOptions<NominatimOptions> options,
+    ILogger<GeocodingService> logger) : IGeocodingService, IDisposable
 {
-    private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = opcoes.Value.LimiteEntradasCache });
-    private readonly ConcurrentDictionary<string, Lazy<Task<EnderecoGeocodificado?>>> _emAndamento = new();
+    private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = options.Value.CacheEntryLimit });
+    private readonly ConcurrentDictionary<string, Lazy<Task<GeocodedAddress?>>> _inFlight = new();
 
-    internal int EntradasEmCache => _cache.Count;
+    internal int CacheEntries => _cache.Count;
 
     public void Dispose() => _cache.Dispose();
 
-    public async Task<EnderecoGeocodificado> ReversaAsync(double lat, double lng, CancellationToken ct)
+    public async Task<GeocodedAddress> ReverseAsync(double lat, double lng, CancellationToken ct)
     {
-        var latChave = Math.Round(lat, 4, MidpointRounding.AwayFromZero);
-        var lngChave = Math.Round(lng, 4, MidpointRounding.AwayFromZero);
-        var chave = string.Create(CultureInfo.InvariantCulture, $"geo:{latChave:F4}:{lngChave:F4}");
+        var latKey = Math.Round(lat, 4, MidpointRounding.AwayFromZero);
+        var lngKey = Math.Round(lng, 4, MidpointRounding.AwayFromZero);
+        var key = string.Create(CultureInfo.InvariantCulture, $"geo:{latKey:F4}:{lngKey:F4}");
 
-        if (_cache.TryGetValue(chave, out EnderecoGeocodificado? emCache))
+        if (_cache.TryGetValue(key, out GeocodedAddress? cached))
         {
-            return emCache!;
+            return cached!;
         }
 
-        var chamada = _emAndamento.GetOrAdd(chave, _ => new Lazy<Task<EnderecoGeocodificado?>>(
-            () => ConsultarECachearAsync(chave, latChave, lngChave)));
+        var call = _inFlight.GetOrAdd(key, _ => new Lazy<Task<GeocodedAddress?>>(
+            () => QueryAndCacheAsync(key, latKey, lngKey)));
 
-        var resultado = await chamada.Value.WaitAsync(ct);
-        return resultado ?? EnderecoGeocodificado.Indisponivel(lat, lng);
+        var result = await call.Value.WaitAsync(ct);
+        return result ?? GeocodedAddress.Unavailable(lat, lng);
     }
 
-    private async Task<EnderecoGeocodificado?> ConsultarECachearAsync(string chave, double lat, double lng)
+    private async Task<GeocodedAddress?> QueryAndCacheAsync(string key, double lat, double lng)
     {
         try
         {
-            if (_cache.TryGetValue(chave, out EnderecoGeocodificado? emCache))
+            if (_cache.TryGetValue(key, out GeocodedAddress? cached))
             {
-                return emCache;
+                return cached;
             }
 
-            var resposta = await nominatim.ReversaAsync(lat, lng, CancellationToken.None);
-            var endereco = EnderecoGeocodificado.Montar(resposta, lat, lng);
-            _cache.Set(chave, endereco, new MemoryCacheEntryOptions
+            var response = await nominatim.ReverseAsync(lat, lng, CancellationToken.None);
+            var address = GeocodedAddress.Build(response, lat, lng);
+            _cache.Set(key, address, new MemoryCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = opcoes.Value.DuracaoCache,
+                AbsoluteExpirationRelativeToNow = options.Value.CacheDuration,
                 Size = 1,
             });
-            return endereco;
+            return address;
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or TimeoutException or JsonException)
         {
@@ -66,7 +66,7 @@ public sealed class ServicoGeocodificacao(
         }
         finally
         {
-            _emAndamento.TryRemove(chave, out _);
+            _inFlight.TryRemove(key, out _);
         }
     }
 }

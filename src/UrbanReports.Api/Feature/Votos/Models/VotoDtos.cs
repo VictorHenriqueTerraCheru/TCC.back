@@ -1,11 +1,11 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Votos;
+namespace UrbanReports.Api.Votes;
 
-public enum ValorVotoContrato
+public enum VoteAnswer
 {
-    Sim = ValorVoto.Positivo,
-    Nao = ValorVoto.Negativo,
+    Yes = VoteValue.Positive,
+    No = VoteValue.Negative,
 }
 
-public sealed record VotarRequest(ValorVotoContrato Valor, double? Lat, double? Lng);
+public sealed record VoteRequest(VoteAnswer Value, double? Lat, double? Lng);

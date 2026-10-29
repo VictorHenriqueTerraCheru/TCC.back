@@ -1,27 +1,27 @@
 using System.Globalization;
 using System.Net;
 using Microsoft.AspNetCore.Hosting;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Geocoding;
 using UrbanReports.Api.Tests.Infra;
 
-namespace UrbanReports.Api.Tests.Geocodificacao;
+namespace UrbanReports.Api.Tests.Geocoding;
 
-[Collection(ApiCollection.Nome)]
-public sealed class ReversaTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class ReverseTests(ApiFactory factory)
 {
     private static string Url(double lat, double lng) =>
-        string.Create(CultureInfo.InvariantCulture, $"/api/v1/geocodificacao/reversa?lat={lat}&lng={lng}");
+        string.Create(CultureInfo.InvariantCulture, $"/api/v1/geocoding/reverse?lat={lat}&lng={lng}");
 
     [Fact]
-    public async Task Visitante_obtem_o_endereco_montado()
+    public async Task Visitor_gets_the_built_address()
     {
-        var (lat, lng) = ApiFactory.PontoUnico();
+        var (lat, lng) = ApiFactory.UniquePoint();
 
-        var resposta = await fabrica.CreateClient().GetAsync(Url(lat, lng));
-        var corpo = await resposta.LerAsync<ReversaResponse>();
+        var response = await factory.CreateClient().GetAsync(Url(lat, lng));
+        var body = await response.ReadAsync<ReverseResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        corpo.Should().Be(new ReversaResponse(
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body.Should().Be(new ReverseResponse(
             true,
             "Rua Voluntários da Pátria, 170 — Botafogo",
             "Rua Voluntários da Pátria",
@@ -33,55 +33,55 @@ public sealed class ReversaTests(ApiFactory fabrica)
     }
 
     [Fact]
-    public async Task Duas_chamadas_seguidas_geram_uma_requisicao_ao_nominatim()
+    public async Task Two_consecutive_calls_make_one_request_to_nominatim()
     {
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var cliente = fabrica.CreateClient();
-        var antes = fabrica.Nominatim.Chamadas;
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var client = factory.CreateClient();
+        var before = factory.Nominatim.Calls;
 
-        await cliente.GetAsync(Url(lat, lng));
-        await cliente.GetAsync(Url(lat, lng));
+        await client.GetAsync(Url(lat, lng));
+        await client.GetAsync(Url(lat, lng));
 
-        (fabrica.Nominatim.Chamadas - antes).Should().Be(1);
+        (factory.Nominatim.Calls - before).Should().Be(1);
     }
 
     [Fact]
-    public async Task Nominatim_fora_do_ar_responde_200_com_disponivel_false()
+    public async Task Nominatim_offline_returns_200_with_available_false()
     {
-        var (lat, lng) = ApiFactory.PontoUnico();
-        fabrica.Nominatim.ForaDoAr(lat, lng);
+        var (lat, lng) = ApiFactory.UniquePoint();
+        factory.Nominatim.SetOffline(lat, lng);
 
-        var resposta = await fabrica.CreateClient().GetAsync(Url(lat, lng));
-        var corpo = await resposta.LerJsonAsync();
+        var response = await factory.CreateClient().GetAsync(Url(lat, lng));
+        var body = await response.ReadJsonAsync();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        corpo.GetProperty("disponivel").GetBoolean().Should().BeFalse();
-        corpo.GetProperty("endereco").GetString().Should().StartWith("Próximo a ");
-        corpo.GetProperty("rotuloArea").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body.GetProperty("available").GetBoolean().Should().BeFalse();
+        body.GetProperty("address").GetString().Should().StartWith("Próximo a ");
+        body.GetProperty("areaLabel").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
     }
 
     [Theory]
     [InlineData(-91, 0)]
     [InlineData(0, 181)]
-    public async Task Coordenada_invalida_devolve_400(double lat, double lng)
+    public async Task Invalid_coordinate_returns_400(double lat, double lng)
     {
-        var resposta = await fabrica.CreateClient().GetAsync(Url(lat, lng));
+        var response = await factory.CreateClient().GetAsync(Url(lat, lng));
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task Excesso_de_requisicoes_por_ip_devolve_429_limite_requisicoes()
+    public async Task Too_many_requests_per_ip_returns_429_rate_limited()
     {
-        await using var limitada = fabrica.WithWebHostBuilder(b => b.UseSetting("LimitesDeRequisicao:GeocodificacaoPorMinuto", "2"));
-        var cliente = limitada.CreateClient();
-        var (lat, lng) = ApiFactory.PontoUnico();
+        await using var limited = factory.WithWebHostBuilder(b => b.UseSetting("RateLimits:GeocodingPerMinute", "2"));
+        var client = limited.CreateClient();
+        var (lat, lng) = ApiFactory.UniquePoint();
 
-        (await cliente.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
-        (await cliente.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
-        var terceira = await cliente.GetAsync(Url(lat, lng));
+        (await client.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
+        var third = await client.GetAsync(Url(lat, lng));
 
-        terceira.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-        (await terceira.LerJsonAsync()).GetProperty("type").GetString().Should().Be("limite-requisicoes");
+        third.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await third.ReadJsonAsync()).GetProperty("type").GetString().Should().Be("rate-limited");
     }
 }

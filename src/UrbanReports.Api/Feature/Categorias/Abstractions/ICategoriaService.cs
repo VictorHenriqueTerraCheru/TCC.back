@@ -1,16 +1,16 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Categorias;
+namespace UrbanReports.Api.Categories;
 
-public interface ICategoriaService
+public interface ICategoryService
 {
-    Task<List<ListarCategoriasResponse>> ListarAsync(CancellationToken ct);
+    Task<List<ListCategoriesResponse>> ListAsync(CancellationToken ct);
 
-    Task<List<CategoriaAdminResponse>> ListarTodasAsync(CancellationToken ct);
+    Task<List<CategoryAdminResponse>> ListAllAsync(CancellationToken ct);
 
-    Task<Resultado<CategoriaAdminResponse>> CriarAsync(CriarCategoriaRequest request, CancellationToken ct);
+    Task<Result<CategoryAdminResponse>> CreateAsync(CreateCategoryRequest request, CancellationToken ct);
 
-    Task<Resultado<CategoriaAdminResponse>> EditarAsync(short id, EditarCategoriaRequest request, CancellationToken ct);
+    Task<Result<CategoryAdminResponse>> EditAsync(short id, EditCategoryRequest request, CancellationToken ct);
 
-    Task<Resultado<Vazio>> AlterarAtivaAsync(short id, bool ativa, CancellationToken ct);
+    Task<Result<Empty>> SetActiveAsync(short id, bool active, CancellationToken ct);
 }

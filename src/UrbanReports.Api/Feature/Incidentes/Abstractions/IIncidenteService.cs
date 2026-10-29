@@ -1,12 +1,12 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Incidentes;
+namespace UrbanReports.Api.Incidents;
 
-public interface IIncidenteService
+public interface IIncidentService
 {
-    Task<Resultado<IncidenteRegistrado>> RegistrarAsync(RegistrarIncidenteRequest request, Guid autorId, CancellationToken ct);
+    Task<Result<CreatedIncident>> CreateAsync(CreateIncidentRequest request, Guid authorId, CancellationToken ct);
 
-    Task<List<ObterCalorIncidentesResponse>> ObterCalorAsync(ObterCalorIncidentesRequest request, CancellationToken ct);
+    Task<List<GetIncidentHeatmapResponse>> GetHeatmapAsync(GetIncidentHeatmapRequest request, CancellationToken ct);
 
-    Task<ObterAreaIncidentesResponse> ObterAreaAsync(ObterAreaIncidentesRequest request, CancellationToken ct);
+    Task<GetIncidentAreaResponse> GetAreaAsync(GetIncidentAreaRequest request, CancellationToken ct);
 }

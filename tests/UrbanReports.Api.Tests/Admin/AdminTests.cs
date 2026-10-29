@@ -4,166 +4,166 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Admin;
-using UrbanReports.Api.Usuarios;
-using UrbanReports.Api.Verificacao;
+using UrbanReports.Api.Users;
+using UrbanReports.Api.Verification;
 using UrbanReports.Api.Tests.Infra;
 
 namespace UrbanReports.Api.Tests.Admin;
 
-[Collection(ApiCollection.Nome)]
-public sealed class AdminTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class AdminTests(ApiFactory factory)
 {
-    private static async Task<Guid> SolicitarAsync(Pessoa pessoa)
+    private static async Task<Guid> RequestAsync(Person person)
     {
-        var resposta = await pessoa.Cliente.PostAsJsonAsync("/api/v1/verificacoes",
-            new { tipoVinculo = "trabalhaRegiao", justificativa = "Trabalho no comércio da região há mais de cinco anos." }, ClienteApi.Json);
-        resposta.EnsureSuccessStatusCode();
-        return (await resposta.LerAsync<SolicitarVerificacaoResponse>()).Id;
+        var response = await person.Client.PostAsJsonAsync("/api/v1/verifications",
+            new { affiliationType = "worksInArea", justification = "Trabalho no comércio da região há mais de cinco anos." }, ApiClient.Json);
+        response.EnsureSuccessStatusCode();
+        return (await response.ReadAsync<RequestVerificationResponse>()).Id;
     }
 
-    private static Task<HttpResponseMessage> AprovarAsync(Pessoa admin, Guid id) =>
-        admin.Cliente.PostAsync($"/api/v1/admin/verificacoes/{id}/aprovar", null);
+    private static Task<HttpResponseMessage> ApproveAsync(Person admin, Guid id) =>
+        admin.Client.PostAsync($"/api/v1/admin/verifications/{id}/approve", null);
 
-    private static Task<HttpResponseMessage> RecusarAsync(Pessoa admin, Guid id, string motivo = "Justificativa insuficiente.") =>
-        admin.Cliente.PostAsJsonAsync($"/api/v1/admin/verificacoes/{id}/recusar", new { motivo }, ClienteApi.Json);
-
-    [Fact]
-    public async Task Rotas_de_admin_exigem_perfil_administrador()
-    {
-        var cidadao = await fabrica.NovaPessoaAsync();
-        var verificado = await fabrica.NovaPessoaAsync(Perfil.CidadaoVerificado);
-
-        (await cidadao.Cliente.GetAsync("/api/v1/admin/verificacoes")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await verificado.Cliente.PostAsync($"/api/v1/admin/verificacoes/{Guid.NewGuid()}/aprovar", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await fabrica.CreateClient().GetAsync("/api/v1/admin/verificacoes")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
+    private static Task<HttpResponseMessage> RejectAsync(Person admin, Guid id, string reason = "Justificativa insuficiente.") =>
+        admin.Client.PostAsJsonAsync($"/api/v1/admin/verifications/{id}/reject", new { reason }, ApiClient.Json);
 
     [Fact]
-    public async Task Aprovar_torna_o_usuario_verificado()
+    public async Task Admin_routes_require_administrator_role()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var id = await SolicitarAsync(pessoa);
+        var citizen = await factory.NewPersonAsync();
+        var verified = await factory.NewPersonAsync(Role.VerifiedCitizen);
 
-        var resposta = await AprovarAsync(admin, id);
-        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMeResponse>();
-
-        resposta.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        me.Perfil.Should().Be(Perfil.CidadaoVerificado);
-        me.VerificadoEm.Should().Be(fabrica.Relogio.GetUtcNow());
-        me.Verificacao!.Status.Should().Be(StatusVerificacao.Aprovada);
-
-        var solicitacao = await fabrica.NoBancoAsync(db => db.SolicitacoesVerificacao.AsNoTracking().SingleAsync(s => s.Id == id));
-        solicitacao.AnalisadaPorId.Should().Be(admin.Id);
-        solicitacao.AnalisadaEm.Should().Be(fabrica.Relogio.GetUtcNow());
+        (await citizen.Client.GetAsync("/api/v1/admin/verifications")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await verified.Client.PostAsync($"/api/v1/admin/verifications/{Guid.NewGuid()}/approve", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await factory.CreateClient().GetAsync("/api/v1/admin/verifications")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Recusar_guarda_o_motivo_e_mantem_cidadao()
+    public async Task Approve_makes_the_user_verified()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var id = await SolicitarAsync(pessoa);
+        var person = await factory.NewPersonAsync();
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var id = await RequestAsync(person);
 
-        var resposta = await RecusarAsync(admin, id, "  Não comprovou vínculo.  ");
-        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMeResponse>();
+        var response = await ApproveAsync(admin, id);
+        var me = await (await person.Client.GetAsync("/api/v1/me")).ReadAsync<GetMeResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        me.Perfil.Should().Be(Perfil.Cidadao);
-        me.Verificacao!.Status.Should().Be(StatusVerificacao.Recusada);
-        me.Verificacao.MotivoRecusa.Should().Be("Não comprovou vínculo.");
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        me.Role.Should().Be(Role.VerifiedCitizen);
+        me.VerifiedAt.Should().Be(factory.Clock.GetUtcNow());
+        me.Verification!.Status.Should().Be(VerificationStatus.Approved);
+
+        var request = await factory.InDatabaseAsync(db => db.VerificationRequests.AsNoTracking().SingleAsync(s => s.Id == id));
+        request.ReviewedById.Should().Be(admin.Id);
+        request.ReviewedAt.Should().Be(factory.Clock.GetUtcNow());
     }
 
     [Fact]
-    public async Task Recusar_sem_motivo_devolve_400()
+    public async Task Reject_keeps_the_reason_and_stays_citizen()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var id = await SolicitarAsync(await fabrica.NovaPessoaAsync());
+        var person = await factory.NewPersonAsync();
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var id = await RequestAsync(person);
 
-        (await RecusarAsync(admin, id, "")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var response = await RejectAsync(admin, id, "  Não comprovou vínculo.  ");
+        var me = await (await person.Client.GetAsync("/api/v1/me")).ReadAsync<GetMeResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        me.Role.Should().Be(Role.Citizen);
+        me.Verification!.Status.Should().Be(VerificationStatus.Rejected);
+        me.Verification.RejectionReason.Should().Be("Não comprovou vínculo.");
     }
 
     [Fact]
-    public async Task Analisar_de_novo_devolve_409_e_inexistente_404()
+    public async Task Reject_without_reason_returns_400()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var id = await SolicitarAsync(await fabrica.NovaPessoaAsync());
-        await AprovarAsync(admin, id);
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var id = await RequestAsync(await factory.NewPersonAsync());
 
-        var aprovarDeNovo = await AprovarAsync(admin, id);
-        var recusarDepois = await RecusarAsync(admin, id);
-        var inexistente = await AprovarAsync(admin, Guid.NewGuid());
-
-        aprovarDeNovo.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await aprovarDeNovo.LerJsonAsync()).GetProperty("type").GetString().Should().Be("verificacao-ja-analisada");
-        recusarDepois.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        inexistente.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await RejectAsync(admin, id, "")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task Aprovar_e_recusar_simultaneos_so_um_vence()
+    public async Task Reviewing_again_returns_409_and_missing_404()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var id = await SolicitarAsync(await fabrica.NovaPessoaAsync());
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var id = await RequestAsync(await factory.NewPersonAsync());
+        await ApproveAsync(admin, id);
 
-        var respostas = await Task.WhenAll(AprovarAsync(admin, id), RecusarAsync(admin, id), AprovarAsync(admin, id));
+        var approveAgain = await ApproveAsync(admin, id);
+        var rejectAfterwards = await RejectAsync(admin, id);
+        var missing = await ApproveAsync(admin, Guid.NewGuid());
 
-        respostas.Count(r => r.StatusCode == HttpStatusCode.NoContent).Should().Be(1);
-        respostas.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(2);
+        approveAgain.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await approveAgain.ReadJsonAsync()).GetProperty("type").GetString().Should().Be("verification-already-reviewed");
+        rejectAfterwards.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task Listar_filtra_por_status_com_iniciais_e_pendentes_mais_antigas_primeiro()
+    public async Task Concurrent_approve_and_reject_only_one_wins()
     {
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var a = await fabrica.NovaPessoaAsync();
-        await fabrica.NoBancoAsync(db => db.Users.Where(u => u.Id == a.Id)
-            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Nome, "carlos de menezes")));
-        var primeira = await SolicitarAsync(a);
-        fabrica.Relogio.Advance(TimeSpan.FromMinutes(1));
-        var segunda = await SolicitarAsync(await fabrica.NovaPessoaAsync());
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var id = await RequestAsync(await factory.NewPersonAsync());
 
-        var pagina = await (await admin.Cliente.GetAsync($"/api/v1/admin/verificacoes?status=pendente&tamanho={Paginacao.TamanhoMaximo}"))
-            .LerAsync<Paginado<ListarVerificacoesItem>>();
-        var minhas = pagina.Itens.Where(i => i.Id == primeira || i.Id == segunda).ToList();
+        var responses = await Task.WhenAll(ApproveAsync(admin, id), RejectAsync(admin, id), ApproveAsync(admin, id));
 
-        pagina.Itens.Should().AllSatisfy(i => i.Status.Should().Be(StatusVerificacao.Pendente));
-        minhas.Select(i => i.Id).Should().Equal(primeira, segunda);
-        minhas[0].Usuario.Should().Be(new ListarVerificacoesUsuarioResumo(a.Id, "carlos de menezes", "CM"));
-        minhas[0].TipoVinculo.Should().Be(TipoVinculo.TrabalhaRegiao);
+        responses.Count(r => r.StatusCode == HttpStatusCode.NoContent).Should().Be(1);
+        responses.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task List_filters_by_status_with_initials_and_oldest_pending_first()
+    {
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var a = await factory.NewPersonAsync();
+        await factory.InDatabaseAsync(db => db.Users.Where(u => u.Id == a.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Name, "carlos de menezes")));
+        var first = await RequestAsync(a);
+        factory.Clock.Advance(TimeSpan.FromMinutes(1));
+        var second = await RequestAsync(await factory.NewPersonAsync());
+
+        var page = await (await admin.Client.GetAsync($"/api/v1/admin/verifications?status=pending&pageSize={Pagination.MaxPageSize}"))
+            .ReadAsync<Paged<ListVerificationsItem>>();
+        var my = page.Items.Where(i => i.Id == first || i.Id == second).ToList();
+
+        page.Items.Should().AllSatisfy(i => i.Status.Should().Be(VerificationStatus.Pending));
+        my.Select(i => i.Id).Should().Equal(first, second);
+        my[0].User.Should().Be(new ListVerificationsUserSummary(a.Id, "carlos de menezes", "CM"));
+        my[0].AffiliationType.Should().Be(AffiliationType.WorksInArea);
     }
 
     [Theory]
     [InlineData("Carlos Menezes", "CM")]
     [InlineData("Ana", "A")]
     [InlineData("  maria  da  silva ", "MS")]
-    public void Iniciais(string nome, string esperado) =>
-        AdminService.Iniciais(nome).Should().Be(esperado);
+    public void Initials(string name, string expected) =>
+        AdminService.Initials(name).Should().Be(expected);
 
     [Fact]
-    public async Task Aprovado_vota_com_peso_10_so_nos_votos_seguintes()
+    public async Task Approved_user_votes_with_weight_10_only_from_then_on()
     {
-        var votante = await fabrica.NovaPessoaAsync();
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var autor = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var antes = await autor.RegistrarProblemaAsync(lat, lng);
-        var depois = await autor.RegistrarProblemaAsync(Cenarios.Norte(lat, 30), lng, categoriaId: 2);
+        var voter = await factory.NewPersonAsync();
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var author = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var before = await author.CreateIssueAsync(lat, lng);
+        var after = await author.CreateIssueAsync(Scenarios.North(lat, 30), lng, categoryId: 2);
 
-        await votante.VotarAsync(antes.Id, "sim");
-        await AprovarAsync(admin, await SolicitarAsync(votante));
-        await votante.VotarAsync(depois.Id, "sim");
+        await voter.VoteAsync(before.Id, "yes");
+        await ApproveAsync(admin, await RequestAsync(voter));
+        await voter.VoteAsync(after.Id, "yes");
 
-        var votos = await fabrica.NoBancoAsync(db => db.Votos.AsNoTracking()
-            .Where(v => v.UsuarioId == votante.Id)
-            .ToDictionaryAsync(v => v.ProblemaId, v => v.PerfilNoMomento));
-        votos[antes.Id].Should().Be(Perfil.Cidadao);
-        votos[depois.Id].Should().Be(Perfil.CidadaoVerificado);
+        var votes = await factory.InDatabaseAsync(db => db.Votes.AsNoTracking()
+            .Where(v => v.UserId == voter.Id)
+            .ToDictionaryAsync(v => v.IssueId, v => v.RoleAtVote));
+        votes[before.Id].Should().Be(Role.Citizen);
+        votes[after.Id].Should().Be(Role.VerifiedCitizen);
 
-        var confiancas = await fabrica.NoBancoAsync(db => db.Problemas.AsNoTracking()
-            .Where(p => p.Id == antes.Id || p.Id == depois.Id)
-            .ToDictionaryAsync(p => p.Id, p => p.Confianca));
-        confiancas[antes.Id].Should().Be(25.00m);
-        confiancas[depois.Id].Should().Be(76.92m);
+        var trustScores = await factory.InDatabaseAsync(db => db.Issues.AsNoTracking()
+            .Where(p => p.Id == before.Id || p.Id == after.Id)
+            .ToDictionaryAsync(p => p.Id, p => p.TrustScore));
+        trustScores[before.Id].Should().Be(25.00m);
+        trustScores[after.Id].Should().Be(76.92m);
     }
 }

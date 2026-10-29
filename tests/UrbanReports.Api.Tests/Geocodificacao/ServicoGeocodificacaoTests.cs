@@ -1,102 +1,102 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Geocoding;
 using UrbanReports.Api.Tests.Infra;
 
-namespace UrbanReports.Api.Tests.Geocodificacao;
+namespace UrbanReports.Api.Tests.Geocoding;
 
-public sealed class ServicoGeocodificacaoTests : IDisposable
+public sealed class GeocodingServiceTests : IDisposable
 {
-    private readonly NominatimFalso _nominatim = new();
-    private readonly ServicoGeocodificacao _servico;
+    private readonly FakeNominatim _nominatim = new();
+    private readonly GeocodingService _service;
 
-    public ServicoGeocodificacaoTests() => _servico = Criar(_nominatim);
+    public GeocodingServiceTests() => _service = Create(_nominatim);
 
-    public void Dispose() => _servico.Dispose();
+    public void Dispose() => _service.Dispose();
 
-    private static ServicoGeocodificacao Criar(NominatimFalso nominatim, int limiteCache = 50_000) =>
+    private static GeocodingService Create(FakeNominatim nominatim, int cacheLimit = 50_000) =>
         new(
             nominatim,
-            Options.Create(new NominatimOptions { Email = "contato@example.com", LimiteEntradasCache = limiteCache }),
-            NullLogger<ServicoGeocodificacao>.Instance);
+            Options.Create(new NominatimOptions { Email = "contato@example.com", CacheEntryLimit = cacheLimit }),
+            NullLogger<GeocodingService>.Instance);
 
     [Fact]
-    public async Task Cache_respeita_o_limite_de_entradas()
+    public async Task Cache_respects_the_entry_limit()
     {
-        using var servico = Criar(new NominatimFalso(), limiteCache: 2);
+        using var service = Create(new FakeNominatim(), cacheLimit: 2);
 
         for (var i = 0; i < 5; i++)
         {
-            await servico.ReversaAsync(-22.95 - i * 0.001, -43.18, CancellationToken.None);
+            await service.ReverseAsync(-22.95 - i * 0.001, -43.18, CancellationToken.None);
         }
 
-        servico.EntradasEmCache.Should().BeLessThanOrEqualTo(2);
+        service.CacheEntries.Should().BeLessThanOrEqualTo(2);
     }
 
     [Fact]
-    public async Task Duas_chamadas_ao_mesmo_ponto_fazem_uma_unica_requisicao()
+    public async Task Two_calls_to_the_same_point_make_a_single_request()
     {
-        var primeira = await _servico.ReversaAsync(-22.9521, -43.1868, CancellationToken.None);
-        var segunda = await _servico.ReversaAsync(-22.9521, -43.1868, CancellationToken.None);
+        var first = await _service.ReverseAsync(-22.9521, -43.1868, CancellationToken.None);
+        var second = await _service.ReverseAsync(-22.9521, -43.1868, CancellationToken.None);
 
-        _nominatim.Chamadas.Should().Be(1);
-        segunda.Should().Be(primeira);
+        _nominatim.Calls.Should().Be(1);
+        second.Should().Be(first);
     }
 
     [Fact]
-    public async Task Pontos_iguais_em_4_casas_compartilham_o_cache()
+    public async Task Points_equal_at_4_places_share_the_cache()
     {
-        await _servico.ReversaAsync(-22.95211, -43.18681, CancellationToken.None);
-        await _servico.ReversaAsync(-22.95209, -43.18679, CancellationToken.None);
+        await _service.ReverseAsync(-22.95211, -43.18681, CancellationToken.None);
+        await _service.ReverseAsync(-22.95209, -43.18679, CancellationToken.None);
 
-        _nominatim.Chamadas.Should().Be(1);
+        _nominatim.Calls.Should().Be(1);
     }
 
     [Fact]
-    public async Task Pontos_diferentes_em_4_casas_consultam_de_novo()
+    public async Task Points_different_at_4_places_query_again()
     {
-        await _servico.ReversaAsync(-22.9521, -43.1868, CancellationToken.None);
-        await _servico.ReversaAsync(-22.9522, -43.1868, CancellationToken.None);
+        await _service.ReverseAsync(-22.9521, -43.1868, CancellationToken.None);
+        await _service.ReverseAsync(-22.9522, -43.1868, CancellationToken.None);
 
-        _nominatim.Chamadas.Should().Be(2);
+        _nominatim.Calls.Should().Be(2);
     }
 
     [Fact]
-    public async Task Nominatim_fora_do_ar_responde_indisponivel_e_nao_guarda_no_cache()
+    public async Task Nominatim_offline_returns_unavailable_and_does_not_cache()
     {
-        _nominatim.ForaDoAr(-22.9521, -43.1868);
+        _nominatim.SetOffline(-22.9521, -43.1868);
 
-        var falha = await _servico.ReversaAsync(-22.9521, -43.1868, CancellationToken.None);
+        var failure = await _service.ReverseAsync(-22.9521, -43.1868, CancellationToken.None);
 
-        falha.Disponivel.Should().BeFalse();
-        falha.Endereco.Should().Be("Próximo a -22.95210, -43.18680");
+        failure.Available.Should().BeFalse();
+        failure.Address.Should().Be("Próximo a -22.95210, -43.18680");
 
-        _nominatim.ForaDoAr(-22.9521, -43.1868, fora: false);
-        var depois = await _servico.ReversaAsync(-22.9521, -43.1868, CancellationToken.None);
+        _nominatim.SetOffline(-22.9521, -43.1868, offline: false);
+        var after = await _service.ReverseAsync(-22.9521, -43.1868, CancellationToken.None);
 
-        depois.Disponivel.Should().BeTrue();
-        _nominatim.Chamadas.Should().Be(2);
+        after.Available.Should().BeTrue();
+        _nominatim.Calls.Should().Be(2);
     }
 
     [Fact]
-    public async Task Indisponivel_usa_a_coordenada_original_no_texto()
+    public async Task Unavailable_uses_the_original_coordinate_in_text()
     {
-        _nominatim.ForaDoAr(-22.95213, -43.18677);
+        _nominatim.SetOffline(-22.95213, -43.18677);
 
-        var e = await _servico.ReversaAsync(-22.95213, -43.18677, CancellationToken.None);
+        var e = await _service.ReverseAsync(-22.95213, -43.18677, CancellationToken.None);
 
-        e.Endereco.Should().Be("Próximo a -22.95213, -43.18677");
+        e.Address.Should().Be("Próximo a -22.95213, -43.18677");
     }
 
     [Fact]
-    public async Task Chamadas_simultaneas_ao_mesmo_ponto_compartilham_a_requisicao()
+    public async Task Concurrent_calls_to_the_same_point_share_the_request()
     {
-        _nominatim.Atraso = TimeSpan.FromMilliseconds(200);
+        _nominatim.Delay = TimeSpan.FromMilliseconds(200);
 
-        var resultados = await Task.WhenAll(Enumerable.Range(0, 5)
-            .Select(_ => _servico.ReversaAsync(-22.9521, -43.1868, CancellationToken.None)));
+        var results = await Task.WhenAll(Enumerable.Range(0, 5)
+            .Select(_ => _service.ReverseAsync(-22.9521, -43.1868, CancellationToken.None)));
 
-        _nominatim.Chamadas.Should().Be(1);
-        resultados.Should().AllSatisfy(r => r.Disponivel.Should().BeTrue());
+        _nominatim.Calls.Should().Be(1);
+        results.Should().AllSatisfy(r => r.Available.Should().BeTrue());
     }
 }

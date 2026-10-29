@@ -1,47 +1,47 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Incidentes;
+using UrbanReports.Api.Incidents;
 
 namespace UrbanReports.Api.Modules;
 
-public sealed class IncidenteModule : IEndpointModule
+public sealed class IncidentModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapPost("/incidentes", Registrar)
-            .Validar<RegistrarIncidenteRequest>()
-            .WithTags("Incidentes");
+        api.MapPost("/incidents", Create)
+            .Validate<CreateIncidentRequest>()
+            .WithTags("Incidents");
 
-        api.MapGet("/incidentes/calor", ObterCalor)
-            .Validar<ObterCalorIncidentesRequest>()
+        api.MapGet("/incidents/heatmap", GetHeatmap)
+            .Validate<GetIncidentHeatmapRequest>()
             .AllowAnonymous()
-            .WithTags("Incidentes");
+            .WithTags("Incidents");
 
-        api.MapGet("/incidentes/area", ObterArea)
-            .Validar<ObterAreaIncidentesRequest>()
+        api.MapGet("/incidents/area", GetArea)
+            .Validate<GetIncidentAreaRequest>()
             .AllowAnonymous()
-            .WithTags("Incidentes");
+            .WithTags("Incidents");
     }
 
-    private static async Task<Results<Created<ObterAreaIncidentesResponse>, ValidationProblem, ProblemHttpResult>> Registrar(
-        RegistrarIncidenteRequest request, ClaimsPrincipal principal, IIncidenteService service, CancellationToken ct)
+    private static async Task<Results<Created<GetIncidentAreaResponse>, ValidationProblem, ProblemHttpResult>> Create(
+        CreateIncidentRequest request, ClaimsPrincipal principal, IIncidentService service, CancellationToken ct)
     {
-        var r = await service.RegistrarAsync(request, principal.ObterUsuarioId(), ct);
-        return r.Erro switch
+        var r = await service.CreateAsync(request, principal.GetUserId(), ct);
+        return r.Error switch
         {
             null => TypedResults.Created(
-                FormattableString.Invariant($"/api/v1/incidentes/area?lat={r.Valor!.Lat}&lng={r.Valor.Lng}"), r.Valor.Area),
-            { Tipo: TipoErro.Campo } e => e.ParaValidacao(),
-            var e => e.ParaProblema(),
+                FormattableString.Invariant($"/api/v1/incidents/area?lat={r.Value!.Lat}&lng={r.Value.Lng}"), r.Value.Area),
+            { Kind: ErrorType.Field } e => e.ToValidation(),
+            var e => e.ToProblem(),
         };
     }
 
-    private static Task<List<ObterCalorIncidentesResponse>> ObterCalor(
-        [AsParameters] ObterCalorIncidentesRequest request, IIncidenteService service, CancellationToken ct) =>
-        service.ObterCalorAsync(request, ct);
+    private static Task<List<GetIncidentHeatmapResponse>> GetHeatmap(
+        [AsParameters] GetIncidentHeatmapRequest request, IIncidentService service, CancellationToken ct) =>
+        service.GetHeatmapAsync(request, ct);
 
-    private static Task<ObterAreaIncidentesResponse> ObterArea(
-        [AsParameters] ObterAreaIncidentesRequest request, IIncidenteService service, CancellationToken ct) =>
-        service.ObterAreaAsync(request, ct);
+    private static Task<GetIncidentAreaResponse> GetArea(
+        [AsParameters] GetIncidentAreaRequest request, IIncidentService service, CancellationToken ct) =>
+        service.GetAreaAsync(request, ct);
 }

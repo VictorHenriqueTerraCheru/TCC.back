@@ -1,229 +1,229 @@
 using Microsoft.EntityFrameworkCore;
-using UrbanReports.Api.Categorias;
+using UrbanReports.Api.Categories;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Votos;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Votes;
+using UrbanReports.Api.Geocoding;
 using UrbanReports.Api.Persistence;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 
-namespace UrbanReports.Api.Problemas;
+namespace UrbanReports.Api.Issues;
 
-public sealed class ProblemaService(
-    AppDbContext db, IServicoGeocodificacao geocodificacao, TimeProvider relogio, ConfiguracaoConfianca cfg) : IProblemaService
+public sealed class IssueService(
+    AppDbContext db, IGeocodingService geocoding, TimeProvider clock, TrustConfiguration cfg) : IIssueService
 {
-    public async Task<Resultado<ObterDetalheProblemaResponse>> RegistrarAsync(RegistrarProblemaRequest request, Guid autorId, CancellationToken ct)
+    public async Task<Result<GetIssueDetailResponse>> CreateAsync(CreateIssueRequest request, Guid authorId, CancellationToken ct)
     {
-        var categoria = await db.Categorias.FindAsync([request.CategoriaId], ct);
-        if (categoria is not { Ativa: true })
+        var category = await db.Categories.FindAsync([request.CategoryId], ct);
+        if (category is not { Active: true })
         {
-            return ErrosProblema.CategoriaInexistente;
+            return IssueErrors.MissingCategory;
         }
 
-        if (categoria.Tipo != TipoOcorrencia.Problema)
+        if (category.Type != ReportType.Issue)
         {
-            return ErrosProblema.CategoriaNaoEProblema;
+            return IssueErrors.CategoryNotIssue;
         }
 
-        var endereco = await geocodificacao.ReversaAsync(request.Lat, request.Lng, ct);
-        var agora = relogio.GetUtcNow();
+        var address = await geocoding.ReverseAsync(request.Lat, request.Lng, ct);
+        var now = clock.GetUtcNow();
 
-        var problema = new Problema
+        var issue = new Issue
         {
             Id = Guid.CreateVersion7(),
-            CategoriaId = categoria.Id,
-            AutorId = autorId,
-            Descricao = string.IsNullOrWhiteSpace(request.Descricao) ? null : request.Descricao.Trim(),
-            Localizacao = Geo.Ponto(request.Lat, request.Lng),
-            EnderecoAproximado = endereco.Endereco,
-            Status = StatusProblema.Nova,
-            CriadoEm = agora,
-            StatusAlteradoEm = agora,
+            CategoryId = category.Id,
+            AuthorId = authorId,
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Location = Geo.ToPoint(request.Lat, request.Lng),
+            ApproximateAddress = address.Address,
+            Status = IssueStatus.New,
+            CreatedAt = now,
+            StatusChangedAt = now,
         };
-        db.Problemas.Add(problema);
+        db.Issues.Add(issue);
         await db.SaveChangesAsync(ct);
 
-        return (await ConsultarDetalheAsync(problema.Id, autorId, agora, ct))!;
+        return (await QueryDetailAsync(issue.Id, authorId, now, ct))!;
     }
 
-    public async Task<Resultado<ObterDetalheProblemaResponse>> ObterDetalheAsync(Guid id, Guid? usuarioId, CancellationToken ct)
+    public async Task<Result<GetIssueDetailResponse>> GetDetailAsync(Guid id, Guid? userId, CancellationToken ct)
     {
-        var detalhe = await ConsultarDetalheAsync(id, usuarioId, relogio.GetUtcNow(), ct);
-        if (detalhe is null)
+        var detail = await QueryDetailAsync(id, userId, clock.GetUtcNow(), ct);
+        if (detail is null)
         {
-            return ErroAplicacao.NaoEncontrado;
+            return ApplicationError.NotFound;
         }
 
-        return detalhe;
+        return detail;
     }
 
-    public async Task<ObterDetalheProblemaResponse?> ConsultarDetalheAsync(Guid id, Guid? usuarioId, DateTimeOffset agora, CancellationToken ct)
+    public async Task<GetIssueDetailResponse?> QueryDetailAsync(Guid id, Guid? userId, DateTimeOffset now, CancellationToken ct)
     {
-        var limite24h = agora.AddHours(-24);
+        var limit24h = now.AddHours(-24);
 
-        var linha = await db.Problemas
+        var row = await db.Issues
             .Where(p => p.Id == id)
             .Select(p => new
             {
                 p.Id,
-                Categoria = new CategoriaResumo(p.Categoria.Id, p.Categoria.Nome, p.Categoria.Grupo, p.Categoria.Icone),
-                p.Descricao,
-                p.Localizacao,
-                p.EnderecoAproximado,
-                p.CriadoEm,
+                Category = new CategorySummary(p.Category.Id, p.Category.Name, p.Category.Group, p.Category.Icon),
+                p.Description,
+                p.Location,
+                p.ApproximateAddress,
+                p.CreatedAt,
                 p.Status,
-                p.Confianca,
-                p.AutorId,
-                Votantes = p.Votos.Select(v => v.UsuarioId).Distinct().Count(),
-                Sim = p.Votos.Count(v => v.Valor == ValorVoto.Positivo),
-                Nao = p.Votos.Count(v => v.Valor == ValorVoto.Negativo),
-                NaoUltimas24h = p.Votos.Count(v => v.Valor == ValorVoto.Negativo && v.RegistradoEm >= limite24h),
-                MeuVoto = p.Votos
-                    .Where(v => v.UsuarioId == usuarioId)
-                    .Select(v => (ValorVoto?)v.Valor)
+                p.TrustScore,
+                p.AuthorId,
+                Voters = p.Votes.Select(v => v.UserId).Distinct().Count(),
+                Yes = p.Votes.Count(v => v.Value == VoteValue.Positive),
+                No = p.Votes.Count(v => v.Value == VoteValue.Negative),
+                NoLast24h = p.Votes.Count(v => v.Value == VoteValue.Negative && v.RegisteredAt >= limit24h),
+                MyVote = p.Votes
+                    .Where(v => v.UserId == userId)
+                    .Select(v => (VoteValue?)v.Value)
                     .FirstOrDefault(),
             })
             .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 
-        if (linha is null)
+        if (row is null)
         {
             return null;
         }
 
-        var (confianca, faixa) = ExibicaoConfianca.Calcular(linha.Status, linha.Confianca, cfg);
+        var (trust, band) = TrustDisplay.Calculate(row.Status, row.TrustScore, cfg);
 
-        return new ObterDetalheProblemaResponse(
-            linha.Id,
-            linha.Categoria,
-            linha.Descricao,
-            linha.Localizacao.Y,
-            linha.Localizacao.X,
-            linha.EnderecoAproximado,
-            linha.CriadoEm,
-            linha.Status,
-            confianca,
-            faixa,
-            linha.Status == StatusProblema.Nova
-                ? new ObterDetalheProblemaAvaliacao(linha.Votantes, cfg.VotantesParaSairDeNova, linha.CriadoEm + cfg.TempoMaximoEmNova)
+        return new GetIssueDetailResponse(
+            row.Id,
+            row.Category,
+            row.Description,
+            row.Location.Y,
+            row.Location.X,
+            row.ApproximateAddress,
+            row.CreatedAt,
+            row.Status,
+            trust,
+            band,
+            row.Status == IssueStatus.New
+                ? new GetIssueDetailEvaluation(row.Voters, cfg.VotersToLeaveNew, row.CreatedAt + cfg.MaxTimeInNew)
                 : null,
-            new ObterDetalheProblemaVotos(linha.Sim, linha.Nao, linha.NaoUltimas24h),
-            usuarioId is null ? null : (ValorVotoContrato?)linha.MeuVoto,
-            usuarioId is not null && linha.AutorId == usuarioId);
+            new GetIssueDetailVotes(row.Yes, row.No, row.NoLast24h),
+            userId is null ? null : (VoteAnswer?)row.MyVote,
+            userId is not null && row.AuthorId == userId);
     }
 
-    public async Task<List<BuscarDuplicatasResponse>> BuscarDuplicatasAsync(BuscarDuplicatasRequest request, CancellationToken ct)
+    public async Task<List<SearchDuplicatesResponse>> SearchDuplicatesAsync(SearchDuplicatesRequest request, CancellationToken ct)
     {
-        var ponto = Geo.Ponto(request.Lat, request.Lng);
+        var point = Geo.ToPoint(request.Lat, request.Lng);
 
-        var linhas = await db.Problemas
-            .Where(p => p.CategoriaId == request.CategoriaId
-                && p.Status != StatusProblema.Resolvida
-                && p.Localizacao.IsWithinDistance(ponto, LimitesProblema.RaioDuplicatasMetros))
+        var rows = await db.Issues
+            .Where(p => p.CategoryId == request.CategoryId
+                && p.Status != IssueStatus.Resolved
+                && p.Location.IsWithinDistance(point, IssueLimits.DuplicatesRadiusMeters))
             .Select(p => new
             {
                 p.Id,
-                Categoria = new CategoriaResumo(p.Categoria.Id, p.Categoria.Nome, p.Categoria.Grupo, p.Categoria.Icone),
-                p.EnderecoAproximado,
-                p.CriadoEm,
-                Distancia = p.Localizacao.Distance(ponto),
+                Category = new CategorySummary(p.Category.Id, p.Category.Name, p.Category.Group, p.Category.Icon),
+                p.ApproximateAddress,
+                p.CreatedAt,
+                Distance = p.Location.Distance(point),
                 p.Status,
-                p.Confianca,
-                Confirmacoes = p.Votos.Count(v => v.Valor == ValorVoto.Positivo),
+                p.TrustScore,
+                Confirmations = p.Votes.Count(v => v.Value == VoteValue.Positive),
             })
-            .OrderBy(p => p.Distancia)
-            .Take(LimitesProblema.MaximoDuplicatas)
+            .OrderBy(p => p.Distance)
+            .Take(IssueLimits.MaxDuplicates)
             .AsNoTracking()
             .ToListAsync(ct);
 
-        return linhas
-            .Select(l => new BuscarDuplicatasResponse(
+        return rows
+            .Select(l => new SearchDuplicatesResponse(
                 l.Id,
-                l.Categoria,
-                l.EnderecoAproximado,
-                l.CriadoEm,
-                (int)Math.Round(l.Distancia, MidpointRounding.AwayFromZero),
-                ExibicaoConfianca.Calcular(l.Status, l.Confianca, cfg).Faixa,
-                l.Confirmacoes))
+                l.Category,
+                l.ApproximateAddress,
+                l.CreatedAt,
+                (int)Math.Round(l.Distance, MidpointRounding.AwayFromZero),
+                TrustDisplay.Calculate(l.Status, l.TrustScore, cfg).Band,
+                l.Confirmations))
             .ToList();
     }
 
-    public async Task<List<ListarProblemasNaAreaResponse>> ListarNaAreaAsync(ListarProblemasNaAreaRequest request, CancellationToken ct)
+    public async Task<List<ListIssuesInAreaResponse>> ListInAreaAsync(ListIssuesInAreaRequest request, CancellationToken ct)
     {
-        var grupos = Listas.Separar(request.Grupos);
-        var pedidos = Listas.Separar(request.Status).Select(s => Enum.Parse<StatusProblema>(s, ignoreCase: true)).ToArray();
-        StatusProblema[] status = pedidos.Length == 0
-            ? [StatusProblema.Nova, StatusProblema.Ativa, StatusProblema.PossivelmenteResolvida]
-            : pedidos.Where(s => s != StatusProblema.Resolvida).Distinct().ToArray();
+        var groups = Lists.Split(request.Groups);
+        var requests = Lists.Split(request.Status).Select(s => Enum.Parse<IssueStatus>(s, ignoreCase: true)).ToArray();
+        IssueStatus[] status = requests.Length == 0
+            ? [IssueStatus.New, IssueStatus.Active, IssueStatus.PossiblyResolved]
+            : requests.Where(s => s != IssueStatus.Resolved).Distinct().ToArray();
         if (status.Length == 0)
         {
             return [];
         }
 
-        var consulta = db.Problemas
+        var query = db.Issues
             .FromSql($"""
-                SELECT * FROM problemas
-                WHERE localizacao::geometry && ST_MakeEnvelope({request.MinLng}, {request.MinLat}, {request.MaxLng}, {request.MaxLat}, 4326)
+                SELECT * FROM issues
+                WHERE location::geometry && ST_MakeEnvelope({request.MinLng}, {request.MinLat}, {request.MaxLng}, {request.MaxLat}, 4326)
                 """)
             .Where(p => status.Contains(p.Status));
-        if (grupos.Length > 0)
+        if (groups.Length > 0)
         {
-            consulta = consulta.Where(p => grupos.Contains(p.Categoria.Grupo));
+            query = query.Where(p => groups.Contains(p.Category.Group));
         }
 
-        var linhas = await consulta
-            .OrderByDescending(p => p.Confianca.HasValue && p.Status != StatusProblema.Nova)
-            .ThenByDescending(p => p.Confianca)
-            .ThenByDescending(p => p.CriadoEm)
-            .Take(LimitesProblema.MaximoNaArea)
-            .Select(p => new { p.Id, p.CategoriaId, p.Localizacao, p.Status, p.Confianca })
+        var rows = await query
+            .OrderByDescending(p => p.TrustScore.HasValue && p.Status != IssueStatus.New)
+            .ThenByDescending(p => p.TrustScore)
+            .ThenByDescending(p => p.CreatedAt)
+            .Take(IssueLimits.MaxInArea)
+            .Select(p => new { p.Id, p.CategoryId, p.Location, p.Status, p.TrustScore })
             .AsNoTracking()
             .ToListAsync(ct);
 
-        return linhas
+        return rows
             .Select(l =>
             {
-                var (confianca, faixa) = ExibicaoConfianca.Calcular(l.Status, l.Confianca, cfg);
-                return new ListarProblemasNaAreaResponse(l.Id, l.CategoriaId, l.Localizacao.Y, l.Localizacao.X, l.Status, confianca, faixa);
+                var (trust, band) = TrustDisplay.Calculate(l.Status, l.TrustScore, cfg);
+                return new ListIssuesInAreaResponse(l.Id, l.CategoryId, l.Location.Y, l.Location.X, l.Status, trust, band);
             })
             .ToList();
     }
 
-    public async Task<Paginado<ListarProblemasRecentesItem>> ListarRecentesAsync(ListarProblemasRecentesRequest request, CancellationToken ct)
+    public async Task<Paged<ListRecentIssuesItem>> ListRecentAsync(ListRecentIssuesRequest request, CancellationToken ct)
     {
-        var ponto = Geo.Ponto(request.Lat, request.Lng);
-        var grupos = Listas.Separar(request.Grupos);
+        var point = Geo.ToPoint(request.Lat, request.Lng);
+        var groups = Lists.Split(request.Groups);
 
-        var consulta = db.Problemas.Where(p =>
-            p.Status != StatusProblema.Resolvida && p.Localizacao.IsWithinDistance(ponto, request.RaioKm * 1000));
-        if (grupos.Length > 0)
+        var query = db.Issues.Where(p =>
+            p.Status != IssueStatus.Resolved && p.Location.IsWithinDistance(point, request.RadiusKm * 1000));
+        if (groups.Length > 0)
         {
-            consulta = consulta.Where(p => grupos.Contains(p.Categoria.Grupo));
+            query = query.Where(p => groups.Contains(p.Category.Group));
         }
 
-        var total = await consulta.CountAsync(ct);
-        var linhas = await consulta
-            .OrderByDescending(p => p.CriadoEm)
+        var total = await query.CountAsync(ct);
+        var rows = await query
+            .OrderByDescending(p => p.CreatedAt)
             .ThenBy(p => p.Id)
-            .Skip(Paginacao.Pular(request.Pagina, request.Tamanho))
-            .Take(request.Tamanho)
+            .Skip(Pagination.Skip(request.Page, request.PageSize))
+            .Take(request.PageSize)
             .Select(p => new
             {
                 p.Id,
-                Categoria = new CategoriaResumo(p.Categoria.Id, p.Categoria.Nome, p.Categoria.Grupo, p.Categoria.Icone),
-                p.EnderecoAproximado,
-                p.CriadoEm,
+                Category = new CategorySummary(p.Category.Id, p.Category.Name, p.Category.Group, p.Category.Icon),
+                p.ApproximateAddress,
+                p.CreatedAt,
                 p.Status,
-                p.Confianca,
+                p.TrustScore,
             })
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var itens = linhas
-            .Select(l => new ListarProblemasRecentesItem(
-                l.Id, l.Categoria, l.EnderecoAproximado, l.CriadoEm, l.Status,
-                ExibicaoConfianca.Calcular(l.Status, l.Confianca, cfg).Faixa))
+        var items = rows
+            .Select(l => new ListRecentIssuesItem(
+                l.Id, l.Category, l.ApproximateAddress, l.CreatedAt, l.Status,
+                TrustDisplay.Calculate(l.Status, l.TrustScore, cfg).Band))
             .ToList();
 
-        return new Paginado<ListarProblemasRecentesItem>(itens, request.Pagina, request.Tamanho, total);
+        return new Paged<ListRecentIssuesItem>(items, request.Page, request.PageSize, total);
     }
 }

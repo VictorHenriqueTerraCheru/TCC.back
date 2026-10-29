@@ -5,102 +5,102 @@ using UrbanReports.Api.Tests.Infra;
 
 namespace UrbanReports.Api.Tests.Auth;
 
-[Collection(ApiCollection.Nome)]
-public sealed class LoginBloqueioTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class LoginLockoutTests(ApiFactory factory)
 {
-    private const int MaximoFalhas = 5;
-    private readonly HttpClient _cliente = fabrica.CreateClient();
+    private const int MaxFailures = 5;
+    private readonly HttpClient _client = factory.CreateClient();
 
-    private Task<HttpResponseMessage> Login(string email, string senha) =>
-        _cliente.PostAsJsonAsync("/api/v1/auth/login", new { email, senha }, ClienteApi.Json);
+    private Task<HttpResponseMessage> Login(string email, string password) =>
+        _client.PostAsJsonAsync("/api/v1/auth/login", new { email, password }, ApiClient.Json);
 
-    private async Task Falhar(string email, int vezes)
+    private async Task Fail(string email, int times)
     {
-        for (var i = 0; i < vezes; i++)
+        for (var i = 0; i < times; i++)
         {
             (await Login(email, "senha-errada")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         }
     }
 
-    private static async Task<string> SemTraceId(HttpResponseMessage resposta) =>
-        string.Join(";", (await resposta.LerJsonAsync()).EnumerateObject()
+    private static async Task<string> WithoutTraceId(HttpResponseMessage response) =>
+        string.Join(";", (await response.ReadJsonAsync()).EnumerateObject()
             .Where(p => p.Name != "traceId")
             .Select(p => $"{p.Name}={p.Value}"));
 
     [Fact]
-    public async Task Apos_N_falhas_a_conta_bloqueia_mesmo_com_a_senha_certa()
+    public async Task After_N_failures_the_account_locks_even_with_the_right_password()
     {
-        var email = ClienteApi.EmailUnico();
-        await _cliente.CadastrarAsync(email);
+        var email = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(email);
 
-        await Falhar(email, MaximoFalhas);
+        await Fail(email, MaxFailures);
 
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Falhas_simultaneas_contam_todas_e_bloqueiam()
+    public async Task Concurrent_failures_all_count_and_lock()
     {
-        var email = ClienteApi.EmailUnico();
-        await _cliente.CadastrarAsync(email);
+        var email = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(email);
 
-        var respostas = await Task.WhenAll(Enumerable.Range(0, MaximoFalhas).Select(_ => Login(email, "senha-errada")));
-        respostas.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Unauthorized);
+        var responses = await Task.WhenAll(Enumerable.Range(0, MaxFailures).Select(_ => Login(email, "senha-errada")));
+        responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Unauthorized);
 
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Antes_de_N_falhas_a_senha_certa_entra_e_zera_o_contador()
+    public async Task Before_N_failures_the_right_password_logs_in_and_resets_the_counter()
     {
-        var email = ClienteApi.EmailUnico();
-        await _cliente.CadastrarAsync(email);
+        var email = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(email);
 
-        await Falhar(email, MaximoFalhas - 1);
+        await Fail(email, MaxFailures - 1);
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
 
-        await Falhar(email, MaximoFalhas - 1);
+        await Fail(email, MaxFailures - 1);
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
-    public async Task Resposta_de_conta_bloqueada_e_identica_a_de_credencial_invalida()
+    public async Task Locked_account_response_equals_invalid_credentials_response()
     {
-        var email = ClienteApi.EmailUnico();
-        await _cliente.CadastrarAsync(email);
-        var invalida = await Login(email, "senha-errada");
-        await Falhar(email, MaximoFalhas);
+        var email = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(email);
+        var invalid = await Login(email, "senha-errada");
+        await Fail(email, MaxFailures);
 
-        var bloqueada = await Login(email, "senha-forte");
+        var locked = await Login(email, "senha-forte");
 
-        bloqueada.StatusCode.Should().Be(invalida.StatusCode);
-        (await SemTraceId(bloqueada)).Should().Be(await SemTraceId(invalida));
-        bloqueada.Headers.Contains("Retry-After").Should().BeFalse();
+        locked.StatusCode.Should().Be(invalid.StatusCode);
+        (await WithoutTraceId(locked)).Should().Be(await WithoutTraceId(invalid));
+        locked.Headers.Contains("Retry-After").Should().BeFalse();
     }
 
     [Fact]
-    public async Task Bloqueio_de_uma_conta_nao_afeta_o_login_de_outra()
+    public async Task Lockout_of_one_account_does_not_affect_another_login()
     {
-        var bloqueado = ClienteApi.EmailUnico();
-        var outro = ClienteApi.EmailUnico();
-        await _cliente.CadastrarAsync(bloqueado);
-        await _cliente.CadastrarAsync(outro);
+        var locked = ApiClient.UniqueEmail();
+        var other = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(locked);
+        await _client.RegisterAsync(other);
 
-        await Falhar(bloqueado, MaximoFalhas);
+        await Fail(locked, MaxFailures);
 
-        (await Login(outro, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Login(other, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
-    public async Task Conta_volta_a_entrar_quando_o_bloqueio_termina()
+    public async Task Account_logs_in_again_when_the_lockout_ends()
     {
-        var email = ClienteApi.EmailUnico();
-        await _cliente.CadastrarAsync(email);
-        await Falhar(email, MaximoFalhas);
+        var email = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(email);
+        await Fail(email, MaxFailures);
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        await fabrica.NoBancoAsync(db => db.Database.ExecuteSqlAsync(
-            $"UPDATE usuarios SET lockout_end = now() - interval '1 minute' WHERE normalized_email = {email.ToUpperInvariant()}"));
+        await factory.InDatabaseAsync(db => db.Database.ExecuteSqlAsync(
+            $"UPDATE users SET lockout_end = now() - interval '1 minute' WHERE normalized_email = {email.ToUpperInvariant()}"));
 
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
     }

@@ -3,16 +3,16 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace UrbanReports.Api.Persistence;
 
-public sealed class VotoConfiguration : IEntityTypeConfiguration<Voto>
+public sealed class VoteConfiguration : IEntityTypeConfiguration<Vote>
 {
-    public void Configure(EntityTypeBuilder<Voto> b)
+    public void Configure(EntityTypeBuilder<Vote> b)
     {
-        b.ToTable("votos");
+        b.ToTable("votes");
 
-        b.HasOne(v => v.Problema).WithMany(p => p.Votos).HasForeignKey(v => v.ProblemaId).OnDelete(DeleteBehavior.Cascade);
-        b.HasOne(v => v.Usuario).WithMany().HasForeignKey(v => v.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(v => v.Issue).WithMany(p => p.Votes).HasForeignKey(v => v.IssueId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(v => v.User).WithMany().HasForeignKey(v => v.UserId).OnDelete(DeleteBehavior.Restrict);
 
-        b.HasIndex(v => new { v.ProblemaId, v.UsuarioId }).IsUnique();
-        b.HasIndex(v => new { v.UsuarioId, v.RegistradoEm });
+        b.HasIndex(v => new { v.IssueId, v.UserId }).IsUnique();
+        b.HasIndex(v => new { v.UserId, v.RegisteredAt });
     }
 }

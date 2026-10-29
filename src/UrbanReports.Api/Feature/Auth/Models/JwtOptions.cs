@@ -4,14 +4,14 @@ namespace UrbanReports.Api.Auth;
 
 public sealed class JwtOptions
 {
-    public const string Secao = "Jwt";
+    public const string Section = "Jwt";
 
     [Required, MinLength(32)]
-    public string Chave { get; set; } = "";
+    public string Key { get; set; } = "";
 
-    public string Emissor { get; set; } = "ocorrencias-api";
-    public string Audiencia { get; set; } = "ocorrencias-front";
+    public string Issuer { get; set; } = "ocorrencias-api";
+    public string Audience { get; set; } = "ocorrencias-front";
 
     [Range(1, 30)]
-    public int ValidadeDias { get; set; } = 7;
+    public int ValidityDays { get; set; } = 7;
 }

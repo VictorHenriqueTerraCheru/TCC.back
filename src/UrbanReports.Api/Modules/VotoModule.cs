@@ -1,31 +1,31 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Problemas;
-using UrbanReports.Api.Votos;
+using UrbanReports.Api.Issues;
+using UrbanReports.Api.Votes;
 
 namespace UrbanReports.Api.Modules;
 
-public sealed class VotoModule : IEndpointModule
+public sealed class VoteModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapPut("/problemas/{id:guid}/voto", Votar)
-            .Validar<VotarRequest>()
-            .WithTags("Votos");
+        api.MapPut("/issues/{id:guid}/vote", Vote)
+            .Validate<VoteRequest>()
+            .WithTags("Votes");
     }
 
-    private static async Task<Results<Ok<ObterDetalheProblemaResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> Votar(
-        Guid id, VotarRequest request, ClaimsPrincipal principal, IVotoService service, CancellationToken ct) =>
-        ParaHttp(await service.VotarAsync(id, principal.ObterUsuarioId(), request, ct));
+    private static async Task<Results<Ok<GetIssueDetailResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> Vote(
+        Guid id, VoteRequest request, ClaimsPrincipal principal, IVoteService service, CancellationToken ct) =>
+        ToHttp(await service.VoteAsync(id, principal.GetUserId(), request, ct));
 
-    private static Results<Ok<ObterDetalheProblemaResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult> ParaHttp(
-        Resultado<ObterDetalheProblemaResponse> r) =>
-        r.Erro switch
+    private static Results<Ok<GetIssueDetailResponse>, NotFound, ProblemHttpResult, UnauthorizedHttpResult> ToHttp(
+        Result<GetIssueDetailResponse> r) =>
+        r.Error switch
         {
-            null => TypedResults.Ok(r.Valor!),
-            { Tipo: TipoErro.NaoEncontrado } e => e.ParaNaoEncontrado(),
-            { Tipo: TipoErro.NaoAutorizado } e => e.ParaNaoAutorizado(),
-            var e => e.ParaProblema(),
+            null => TypedResults.Ok(r.Value!),
+            { Kind: ErrorType.NotFound } e => e.ToNotFound(),
+            { Kind: ErrorType.Unauthorized } e => e.ToUnauthorized(),
+            var e => e.ToProblem(),
         };
 }

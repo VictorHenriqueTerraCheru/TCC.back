@@ -1,9 +1,9 @@
-namespace UrbanReports.Api.Problemas;
+namespace UrbanReports.Api.Issues;
 
-public static class LimitesProblema
+public static class IssueLimits
 {
-    public const double RaioDuplicatasMetros = 50;
-    public const int MaximoDuplicatas = 20;
-    public const int MaximoNaArea = 500;
-    public const double RaioMaximoRecentesKm = 50;
+    public const double DuplicatesRadiusMeters = 50;
+    public const int MaxDuplicates = 20;
+    public const int MaxInArea = 500;
+    public const double MaxRecentRadiusKm = 50;
 }

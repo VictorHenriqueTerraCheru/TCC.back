@@ -3,24 +3,24 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-public sealed class Problema
+public sealed class Issue
 {
     public Guid Id { get; set; }
-    public short CategoriaId { get; set; }
-    public Categoria Categoria { get; set; } = null!;
-    public Guid AutorId { get; set; }
-    public Usuario Autor { get; set; } = null!;
-    public string? Descricao { get; set; }
+    public short CategoryId { get; set; }
+    public Category Category { get; set; } = null!;
+    public Guid AuthorId { get; set; }
+    public User Author { get; set; } = null!;
+    public string? Description { get; set; }
 
-    public required Point Localizacao { get; set; }
+    public required Point Location { get; set; }
 
-    public required string EnderecoAproximado { get; set; }
-    public StatusProblema Status { get; set; } = StatusProblema.Nova;
+    public required string ApproximateAddress { get; set; }
+    public IssueStatus Status { get; set; } = IssueStatus.New;
 
-    public decimal? Confianca { get; set; }
+    public decimal? TrustScore { get; set; }
 
-    public DateTimeOffset CriadoEm { get; set; }
-    public DateTimeOffset StatusAlteradoEm { get; set; }
-    public DateTimeOffset? CondicaoResolucaoDesde { get; set; }
-    public List<Voto> Votos { get; set; } = [];
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset StatusChangedAt { get; set; }
+    public DateTimeOffset? ResolutionConditionSince { get; set; }
+    public List<Vote> Votes { get; set; } = [];
 }

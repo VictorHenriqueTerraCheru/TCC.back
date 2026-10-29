@@ -4,79 +4,79 @@ using UrbanReports.Api.Common;
 using UrbanReports.Api.Infrastructure;
 using UrbanReports.Api.Tests.Infra;
 
-namespace UrbanReports.Api.Tests.Esqueleto;
+namespace UrbanReports.Api.Tests.Skeleton;
 
-[Collection(ApiCollection.Nome)]
-public sealed class EsqueletoTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class SkeletonTests(ApiFactory factory)
 {
-    private readonly HttpClient _cliente = fabrica.CreateClient();
+    private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Documento_openapi_descreve_enums_como_string_e_nao_colide_nomes()
+    public async Task Openapi_document_describes_enums_as_string_without_name_collisions()
     {
-        var resposta = await _cliente.GetAsync("/openapi/v1.json");
-        var documento = await resposta.Content.ReadAsStringAsync();
+        var response = await _client.GetAsync("/openapi/v1.json");
+        var document = await response.Content.ReadAsStringAsync();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        documento.Should().Contain("\"cidadaoVerificado\"");
-        documento.Should().Contain("\"CadastrarRequest\"").And.Contain("\"EntrarRequest\"");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        document.Should().Contain("\"verifiedCitizen\"");
+        document.Should().Contain("\"RegisterRequest\"").And.Contain("\"LoginRequest\"");
     }
 
     [Fact]
-    public async Task Nenhum_schema_do_contrato_expoe_o_autor()
+    public async Task No_contract_schema_exposes_the_author()
     {
-        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).Content.ReadAsStringAsync();
+        var document = await (await _client.GetAsync("/openapi/v1.json")).Content.ReadAsStringAsync();
 
-        documento.Should().NotContainEquivalentOf("autorId");
+        document.Should().NotContainEquivalentOf("authorId");
     }
 
     [Fact]
-    public async Task Openapi_gera_tipos_precisos_para_o_front()
+    public async Task Openapi_generates_precise_types_for_the_front()
     {
-        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();
+        var document = await (await _client.GetAsync("/openapi/v1.json")).ReadJsonAsync();
 
-        documento.GetRawText().Should().NotContain("\"pattern\"", "números não devem aceitar string (integer|string)");
-        foreach (var schema in documento.GetProperty("components").GetProperty("schemas").EnumerateObject())
+        document.GetRawText().Should().NotContain("\"pattern\"", "números não devem aceitar string (integer|string)");
+        foreach (var schema in document.GetProperty("components").GetProperty("schemas").EnumerateObject())
         {
-            if (schema.Value.TryGetProperty("enum", out var valores))
+            if (schema.Value.TryGetProperty("enum", out var values))
             {
-                valores.EnumerateArray().Should().NotContain(v => v.ValueKind == JsonValueKind.Null, $"enum {schema.Name} não deve incluir null");
+                values.EnumerateArray().Should().NotContain(v => v.ValueKind == JsonValueKind.Null, $"enum {schema.Name} não deve incluir null");
             }
         }
 
-        foreach (var caminho in documento.GetProperty("paths").EnumerateObject())
+        foreach (var path in document.GetProperty("paths").EnumerateObject())
         {
-            foreach (var operacao in caminho.Value.EnumerateObject())
+            foreach (var operation in path.Value.EnumerateObject())
             {
-                if (!operacao.Value.TryGetProperty("parameters", out var parametros))
+                if (!operation.Value.TryGetProperty("parameters", out var parameters))
                 {
                     continue;
                 }
 
-                foreach (var parametro in parametros.EnumerateArray().Where(p => p.GetProperty("in").GetString() == "query"))
+                foreach (var parameter in parameters.EnumerateArray().Where(p => p.GetProperty("in").GetString() == "query"))
                 {
-                    var nome = parametro.GetProperty("name").GetString()!;
-                    char.IsLower(nome[0]).Should().BeTrue($"parâmetro {nome} em {caminho.Name} deve ser camelCase");
+                    var name = parameter.GetProperty("name").GetString()!;
+                    char.IsLower(name[0]).Should().BeTrue($"parâmetro {name} em {path.Name} deve ser camelCase");
                 }
             }
         }
     }
 
     [Fact]
-    public async Task Respostas_paginadas_tem_schemas_distintos()
+    public async Task Paged_responses_have_distinct_schemas()
     {
-        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();
-        string Ref(string caminho) => documento.GetProperty("paths").GetProperty(caminho).GetProperty("get")
+        var document = await (await _client.GetAsync("/openapi/v1.json")).ReadJsonAsync();
+        string Ref(string path) => document.GetProperty("paths").GetProperty(path).GetProperty("get")
             .GetProperty("responses").GetProperty("200").GetProperty("content").GetProperty("application/json")
             .GetProperty("schema").GetProperty("$ref").GetString()!;
 
-        string[] refs = [Ref("/api/v1/problemas/recentes"), Ref("/api/v1/me/historico"), Ref("/api/v1/admin/verificacoes")];
+        string[] refs = [Ref("/api/v1/issues/recent"), Ref("/api/v1/me/history"), Ref("/api/v1/admin/verifications")];
 
         refs.Should().OnlyHaveUniqueItems();
-        refs[0].Should().EndWith("PaginadoListarProblemasRecentesItem");
+        refs[0].Should().EndWith("PagedListRecentIssuesItem");
     }
 
-    private sealed record Envelope<T>(T Valor);
+    private sealed record Envelope<T>(T Value);
 
     private static class Feature
     {
@@ -84,70 +84,70 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
     }
 
     [Fact]
-    public void Nome_de_schema_generico_inclui_o_argumento_qualificado() =>
-        OpenApiConfig.NomeSchema(typeof(Envelope<Feature.Item>)).Should().Be("EsqueletoTestsEnvelopeFeatureItem");
+    public void Generic_schema_name_includes_the_qualified_argument() =>
+        OpenApiConfig.SchemaName(typeof(Envelope<Feature.Item>)).Should().Be("SkeletonTestsEnvelopeFeatureItem");
 
     [Fact]
-    public void Nullable_usa_o_mesmo_nome_do_tipo() =>
-        OpenApiConfig.NomeSchema(typeof(Api.Common.Perfil?)).Should().Be("Perfil");
+    public void Nullable_uses_the_same_type_name() =>
+        OpenApiConfig.SchemaName(typeof(Api.Common.Role?)).Should().Be("Role");
 
     [Fact]
-    public async Task Nenhum_schema_e_variacao_nullable()
+    public async Task No_schema_is_a_nullable_variant()
     {
-        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();
+        var document = await (await _client.GetAsync("/openapi/v1.json")).ReadJsonAsync();
 
-        documento.GetProperty("components").GetProperty("schemas").EnumerateObject()
+        document.GetProperty("components").GetProperty("schemas").EnumerateObject()
             .Select(p => p.Name).Should().NotContain(n => n.StartsWith("Nullable", StringComparison.Ordinal));
     }
 
     [Theory]
     [InlineData("/api/v1/auth/login", "post", false)]
-    [InlineData("/api/v1/auth/cadastro", "post", false)]
-    [InlineData("/api/v1/categorias", "get", false)]
+    [InlineData("/api/v1/auth/register", "post", false)]
+    [InlineData("/api/v1/categories", "get", false)]
     [InlineData("/api/v1/me", "get", true)]
     [InlineData("/api/v1/me", "patch", true)]
-    public async Task Openapi_exige_bearer_so_nas_operacoes_protegidas(string caminho, string metodo, bool exigeBearer)
+    public async Task Openapi_requires_bearer_only_on_protected_operations(string path, string method, bool requiresBearer)
     {
-        var documento = await (await _cliente.GetAsync("/openapi/v1.json")).LerJsonAsync();
-        var operacao = documento.GetProperty("paths").GetProperty(caminho).GetProperty(metodo);
+        var document = await (await _client.GetAsync("/openapi/v1.json")).ReadJsonAsync();
+        var operation = document.GetProperty("paths").GetProperty(path).GetProperty(method);
 
-        operacao.TryGetProperty("security", out _).Should().Be(exigeBearer);
+        operation.TryGetProperty("security", out _).Should().Be(requiresBearer);
     }
 
     [Theory]
-    [InlineData(ApiFactory.OrigemFront, true)]
+    [InlineData(ApiFactory.FrontOrigin, true)]
     [InlineData("https://malicioso.example", false)]
-    public async Task Cors_libera_somente_origens_configuradas(string origem, bool liberada)
+    public async Task Cors_allows_only_configured_origins(string origin, bool released)
     {
-        using var requisicao = new HttpRequestMessage(HttpMethod.Options, "/api/v1/saude");
-        requisicao.Headers.Add("Origin", origem);
-        requisicao.Headers.Add("Access-Control-Request-Method", "GET");
+        using var request = new HttpRequestMessage(HttpMethod.Options, "/api/v1/health");
+        request.Headers.Add("Origin", origin);
+        request.Headers.Add("Access-Control-Request-Method", "GET");
 
-        var resposta = await _cliente.SendAsync(requisicao);
+        var response = await _client.SendAsync(request);
 
-        resposta.Headers.Contains("Access-Control-Allow-Origin").Should().Be(liberada);
+        response.Headers.Contains("Access-Control-Allow-Origin").Should().Be(released);
     }
 
-    private enum StatusExemplo { PossivelmenteResolvida }
+    private enum SampleStatus { PossiblyResolved }
 
     [Fact]
-    public void Enums_trafegam_como_string_camel_case()
+    public void Enums_travel_as_camel_case_string()
     {
-        var opcoes = new JsonSerializerOptions();
-        JsonConfig.Configurar(opcoes);
+        var options = new JsonSerializerOptions();
+        JsonConfig.Configure(options);
 
-        JsonSerializer.Serialize(StatusExemplo.PossivelmenteResolvida, opcoes)
-            .Should().Be("\"possivelmenteResolvida\"");
+        JsonSerializer.Serialize(SampleStatus.PossiblyResolved, options)
+            .Should().Be("\"possiblyResolved\"");
     }
 
     [Fact]
-    public void Datas_trafegam_em_utc_com_z()
+    public void Dates_travel_in_utc_with_z()
     {
-        var opcoes = new JsonSerializerOptions();
-        JsonConfig.Configurar(opcoes);
+        var options = new JsonSerializerOptions();
+        JsonConfig.Configure(options);
         var data = new DateTimeOffset(2026, 10, 6, 19, 19, 0, TimeSpan.FromHours(-3));
 
-        JsonSerializer.Serialize(data, opcoes).Should().Be("\"2026-10-06T22:19:00Z\"");
-        JsonSerializer.Serialize<DateTimeOffset?>(null, opcoes).Should().Be("null");
+        JsonSerializer.Serialize(data, options).Should().Be("\"2026-10-06T22:19:00Z\"");
+        JsonSerializer.Serialize<DateTimeOffset?>(null, options).Should().Be("null");
     }
 }

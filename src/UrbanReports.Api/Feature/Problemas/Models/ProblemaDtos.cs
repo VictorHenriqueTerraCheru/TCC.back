@@ -1,59 +1,59 @@
-using UrbanReports.Api.Categorias;
+using UrbanReports.Api.Categories;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Votos;
+using UrbanReports.Api.Votes;
 
-namespace UrbanReports.Api.Problemas;
+namespace UrbanReports.Api.Issues;
 
-public sealed record RegistrarProblemaRequest(short CategoriaId, double Lat, double Lng, string? Descricao);
+public sealed record CreateIssueRequest(short CategoryId, double Lat, double Lng, string? Description);
 
-public sealed record BuscarDuplicatasRequest(short CategoriaId, double Lat, double Lng);
+public sealed record SearchDuplicatesRequest(short CategoryId, double Lat, double Lng);
 
-public sealed record BuscarDuplicatasResponse(
+public sealed record SearchDuplicatesResponse(
     Guid Id,
-    CategoriaResumo Categoria,
-    string Endereco,
-    DateTimeOffset CriadoEm,
-    int DistanciaMetros,
-    FaixaConfianca? Faixa,
-    int Confirmacoes);
+    CategorySummary Category,
+    string Address,
+    DateTimeOffset CreatedAt,
+    int DistanceMeters,
+    TrustBand? Band,
+    int Confirmations);
 
-public sealed record ListarProblemasNaAreaRequest(double MinLat, double MinLng, double MaxLat, double MaxLng, string? Grupos, string? Status);
+public sealed record ListIssuesInAreaRequest(double MinLat, double MinLng, double MaxLat, double MaxLng, string? Groups, string? Status);
 
-public sealed record ListarProblemasNaAreaResponse(
-    Guid Id, short CategoriaId, double Lat, double Lng, StatusProblema Status, double? Confianca, FaixaConfianca? Faixa);
+public sealed record ListIssuesInAreaResponse(
+    Guid Id, short CategoryId, double Lat, double Lng, IssueStatus Status, double? TrustScore, TrustBand? Band);
 
-public sealed record ListarProblemasRecentesRequest(
+public sealed record ListRecentIssuesRequest(
     double Lat,
     double Lng,
-    double RaioKm = 10,
-    string? Grupos = null,
-    int Pagina = 1,
-    int Tamanho = Paginacao.TamanhoPadrao);
+    double RadiusKm = 10,
+    string? Groups = null,
+    int Page = 1,
+    int PageSize = Pagination.DefaultPageSize);
 
-public sealed record ListarProblemasRecentesItem(
+public sealed record ListRecentIssuesItem(
     Guid Id,
-    CategoriaResumo Categoria,
-    string Endereco,
-    DateTimeOffset CriadoEm,
-    StatusProblema Status,
-    FaixaConfianca? Faixa);
+    CategorySummary Category,
+    string Address,
+    DateTimeOffset CreatedAt,
+    IssueStatus Status,
+    TrustBand? Band);
 
-public sealed record ObterDetalheProblemaResponse(
+public sealed record GetIssueDetailResponse(
     Guid Id,
-    CategoriaResumo Categoria,
-    string? Descricao,
+    CategorySummary Category,
+    string? Description,
     double Lat,
     double Lng,
-    string Endereco,
-    DateTimeOffset CriadoEm,
-    StatusProblema Status,
-    double? Confianca,
-    FaixaConfianca? Faixa,
-    ObterDetalheProblemaAvaliacao? Avaliacao,
-    ObterDetalheProblemaVotos Votos,
-    ValorVotoContrato? MeuVoto,
-    bool SouAutor);
+    string Address,
+    DateTimeOffset CreatedAt,
+    IssueStatus Status,
+    double? TrustScore,
+    TrustBand? Band,
+    GetIssueDetailEvaluation? Evaluation,
+    GetIssueDetailVotes Votes,
+    VoteAnswer? MyVote,
+    bool IsAuthor);
 
-public sealed record ObterDetalheProblemaAvaliacao(int Votantes, int Necessarios, DateTimeOffset EncerraEm);
+public sealed record GetIssueDetailEvaluation(int Voters, int Required, DateTimeOffset ClosesAt);
 
-public sealed record ObterDetalheProblemaVotos(int Sim, int Nao, int NaoUltimas24h);
+public sealed record GetIssueDetailVotes(int Yes, int No, int NoLast24h);

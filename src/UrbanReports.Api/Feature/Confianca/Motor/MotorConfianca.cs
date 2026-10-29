@@ -1,154 +1,154 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Confianca.Motor;
+namespace UrbanReports.Api.Trust.Engine;
 
-public static class MotorConfianca
+public static class TrustEngine
 {
-    public static double PesoPerfil(Perfil perfil, ConfiguracaoConfianca cfg) => perfil switch
+    public static double RoleWeight(Role role, TrustConfiguration cfg) => role switch
     {
-        Perfil.Cidadao => cfg.PesoCidadao,
-        Perfil.CidadaoVerificado => cfg.PesoVerificado,
-        Perfil.Administrador => cfg.PesoAdministrador,
-        _ => throw new ArgumentOutOfRangeException(nameof(perfil), perfil, "Perfil desconhecido."),
+        Role.Citizen => cfg.CitizenWeight,
+        Role.VerifiedCitizen => cfg.VerifiedWeight,
+        Role.Administrator => cfg.AdministratorWeight,
+        _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Perfil desconhecido."),
     };
 
-    public static double PesoProximidade(double? distanciaMetros, ConfiguracaoConfianca cfg)
+    public static double ProximityWeight(double? distanceMeters, TrustConfiguration cfg)
     {
-        if (!cfg.UsarProximidade || distanciaMetros is not { } d)
+        if (!cfg.UseProximity || distanceMeters is not { } d)
         {
             return 1;
         }
 
-        if (d <= cfg.RaioBonusTotalMetros)
+        if (d <= cfg.FullBonusRadiusMeters)
         {
-            return cfg.BonusMaximo;
+            return cfg.BonusMax;
         }
 
-        if (d <= cfg.RaioBonusZeroMetros)
+        if (d <= cfg.ZeroBonusRadiusMeters)
         {
-            var fracao = (d - cfg.RaioBonusTotalMetros) / (cfg.RaioBonusZeroMetros - cfg.RaioBonusTotalMetros);
-            return cfg.BonusMaximo - fracao * (cfg.BonusMaximo - 1);
+            var fraction = (d - cfg.FullBonusRadiusMeters) / (cfg.ZeroBonusRadiusMeters - cfg.FullBonusRadiusMeters);
+            return cfg.BonusMax - fraction * (cfg.BonusMax - 1);
         }
 
         return 1;
     }
 
-    public static double FatorTemporal(TimeSpan idade, TimeSpan meiaVida, ConfiguracaoConfianca cfg)
+    public static double TimeFactor(TimeSpan age, TimeSpan halfLife, TrustConfiguration cfg)
     {
-        if (!cfg.UsarDecaimento)
+        if (!cfg.UseDecay)
         {
             return 1;
         }
 
-        var idadeEfetiva = idade < TimeSpan.Zero ? TimeSpan.Zero : idade;
-        return Math.Pow(2, -(idadeEfetiva / meiaVida));
+        var effectiveAge = age < TimeSpan.Zero ? TimeSpan.Zero : age;
+        return Math.Pow(2, -(effectiveAge / halfLife));
     }
 
-    public static double PesoVoto(VotoFato voto, DateTimeOffset agora, TimeSpan meiaVida, ConfiguracaoConfianca cfg) =>
-        PesoPerfil(voto.PerfilNoMomento, cfg)
-        * PesoProximidade(voto.DistanciaMetros, cfg)
-        * FatorTemporal(agora - voto.RegistradoEm, meiaVida, cfg);
+    public static double VoteWeight(VoteFact vote, DateTimeOffset now, TimeSpan halfLife, TrustConfiguration cfg) =>
+        RoleWeight(vote.RoleAtVote, cfg)
+        * ProximityWeight(vote.DistanceMeters, cfg)
+        * TimeFactor(now - vote.RegisteredAt, halfLife, cfg);
 
-    public static FaixaConfianca ClassificarFaixa(double indice, ConfiguracaoConfianca cfg) =>
-        indice >= cfg.LimiarAlta ? FaixaConfianca.Alta
-        : indice >= cfg.LimiarMedia ? FaixaConfianca.Media
-        : FaixaConfianca.Baixa;
+    public static TrustBand ClassifyBand(double score, TrustConfiguration cfg) =>
+        score >= cfg.HighThreshold ? TrustBand.High
+        : score >= cfg.MediumThreshold ? TrustBand.Medium
+        : TrustBand.Low;
 
-    public static ResultadoConfianca CalcularConfianca(
-        IReadOnlyCollection<VotoFato> votos, DateTimeOffset agora, ConfiguracaoConfianca cfg)
+    public static TrustResult CalculateTrust(
+        IReadOnlyCollection<VoteFact> votes, DateTimeOffset now, TrustConfiguration cfg)
     {
-        var (positivo, negativo) = SomarPesos(votos, cfg.MeiaVidaConfianca, agora, cfg);
+        var (positive, negative) = SumWeights(votes, cfg.TrustHalfLife, now, cfg);
 
-        var denominador = positivo + negativo + cfg.K;
-        var indice = denominador > 0 ? 100 * positivo / denominador : 0;
+        var denominator = positive + negative + cfg.K;
+        var score = denominator > 0 ? 100 * positive / denominator : 0;
 
-        return new ResultadoConfianca(indice, ClassificarFaixa(indice, cfg), positivo, negativo);
+        return new TrustResult(score, ClassifyBand(score, cfg), positive, negative);
     }
 
-    public static EstadoProblema AvaliarCicloDeVida(
-        EstadoProblema estado, IReadOnlyCollection<VotoFato> votos, DateTimeOffset agora, ConfiguracaoConfianca cfg)
+    public static IssueState EvaluateLifecycle(
+        IssueState state, IReadOnlyCollection<VoteFact> votes, DateTimeOffset now, TrustConfiguration cfg)
     {
-        switch (estado.Status)
+        switch (state.Status)
         {
-            case StatusProblema.Nova:
+            case IssueStatus.New:
             {
-                var votantes = votos.Select(v => v.UsuarioId).Distinct().Count();
-                var saiDeNova = votantes >= cfg.VotantesParaSairDeNova
-                    || agora - estado.CriadoEm >= cfg.TempoMaximoEmNova;
+                var voters = votes.Select(v => v.UserId).Distinct().Count();
+                var leavesNew = voters >= cfg.VotersToLeaveNew
+                    || now - state.CreatedAt >= cfg.MaxTimeInNew;
 
-                return saiDeNova
-                    ? estado with { Status = StatusProblema.Ativa, StatusAlteradoEm = agora }
-                    : estado;
+                return leavesNew
+                    ? state with { Status = IssueStatus.Active, StatusChangedAt = now }
+                    : state;
             }
 
-            case StatusProblema.Ativa:
+            case IssueStatus.Active:
             {
-                var (continua, resolvido) = SomarPesos(votos, cfg.MeiaVidaCicloDeVida, agora, cfg);
-                var entra = resolvido >= cfg.PesoMinimoResolvido
-                    && ProporcaoResolvido(continua, resolvido) >= cfg.ProporcaoResolvido;
+                var (stillThere, resolved) = SumWeights(votes, cfg.LifecycleHalfLife, now, cfg);
+                var enters = resolved >= cfg.MinResolvedWeight
+                    && ResolvedRatio(stillThere, resolved) >= cfg.ResolvedRatio;
 
-                return entra
-                    ? estado with
+                return enters
+                    ? state with
                     {
-                        Status = StatusProblema.PossivelmenteResolvida,
-                        StatusAlteradoEm = agora,
-                        CondicaoResolucaoDesde = agora,
+                        Status = IssueStatus.PossiblyResolved,
+                        StatusChangedAt = now,
+                        ResolutionConditionSince = now,
                     }
-                    : estado;
+                    : state;
             }
 
-            case StatusProblema.PossivelmenteResolvida:
+            case IssueStatus.PossiblyResolved:
             {
-                var (continua, resolvido) = SomarPesos(votos, cfg.MeiaVidaCicloDeVida, agora, cfg);
+                var (stillThere, resolved) = SumWeights(votes, cfg.LifecycleHalfLife, now, cfg);
 
-                if (ProporcaoResolvido(continua, resolvido) < cfg.ProporcaoResolvido)
+                if (ResolvedRatio(stillThere, resolved) < cfg.ResolvedRatio)
                 {
-                    return estado with
+                    return state with
                     {
-                        Status = StatusProblema.Ativa,
-                        StatusAlteradoEm = agora,
-                        CondicaoResolucaoDesde = null,
+                        Status = IssueStatus.Active,
+                        StatusChangedAt = now,
+                        ResolutionConditionSince = null,
                     };
                 }
 
-                var desde = estado.CondicaoResolucaoDesde ?? estado.StatusAlteradoEm;
-                return agora - desde >= cfg.TempoConfirmacaoResolvida
-                    ? estado with { Status = StatusProblema.Resolvida, StatusAlteradoEm = agora }
-                    : estado;
+                var since = state.ResolutionConditionSince ?? state.StatusChangedAt;
+                return now - since >= cfg.ResolvedConfirmationTime
+                    ? state with { Status = IssueStatus.Resolved, StatusChangedAt = now }
+                    : state;
             }
 
-            case StatusProblema.Resolvida:
-                return estado;
+            case IssueStatus.Resolved:
+                return state;
 
             default:
-                throw new ArgumentOutOfRangeException(nameof(estado), estado.Status, "Status desconhecido.");
+                throw new ArgumentOutOfRangeException(nameof(state), state.Status, "Status desconhecido.");
         }
     }
 
-    private static (double Positivo, double Negativo) SomarPesos(
-        IReadOnlyCollection<VotoFato> votos, TimeSpan meiaVida, DateTimeOffset agora, ConfiguracaoConfianca cfg)
+    private static (double Positive, double Negative) SumWeights(
+        IReadOnlyCollection<VoteFact> votes, TimeSpan halfLife, DateTimeOffset now, TrustConfiguration cfg)
     {
-        double positivo = 0, negativo = 0;
+        double positive = 0, negative = 0;
 
-        foreach (var voto in votos)
+        foreach (var vote in votes)
         {
-            var peso = PesoVoto(voto, agora, meiaVida, cfg);
-            if (voto.Valor == ValorVoto.Positivo)
+            var weight = VoteWeight(vote, now, halfLife, cfg);
+            if (vote.Value == VoteValue.Positive)
             {
-                positivo += peso;
+                positive += weight;
             }
             else
             {
-                negativo += peso;
+                negative += weight;
             }
         }
 
-        return (positivo, negativo);
+        return (positive, negative);
     }
 
-    private static double ProporcaoResolvido(double continua, double resolvido)
+    private static double ResolvedRatio(double stillThere, double resolved)
     {
-        var total = continua + resolvido;
-        return total > 0 ? resolvido / total : 0;
+        var total = stillThere + resolved;
+        return total > 0 ? resolved / total : 0;
     }
 }

@@ -1,18 +1,18 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Problemas;
+namespace UrbanReports.Api.Issues;
 
-public interface IProblemaService
+public interface IIssueService
 {
-    Task<Resultado<ObterDetalheProblemaResponse>> RegistrarAsync(RegistrarProblemaRequest request, Guid autorId, CancellationToken ct);
+    Task<Result<GetIssueDetailResponse>> CreateAsync(CreateIssueRequest request, Guid authorId, CancellationToken ct);
 
-    Task<Resultado<ObterDetalheProblemaResponse>> ObterDetalheAsync(Guid id, Guid? usuarioId, CancellationToken ct);
+    Task<Result<GetIssueDetailResponse>> GetDetailAsync(Guid id, Guid? userId, CancellationToken ct);
 
-    Task<ObterDetalheProblemaResponse?> ConsultarDetalheAsync(Guid id, Guid? usuarioId, DateTimeOffset agora, CancellationToken ct);
+    Task<GetIssueDetailResponse?> QueryDetailAsync(Guid id, Guid? userId, DateTimeOffset now, CancellationToken ct);
 
-    Task<List<BuscarDuplicatasResponse>> BuscarDuplicatasAsync(BuscarDuplicatasRequest request, CancellationToken ct);
+    Task<List<SearchDuplicatesResponse>> SearchDuplicatesAsync(SearchDuplicatesRequest request, CancellationToken ct);
 
-    Task<List<ListarProblemasNaAreaResponse>> ListarNaAreaAsync(ListarProblemasNaAreaRequest request, CancellationToken ct);
+    Task<List<ListIssuesInAreaResponse>> ListInAreaAsync(ListIssuesInAreaRequest request, CancellationToken ct);
 
-    Task<Paginado<ListarProblemasRecentesItem>> ListarRecentesAsync(ListarProblemasRecentesRequest request, CancellationToken ct);
+    Task<Paged<ListRecentIssuesItem>> ListRecentAsync(ListRecentIssuesRequest request, CancellationToken ct);
 }

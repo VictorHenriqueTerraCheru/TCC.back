@@ -2,12 +2,12 @@ using Npgsql;
 
 namespace UrbanReports.Api.Common;
 
-public static class ErrosDeBanco
+public static class DatabaseErrors
 {
-    public static bool ViolouUnicidade(this Exception erro) => SqlState(erro) == PostgresErrorCodes.UniqueViolation;
+    public static bool ViolatedUniqueness(this Exception error) => SqlState(error) == PostgresErrorCodes.UniqueViolation;
 
-    public static bool ViolouChaveEstrangeira(this Exception erro) => SqlState(erro) == PostgresErrorCodes.ForeignKeyViolation;
+    public static bool ViolatedForeignKey(this Exception error) => SqlState(error) == PostgresErrorCodes.ForeignKeyViolation;
 
-    private static string? SqlState(Exception erro) =>
-        (erro as PostgresException ?? erro.InnerException as PostgresException)?.SqlState;
+    private static string? SqlState(Exception error) =>
+        (error as PostgresException ?? error.InnerException as PostgresException)?.SqlState;
 }

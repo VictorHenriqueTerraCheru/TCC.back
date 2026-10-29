@@ -1,18 +1,18 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace UrbanReports.Api.Usuarios;
+namespace UrbanReports.Api.Users;
 
-public sealed class LinhaHistorico
+public sealed class HistoryRow
 {
-    [Column("chave")] public Guid Chave { get; init; }
-    [Column("tipo")] public int Tipo { get; init; }
-    [Column("ocorrencia_id")] public Guid? OcorrenciaId { get; init; }
-    [Column("categoria_id")] public short CategoriaId { get; init; }
-    [Column("categoria_nome")] public string CategoriaNome { get; init; } = "";
-    [Column("grupo")] public string Grupo { get; init; } = "";
-    [Column("icone")] public string Icone { get; init; } = "";
-    [Column("endereco")] public string? Endereco { get; init; }
-    [Column("valor")] public short? Valor { get; init; }
-    [Column("status_problema")] public short? StatusProblema { get; init; }
-    [Column("data")] public DateTimeOffset Data { get; init; }
+    [Column("key")] public Guid Key { get; init; }
+    [Column("type")] public int Type { get; init; }
+    [Column("report_id")] public Guid? ReportId { get; init; }
+    [Column("category_id")] public short CategoryId { get; init; }
+    [Column("category_name")] public string CategoryName { get; init; } = "";
+    [Column("group")] public string Group { get; init; } = "";
+    [Column("icon")] public string Icon { get; init; } = "";
+    [Column("address")] public string? Address { get; init; }
+    [Column("value")] public short? Value { get; init; }
+    [Column("issue_status")] public short? IssueStatus { get; init; }
+    [Column("date")] public DateTimeOffset Date { get; init; }
 }

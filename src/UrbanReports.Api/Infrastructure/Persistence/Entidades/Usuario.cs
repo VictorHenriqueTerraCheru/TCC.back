@@ -3,10 +3,10 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-public sealed class Usuario : IdentityUser<Guid>
+public sealed class User : IdentityUser<Guid>
 {
-    public required string Nome { get; set; }
-    public Perfil Perfil { get; set; } = Perfil.Cidadao;
-    public DateTimeOffset CriadoEm { get; set; }
-    public DateTimeOffset? VerificadoEm { get; set; }
+    public required string Name { get; set; }
+    public Role Role { get; set; } = Role.Citizen;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? VerifiedAt { get; set; }
 }

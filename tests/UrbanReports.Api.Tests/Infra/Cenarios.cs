@@ -1,70 +1,70 @@
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using UrbanReports.Api.Auth;
-using UrbanReports.Api.Problemas;
+using UrbanReports.Api.Issues;
 using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Tests.Infra;
 
-public sealed record Pessoa(Guid Id, HttpClient Cliente);
+public sealed record Person(Guid Id, HttpClient Client);
 
-public static class Cenarios
+public static class Scenarios
 {
-    public const double MetrosPorGrauLat = 111_320;
+    public const double MetersPerDegreeLat = 111_320;
 
-    public static double Norte(double lat, double metros) => lat + metros / MetrosPorGrauLat;
+    public static double North(double lat, double meters) => lat + meters / MetersPerDegreeLat;
 
-    public static async Task<Pessoa> NovaPessoaAsync(this ApiFactory fabrica, Perfil perfil = Perfil.Cidadao)
+    public static async Task<Person> NewPersonAsync(this ApiFactory factory, Role role = Role.Citizen)
     {
-        var cliente = fabrica.CreateClient();
-        var auth = await cliente.CadastrarAsync();
-        cliente.Autenticado(auth.Token);
+        var client = factory.CreateClient();
+        var auth = await client.RegisterAsync();
+        client.Authenticated(auth.Token);
 
-        if (perfil != Perfil.Cidadao)
+        if (role != Role.Citizen)
         {
-            await fabrica.NoBancoAsync(db => db.Users
-                .Where(u => u.Id == auth.Usuario.Id)
-                .ExecuteUpdateAsync(s => s.SetProperty(u => u.Perfil, perfil)));
+            await factory.InDatabaseAsync(db => db.Users
+                .Where(u => u.Id == auth.User.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.Role, role)));
 
-            var login = await cliente.PostAsJsonAsync("/api/v1/auth/login", new { email = auth.Usuario.Email, senha = "senha-forte" }, ClienteApi.Json);
+            var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = auth.User.Email, password = "senha-forte" }, ApiClient.Json);
             login.EnsureSuccessStatusCode();
-            cliente.Autenticado((await login.LerAsync<RespostaAuth>()).Token);
+            client.Authenticated((await login.ReadAsync<AuthResponse>()).Token);
         }
 
-        return new Pessoa(auth.Usuario.Id, cliente);
+        return new Person(auth.User.Id, client);
     }
 
-    public static Task<HttpResponseMessage> PostarProblemaAsync(
-        this Pessoa pessoa, double lat, double lng, short categoriaId = 1, string? descricao = null) =>
-        pessoa.Cliente.PostAsJsonAsync("/api/v1/problemas", new { categoriaId, lat, lng, descricao }, ClienteApi.Json);
+    public static Task<HttpResponseMessage> PostIssueAsync(
+        this Person person, double lat, double lng, short categoryId = 1, string? description = null) =>
+        person.Client.PostAsJsonAsync("/api/v1/issues", new { categoryId, lat, lng, description }, ApiClient.Json);
 
-    public static async Task<ObterDetalheProblemaResponse> RegistrarProblemaAsync(
-        this Pessoa pessoa, double lat, double lng, short categoriaId = 1)
+    public static async Task<GetIssueDetailResponse> CreateIssueAsync(
+        this Person person, double lat, double lng, short categoryId = 1)
     {
-        var resposta = await pessoa.PostarProblemaAsync(lat, lng, categoriaId);
-        resposta.EnsureSuccessStatusCode();
-        return await resposta.LerAsync<ObterDetalheProblemaResponse>();
+        var response = await person.PostIssueAsync(lat, lng, categoryId);
+        response.EnsureSuccessStatusCode();
+        return await response.ReadAsync<GetIssueDetailResponse>();
     }
 
-    public static Task<HttpResponseMessage> VotarAsync(
-        this Pessoa pessoa, Guid problemaId, string valor, double? lat = null, double? lng = null) =>
-        pessoa.Cliente.PutAsJsonAsync($"/api/v1/problemas/{problemaId}/voto", new { valor, lat, lng }, ClienteApi.Json);
+    public static Task<HttpResponseMessage> VoteAsync(
+        this Person person, Guid issueId, string value, double? lat = null, double? lng = null) =>
+        person.Client.PutAsJsonAsync($"/api/v1/issues/{issueId}/vote", new { value, lat, lng }, ApiClient.Json);
 
-    public static async Task<ObterDetalheProblemaResponse> ProblemaAtivoAsync(this ApiFactory fabrica, double lat, double lng)
+    public static async Task<GetIssueDetailResponse> ActiveIssueAsync(this ApiFactory factory, double lat, double lng)
     {
-        var autor = await fabrica.NovaPessoaAsync();
-        var problema = await autor.RegistrarProblemaAsync(lat, lng);
+        var author = await factory.NewPersonAsync();
+        var issue = await author.CreateIssueAsync(lat, lng);
 
-        ObterDetalheProblemaResponse? detalhe = null;
+        GetIssueDetailResponse? detail = null;
         for (var i = 0; i < 5; i++)
         {
-            var votante = await fabrica.NovaPessoaAsync();
-            var resposta = await votante.VotarAsync(problema.Id, "sim");
-            resposta.EnsureSuccessStatusCode();
-            detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
+            var voter = await factory.NewPersonAsync();
+            var response = await voter.VoteAsync(issue.Id, "yes");
+            response.EnsureSuccessStatusCode();
+            detail = await response.ReadAsync<GetIssueDetailResponse>();
         }
 
-        detalhe!.Status.Should().Be(StatusProblema.Ativa);
-        return detalhe;
+        detail!.Status.Should().Be(IssueStatus.Active);
+        return detail;
     }
 }

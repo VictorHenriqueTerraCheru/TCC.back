@@ -1,67 +1,67 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Grupos;
+using UrbanReports.Api.Groups;
 
 namespace UrbanReports.Api.Modules;
 
-public sealed class GrupoModule : IEndpointModule
+public sealed class GroupModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapGet("/grupos", Listar)
+        api.MapGet("/groups", List)
             .AllowAnonymous()
-            .WithTags("Categorias");
+            .WithTags("Categories");
 
-        api.MapPost("/admin/grupos", Criar)
-            .Validar<CriarGrupoRequest>()
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapPost("/admin/groups", Create)
+            .Validate<CreateGroupRequest>()
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapPut("/admin/grupos/{chave}", Editar)
-            .Validar<EditarGrupoRequest>()
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapPut("/admin/groups/{key}", Edit)
+            .Validate<EditGroupRequest>()
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapDelete("/admin/grupos/{chave}", Apagar)
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapDelete("/admin/groups/{key}", Delete)
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
     }
 
-    private static Task<List<GrupoResponse>> Listar(IGrupoService service, CancellationToken ct) =>
-        service.ListarAsync(ct);
+    private static Task<List<GroupResponse>> List(IGroupService service, CancellationToken ct) =>
+        service.ListAsync(ct);
 
-    private static async Task<Results<Created<GrupoResponse>, ProblemHttpResult>> Criar(
-        CriarGrupoRequest request, IGrupoService service, CancellationToken ct)
+    private static async Task<Results<Created<GroupResponse>, ProblemHttpResult>> Create(
+        CreateGroupRequest request, IGroupService service, CancellationToken ct)
     {
-        var r = await service.CriarAsync(request, ct);
-        return r.Erro switch
+        var r = await service.CreateAsync(request, ct);
+        return r.Error switch
         {
-            null => TypedResults.Created("/api/v1/grupos", r.Valor),
-            var e => e.ParaProblema(),
+            null => TypedResults.Created("/api/v1/groups", r.Value),
+            var e => e.ToProblem(),
         };
     }
 
-    private static async Task<Results<Ok<GrupoResponse>, NotFound, ProblemHttpResult>> Editar(
-        string chave, EditarGrupoRequest request, IGrupoService service, CancellationToken ct)
+    private static async Task<Results<Ok<GroupResponse>, NotFound, ProblemHttpResult>> Edit(
+        string key, EditGroupRequest request, IGroupService service, CancellationToken ct)
     {
-        var r = await service.EditarAsync(chave, request, ct);
-        return r.Erro switch
+        var r = await service.EditAsync(key, request, ct);
+        return r.Error switch
         {
-            null => TypedResults.Ok(r.Valor),
-            { Tipo: TipoErro.NaoEncontrado } e => e.ParaNaoEncontrado(),
-            var e => e.ParaProblema(),
+            null => TypedResults.Ok(r.Value),
+            { Kind: ErrorType.NotFound } e => e.ToNotFound(),
+            var e => e.ToProblem(),
         };
     }
 
-    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Apagar(
-        string chave, IGrupoService service, CancellationToken ct)
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Delete(
+        string key, IGroupService service, CancellationToken ct)
     {
-        var r = await service.ApagarAsync(chave, ct);
-        return r.Erro switch
+        var r = await service.DeleteAsync(key, ct);
+        return r.Error switch
         {
             null => TypedResults.NoContent(),
-            { Tipo: TipoErro.NaoEncontrado } e => e.ParaNaoEncontrado(),
-            var e => e.ParaProblema(),
+            { Kind: ErrorType.NotFound } e => e.ToNotFound(),
+            var e => e.ToProblem(),
         };
     }
 }

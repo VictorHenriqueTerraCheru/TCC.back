@@ -1,8 +1,8 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Verificacao;
+namespace UrbanReports.Api.Verification;
 
-public interface IVerificacaoService
+public interface IVerificationService
 {
-    Task<Resultado<SolicitarVerificacaoResponse>> SolicitarAsync(Guid usuarioId, SolicitarVerificacaoRequest request, CancellationToken ct);
+    Task<Result<RequestVerificationResponse>> RequestAsync(Guid userId, RequestVerificationRequest request, CancellationToken ct);
 }

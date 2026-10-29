@@ -2,51 +2,51 @@ using FluentValidation;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Persistence;
 
-namespace UrbanReports.Api.Problemas;
+namespace UrbanReports.Api.Issues;
 
-public sealed class RegistrarProblemaValidator : AbstractValidator<RegistrarProblemaRequest>
+public sealed class CreateIssueValidator : AbstractValidator<CreateIssueRequest>
 {
-    public RegistrarProblemaValidator()
+    public CreateIssueValidator()
     {
-        RuleFor(r => r.CategoriaId).GreaterThan((short)0);
+        RuleFor(r => r.CategoryId).GreaterThan((short)0);
         RuleFor(r => r.Lat).Latitude();
         RuleFor(r => r.Lng).Longitude();
-        RuleFor(r => r.Descricao).MaximumLength(280);
+        RuleFor(r => r.Description).MaximumLength(280);
     }
 }
 
-public sealed class BuscarDuplicatasValidator : AbstractValidator<BuscarDuplicatasRequest>
+public sealed class SearchDuplicatesValidator : AbstractValidator<SearchDuplicatesRequest>
 {
-    public BuscarDuplicatasValidator()
+    public SearchDuplicatesValidator()
     {
-        RuleFor(r => r.CategoriaId).GreaterThan((short)0);
+        RuleFor(r => r.CategoryId).GreaterThan((short)0);
         RuleFor(r => r.Lat).Latitude();
         RuleFor(r => r.Lng).Longitude();
     }
 }
 
-public sealed class ListarProblemasNaAreaValidator : AbstractValidator<ListarProblemasNaAreaRequest>
+public sealed class ListIssuesInAreaValidator : AbstractValidator<ListIssuesInAreaRequest>
 {
-    public ListarProblemasNaAreaValidator(AppDbContext db)
+    public ListIssuesInAreaValidator(AppDbContext db)
     {
         RuleFor(r => r.MinLat).Latitude();
         RuleFor(r => r.MaxLat).Latitude().GreaterThan(r => r.MinLat);
         RuleFor(r => r.MinLng).Longitude();
         RuleFor(r => r.MaxLng).Longitude().GreaterThan(r => r.MinLng);
-        RuleFor(r => r.Grupos).ListaDeGrupos(db);
-        RuleFor(r => r.Status).ListaDeStatus();
+        RuleFor(r => r.Groups).GroupList(db);
+        RuleFor(r => r.Status).StatusList();
     }
 }
 
-public sealed class ListarProblemasRecentesValidator : AbstractValidator<ListarProblemasRecentesRequest>
+public sealed class ListRecentIssuesValidator : AbstractValidator<ListRecentIssuesRequest>
 {
-    public ListarProblemasRecentesValidator(AppDbContext db)
+    public ListRecentIssuesValidator(AppDbContext db)
     {
         RuleFor(r => r.Lat).Latitude();
         RuleFor(r => r.Lng).Longitude();
-        RuleFor(r => r.RaioKm).GreaterThan(0).LessThanOrEqualTo(LimitesProblema.RaioMaximoRecentesKm);
-        RuleFor(r => r.Grupos).ListaDeGrupos(db);
-        RuleFor(r => r.Pagina).InclusiveBetween(1, Paginacao.PaginaMaxima);
-        RuleFor(r => r.Tamanho).InclusiveBetween(1, Paginacao.TamanhoMaximo);
+        RuleFor(r => r.RadiusKm).GreaterThan(0).LessThanOrEqualTo(IssueLimits.MaxRecentRadiusKm);
+        RuleFor(r => r.Groups).GroupList(db);
+        RuleFor(r => r.Page).InclusiveBetween(1, Pagination.MaxPage);
+        RuleFor(r => r.PageSize).InclusiveBetween(1, Pagination.MaxPageSize);
     }
 }

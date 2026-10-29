@@ -1,107 +1,107 @@
 using Microsoft.EntityFrameworkCore;
-using UrbanReports.Api.Categorias;
+using UrbanReports.Api.Categories;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Persistence;
 
-namespace UrbanReports.Api.Usuarios;
+namespace UrbanReports.Api.Users;
 
-public sealed class UsuarioService(AppDbContext db) : IUsuarioService
+public sealed class UserService(AppDbContext db) : IUserService
 {
-    public async Task<Resultado<ObterMeResponse>> ObterMeAsync(Guid usuarioId, CancellationToken ct)
+    public async Task<Result<GetMeResponse>> GetMeAsync(Guid userId, CancellationToken ct)
     {
-        var resposta = await ConsultarMeAsync(usuarioId, ct);
-        if (resposta is null)
+        var response = await QueryMeAsync(userId, ct);
+        if (response is null)
         {
-            return ErroAplicacao.NaoAutorizado;
+            return ApplicationError.Unauthorized;
         }
 
-        return resposta;
+        return response;
     }
 
-    public async Task<Resultado<ObterMeResponse>> AtualizarMeAsync(Guid usuarioId, AtualizarMeRequest request, CancellationToken ct)
+    public async Task<Result<GetMeResponse>> UpdateMeAsync(Guid userId, UpdateMeRequest request, CancellationToken ct)
     {
-        var alterados = await db.Users
-            .Where(u => u.Id == usuarioId)
-            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Nome, request.Nome.Trim()), ct);
+        var changed = await db.Users
+            .Where(u => u.Id == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Name, request.Name.Trim()), ct);
 
-        if (alterados == 0)
+        if (changed == 0)
         {
-            return ErroAplicacao.NaoAutorizado;
+            return ApplicationError.Unauthorized;
         }
 
-        return (await ConsultarMeAsync(usuarioId, ct))!;
+        return (await QueryMeAsync(userId, ct))!;
     }
 
-    public async Task<Paginado<ObterHistoricoItem>> ObterHistoricoAsync(Guid usuarioId, ObterHistoricoRequest request, CancellationToken ct)
+    public async Task<Paged<GetHistoryItem>> GetHistoryAsync(Guid userId, GetHistoryRequest request, CancellationToken ct)
     {
-        var registros = request.Filtro is "tudo" or "registros";
-        var votos = request.Filtro is "tudo" or "votos";
+        var reports = request.Filter is "all" or "reports";
+        var votes = request.Filter is "all" or "votes";
 
-        var uniao = db.Database.SqlQuery<LinhaHistorico>($"""
-            SELECT p.id AS chave, 1 AS tipo, p.id AS ocorrencia_id, c.id AS categoria_id, c.nome AS categoria_nome, c.grupo, c.icone,
-                   p.endereco_aproximado AS endereco, NULL::smallint AS valor, p.status AS status_problema, p.criado_em AS data
-            FROM problemas p JOIN categorias c ON c.id = p.categoria_id
-            WHERE p.autor_id = {usuarioId} AND {registros}
+        var union = db.Database.SqlQuery<HistoryRow>($"""
+            SELECT p.id AS key, 1 AS type, p.id AS report_id, c.id AS category_id, c.name AS category_name, c."group", c.icon,
+                   p.approximate_address AS address, NULL::smallint AS value, p.status AS issue_status, p.created_at AS date
+            FROM issues p JOIN categories c ON c.id = p.category_id
+            WHERE p.author_id = {userId} AND {reports}
             UNION ALL
-            SELECT i.id, 2, NULL::uuid, c.id, c.nome, c.grupo, c.icone,
-                   i.rotulo_area, NULL::smallint, NULL::smallint, i.registrado_em
-            FROM incidentes i JOIN categorias c ON c.id = i.categoria_id
-            WHERE i.autor_id = {usuarioId} AND {registros}
+            SELECT i.id, 2, NULL::uuid, c.id, c.name, c."group", c.icon,
+                   i.area_label, NULL::smallint, NULL::smallint, i.registered_at
+            FROM incidents i JOIN categories c ON c.id = i.category_id
+            WHERE i.author_id = {userId} AND {reports}
             UNION ALL
-            SELECT v.id, 3, p.id, c.id, c.nome, c.grupo, c.icone,
-                   p.endereco_aproximado, v.valor, p.status, v.registrado_em
-            FROM votos v JOIN problemas p ON p.id = v.problema_id JOIN categorias c ON c.id = p.categoria_id
-            WHERE v.usuario_id = {usuarioId} AND {votos}
+            SELECT v.id, 3, p.id, c.id, c.name, c."group", c.icon,
+                   p.approximate_address, v.value, p.status, v.registered_at
+            FROM votes v JOIN issues p ON p.id = v.issue_id JOIN categories c ON c.id = p.category_id
+            WHERE v.user_id = {userId} AND {votes}
             """);
 
-        var total = await uniao.CountAsync(ct);
-        var linhas = await uniao
-            .OrderByDescending(l => l.Data)
-            .ThenBy(l => l.Chave)
-            .Skip(Paginacao.Pular(request.Pagina, request.Tamanho))
-            .Take(request.Tamanho)
+        var total = await union.CountAsync(ct);
+        var rows = await union
+            .OrderByDescending(l => l.Date)
+            .ThenBy(l => l.Key)
+            .Skip(Pagination.Skip(request.Page, request.PageSize))
+            .Take(request.PageSize)
             .ToListAsync(ct);
 
-        return new Paginado<ObterHistoricoItem>(linhas.Select(Mapear).ToList(), request.Pagina, request.Tamanho, total);
+        return new Paged<GetHistoryItem>(rows.Select(Map).ToList(), request.Page, request.PageSize, total);
     }
 
-    private Task<ObterMeResponse?> ConsultarMeAsync(Guid usuarioId, CancellationToken ct) =>
+    private Task<GetMeResponse?> QueryMeAsync(Guid userId, CancellationToken ct) =>
         db.Users
-            .Where(u => u.Id == usuarioId)
-            .Select(u => new ObterMeResponse(
+            .Where(u => u.Id == userId)
+            .Select(u => new GetMeResponse(
                 u.Id,
-                u.Nome,
+                u.Name,
                 u.Email!,
-                u.Perfil,
-                u.CriadoEm,
-                u.VerificadoEm,
-                db.Problemas.Count(p => p.AutorId == u.Id) + db.Incidentes.Count(i => i.AutorId == u.Id),
-                db.Votos.Count(v => v.UsuarioId == u.Id),
-                db.SolicitacoesVerificacao
-                    .Where(s => s.UsuarioId == u.Id)
-                    .OrderByDescending(s => s.CriadaEm)
-                    .Select(s => new ObterMeVerificacaoResumo(s.Status, s.TipoVinculo, s.MotivoRecusa, s.CriadaEm))
+                u.Role,
+                u.CreatedAt,
+                u.VerifiedAt,
+                db.Issues.Count(p => p.AuthorId == u.Id) + db.Incidents.Count(i => i.AuthorId == u.Id),
+                db.Votes.Count(v => v.UserId == u.Id),
+                db.VerificationRequests
+                    .Where(s => s.UserId == u.Id)
+                    .OrderByDescending(s => s.CreatedAt)
+                    .Select(s => new GetMeVerificationSummary(s.Status, s.AffiliationType, s.RejectionReason, s.CreatedAt))
                     .FirstOrDefault()))
             .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 
-    private static ObterHistoricoItem Mapear(LinhaHistorico l)
+    private static GetHistoryItem Map(HistoryRow l)
     {
-        var tipo = (ObterHistoricoTipoItem)l.Tipo;
-        ObterHistoricoValorItem? valor = (ValorVoto?)l.Valor switch
+        var type = (GetHistoryItemType)l.Type;
+        GetHistoryItemValue? value = (VoteValue?)l.Value switch
         {
-            ValorVoto.Positivo => ObterHistoricoValorItem.Sim,
-            ValorVoto.Negativo => ObterHistoricoValorItem.Nao,
+            VoteValue.Positive => GetHistoryItemValue.Yes,
+            VoteValue.Negative => GetHistoryItemValue.No,
             _ => null,
         };
 
-        return new ObterHistoricoItem(
-            tipo,
-            l.OcorrenciaId,
-            new CategoriaResumo(l.CategoriaId, l.CategoriaNome, l.Grupo, l.Icone),
-            l.Endereco,
-            valor,
-            (StatusProblema?)l.StatusProblema,
-            l.Data);
+        return new GetHistoryItem(
+            type,
+            l.ReportId,
+            new CategorySummary(l.CategoryId, l.CategoryName, l.Group, l.Icon),
+            l.Address,
+            value,
+            (IssueStatus?)l.IssueStatus,
+            l.Date);
     }
 }

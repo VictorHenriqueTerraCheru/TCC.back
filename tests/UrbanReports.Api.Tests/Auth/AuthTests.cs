@@ -7,105 +7,105 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Tests.Auth;
 
-[Collection(ApiCollection.Nome)]
-public sealed class AuthTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class AuthTests(ApiFactory factory)
 {
-    private readonly HttpClient _cliente = fabrica.CreateClient();
+    private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Cadastro_cria_cidadao_e_devolve_token_de_7_dias()
+    public async Task Register_creates_citizen_and_returns_7_day_token()
     {
-        var email = ClienteApi.EmailUnico();
+        var email = ApiClient.UniqueEmail();
 
-        var resposta = await _cliente.PostarCadastroAsync(email, nome: "Mariana Souza");
-        var corpo = await resposta.LerAsync<RespostaAuth>();
+        var response = await _client.PostRegisterAsync(email, name: "Mariana Souza");
+        var body = await response.ReadAsync<AuthResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
-        corpo.Usuario.Email.Should().Be(email);
-        corpo.Usuario.Nome.Should().Be("Mariana Souza");
-        corpo.Usuario.Perfil.Should().Be(Perfil.Cidadao);
-        corpo.ExpiraEm.Should().Be(fabrica.Relogio.GetUtcNow().AddDays(7));
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        body.User.Email.Should().Be(email);
+        body.User.Name.Should().Be("Mariana Souza");
+        body.User.Role.Should().Be(Role.Citizen);
+        body.ExpiresAt.Should().Be(factory.Clock.GetUtcNow().AddDays(7));
 
-        var token = new JsonWebToken(corpo.Token);
-        token.Subject.Should().Be(corpo.Usuario.Id.ToString());
+        var token = new JsonWebToken(body.Token);
+        token.Subject.Should().Be(body.User.Id.ToString());
         token.GetClaim("email").Value.Should().Be(email);
-        token.GetClaim("nome").Value.Should().Be("Mariana Souza");
-        token.GetClaim("perfil").Value.Should().Be("cidadao");
+        token.GetClaim("name").Value.Should().Be("Mariana Souza");
+        token.GetClaim("role").Value.Should().Be("citizen");
     }
 
     [Theory]
     [InlineData("o'brien")]
     [InlineData("joão.conceição")]
-    public async Task Cadastro_aceita_emails_validos_com_apostrofo_ou_acento(string local)
+    public async Task Register_accepts_valid_emails_with_apostrophe_or_accent(string local)
     {
-        var resposta = await _cliente.PostarCadastroAsync($"{local}.{Guid.NewGuid():N}@teste.local");
+        var response = await _client.PostRegisterAsync($"{local}.{Guid.NewGuid():N}@teste.local");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     [Fact]
-    public async Task Cadastro_com_email_existente_devolve_409_email_ja_cadastrado()
+    public async Task Register_with_existing_email_returns_409_email_already_registered()
     {
-        var email = ClienteApi.EmailUnico();
-        await _cliente.CadastrarAsync(email);
+        var email = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(email);
 
-        var resposta = await _cliente.PostarCadastroAsync(email.ToUpperInvariant());
-        var problema = await resposta.LerJsonAsync();
+        var response = await _client.PostRegisterAsync(email.ToUpperInvariant());
+        var issue = await response.ReadJsonAsync();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        problema.GetProperty("type").GetString().Should().Be("email-ja-cadastrado");
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        issue.GetProperty("type").GetString().Should().Be("email-already-registered");
     }
 
     [Fact]
-    public async Task Cadastro_invalido_devolve_400_com_campos_em_camel_case()
+    public async Task Invalid_register_returns_400_with_camel_case_fields()
     {
-        var resposta = await _cliente.PostAsJsonAsync("/api/v1/auth/cadastro",
-            new { nome = "", email = "nao-e-email", senha = "curta", aceitouTermos = false }, ClienteApi.Json);
-        var erros = (await resposta.LerJsonAsync()).GetProperty("errors");
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/register",
+            new { name = "", email = "nao-e-email", password = "curta", acceptedTerms = false }, ApiClient.Json);
+        var errors = (await response.ReadJsonAsync()).GetProperty("errors");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        erros.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("nome", "email", "senha", "aceitouTermos");
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        errors.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo("name", "email", "password", "acceptedTerms");
     }
 
     [Fact]
-    public async Task Login_com_credenciais_corretas_devolve_200()
+    public async Task Login_with_right_credentials_returns_200()
     {
-        var email = ClienteApi.EmailUnico();
-        await _cliente.CadastrarAsync(email);
+        var email = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(email);
 
-        var resposta = await _cliente.PostAsJsonAsync("/api/v1/auth/login", new { email, senha = "senha-forte" }, ClienteApi.Json);
-        var corpo = await resposta.LerAsync<RespostaAuth>();
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "senha-forte" }, ApiClient.Json);
+        var body = await response.ReadAsync<AuthResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        corpo.Usuario.Email.Should().Be(email);
-        corpo.Token.Should().NotBeNullOrWhiteSpace();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body.User.Email.Should().Be(email);
+        body.Token.Should().NotBeNullOrWhiteSpace();
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Login_invalido_devolve_401(bool emailExiste)
+    public async Task Invalid_login_returns_401(bool emailExists)
     {
-        var email = ClienteApi.EmailUnico();
-        if (emailExiste)
+        var email = ApiClient.UniqueEmail();
+        if (emailExists)
         {
-            await _cliente.CadastrarAsync(email);
+            await _client.RegisterAsync(email);
         }
 
-        var resposta = await _cliente.PostAsJsonAsync("/api/v1/auth/login", new { email, senha = "senha-errada" }, ClienteApi.Json);
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "senha-errada" }, ApiClient.Json);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Token_expira_em_7_dias_pelo_relogio_da_aplicacao()
+    public async Task Token_expires_in_7_days_by_the_application_clock()
     {
-        var auth = await _cliente.CadastrarAsync();
-        var cliente = fabrica.CreateClient().Autenticado(auth.Token);
-        (await cliente.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var auth = await _client.RegisterAsync();
+        var client = factory.CreateClient().Authenticated(auth.Token);
+        (await client.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.OK);
 
-        fabrica.Relogio.Advance(TimeSpan.FromDays(7) + TimeSpan.FromMinutes(6));
+        factory.Clock.Advance(TimeSpan.FromDays(7) + TimeSpan.FromMinutes(6));
 
-        (await cliente.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await client.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }

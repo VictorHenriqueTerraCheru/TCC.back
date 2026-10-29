@@ -2,22 +2,22 @@ using FluentValidation;
 
 namespace UrbanReports.Api.Auth;
 
-public sealed class CadastrarValidator : AbstractValidator<CadastrarRequest>
+public sealed class RegisterValidator : AbstractValidator<RegisterRequest>
 {
-    public CadastrarValidator()
+    public RegisterValidator()
     {
-        RuleFor(r => r.Nome).NotEmpty().MaximumLength(120);
+        RuleFor(r => r.Name).NotEmpty().MaximumLength(120);
         RuleFor(r => r.Email).NotEmpty().EmailAddress().MaximumLength(256);
-        RuleFor(r => r.Senha).NotEmpty().MinimumLength(8).WithMessage("A senha precisa ter pelo menos 8 caracteres.");
-        RuleFor(r => r.AceitouTermos).Equal(true).WithMessage("É preciso aceitar os termos de uso.");
+        RuleFor(r => r.Password).NotEmpty().MinimumLength(8).WithMessage("A senha precisa ter pelo menos 8 caracteres.");
+        RuleFor(r => r.AcceptedTerms).Equal(true).WithMessage("É preciso aceitar os termos de uso.");
     }
 }
 
-public sealed class EntrarValidator : AbstractValidator<EntrarRequest>
+public sealed class LoginValidator : AbstractValidator<LoginRequest>
 {
-    public EntrarValidator()
+    public LoginValidator()
     {
         RuleFor(r => r.Email).NotEmpty();
-        RuleFor(r => r.Senha).NotEmpty();
+        RuleFor(r => r.Password).NotEmpty();
     }
 }

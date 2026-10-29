@@ -1,74 +1,74 @@
 using Microsoft.Extensions.Time.Testing;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Geocoding;
 
-namespace UrbanReports.Api.Tests.Geocodificacao;
+namespace UrbanReports.Api.Tests.Geocoding;
 
-public sealed class LimitadorDeTaxaTests
+public sealed class RequestThrottleTests
 {
-    private readonly FakeTimeProvider _relogio = new(DateTimeOffset.UtcNow);
+    private readonly FakeTimeProvider _clock = new(DateTimeOffset.UtcNow);
 
-    private LimitadorDeTaxa Criar(TimeSpan? esperaMaxima = null) =>
-        new(_relogio, TimeSpan.FromSeconds(1), esperaMaxima ?? TimeSpan.FromSeconds(30));
+    private RequestThrottle Create(TimeSpan? maxWait = null) =>
+        new(_clock, TimeSpan.FromSeconds(1), maxWait ?? TimeSpan.FromSeconds(30));
 
     [Fact]
-    public async Task Segunda_chamada_espera_o_intervalo_minimo()
+    public async Task Second_call_waits_the_min_interval()
     {
-        var limitador = Criar();
-        await limitador.ExecutarAsync(_ => Task.FromResult(1), CancellationToken.None);
+        var limiter = Create();
+        await limiter.RunAsync(_ => Task.FromResult(1), CancellationToken.None);
 
-        var segunda = limitador.ExecutarAsync(_ => Task.FromResult(2), CancellationToken.None);
+        var second = limiter.RunAsync(_ => Task.FromResult(2), CancellationToken.None);
         await Task.Delay(50);
-        segunda.IsCompleted.Should().BeFalse("ainda não passou 1 s desde a primeira");
+        second.IsCompleted.Should().BeFalse("ainda não passou 1 s desde a primeira");
 
-        _relogio.Advance(TimeSpan.FromMilliseconds(999));
+        _clock.Advance(TimeSpan.FromMilliseconds(999));
         await Task.Delay(50);
-        segunda.IsCompleted.Should().BeFalse();
+        second.IsCompleted.Should().BeFalse();
 
-        _relogio.Advance(TimeSpan.FromMilliseconds(1));
-        (await segunda.WaitAsync(TimeSpan.FromSeconds(5))).Should().Be(2);
+        _clock.Advance(TimeSpan.FromMilliseconds(1));
+        (await second.WaitAsync(TimeSpan.FromSeconds(5))).Should().Be(2);
     }
 
     [Fact]
-    public async Task Chamada_apos_o_intervalo_nao_espera()
+    public async Task Call_after_the_interval_does_not_wait()
     {
-        var limitador = Criar();
-        await limitador.ExecutarAsync(_ => Task.FromResult(1), CancellationToken.None);
-        _relogio.Advance(TimeSpan.FromSeconds(2));
+        var limiter = Create();
+        await limiter.RunAsync(_ => Task.FromResult(1), CancellationToken.None);
+        _clock.Advance(TimeSpan.FromSeconds(2));
 
-        var resultado = await limitador.ExecutarAsync(_ => Task.FromResult(2), CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+        var result = await limiter.RunAsync(_ => Task.FromResult(2), CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
 
-        resultado.Should().Be(2);
+        result.Should().Be(2);
     }
 
     [Fact]
-    public async Task Chamadas_nunca_rodam_em_paralelo()
+    public async Task Calls_never_run_in_parallel()
     {
-        var limitador = Criar();
-        var liberar = new TaskCompletionSource<int>();
-        var primeira = limitador.ExecutarAsync(_ => liberar.Task, CancellationToken.None);
+        var limiter = Create();
+        var release = new TaskCompletionSource<int>();
+        var first = limiter.RunAsync(_ => release.Task, CancellationToken.None);
 
-        var segundaIniciou = false;
-        var segunda = limitador.ExecutarAsync(_ => { segundaIniciou = true; return Task.FromResult(2); }, CancellationToken.None);
+        var secondStarted = false;
+        var second = limiter.RunAsync(_ => { secondStarted = true; return Task.FromResult(2); }, CancellationToken.None);
         await Task.Delay(50);
 
-        segundaIniciou.Should().BeFalse();
-        liberar.SetResult(1);
-        await primeira;
+        secondStarted.Should().BeFalse();
+        release.SetResult(1);
+        await first;
         await Task.Delay(50);
-        _relogio.Advance(TimeSpan.FromSeconds(1));
-        (await segunda.WaitAsync(TimeSpan.FromSeconds(5))).Should().Be(2);
+        _clock.Advance(TimeSpan.FromSeconds(1));
+        (await second.WaitAsync(TimeSpan.FromSeconds(5))).Should().Be(2);
     }
 
     [Fact]
-    public async Task Fila_cheia_alem_da_espera_maxima_lanca_timeout()
+    public async Task Full_queue_beyond_max_wait_throws_timeout()
     {
-        var limitador = Criar(esperaMaxima: TimeSpan.FromMilliseconds(50));
-        var bloqueio = new TaskCompletionSource<int>();
-        _ = limitador.ExecutarAsync(_ => bloqueio.Task, CancellationToken.None);
+        var limiter = Create(maxWait: TimeSpan.FromMilliseconds(50));
+        var blocker = new TaskCompletionSource<int>();
+        _ = limiter.RunAsync(_ => blocker.Task, CancellationToken.None);
 
-        var acao = () => limitador.ExecutarAsync(_ => Task.FromResult(2), CancellationToken.None);
+        var action = () => limiter.RunAsync(_ => Task.FromResult(2), CancellationToken.None);
 
-        await acao.Should().ThrowAsync<TimeoutException>();
-        bloqueio.SetResult(1);
+        await action.Should().ThrowAsync<TimeoutException>();
+        blocker.SetResult(1);
     }
 }

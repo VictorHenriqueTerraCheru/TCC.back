@@ -1,69 +1,69 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Problemas;
+using UrbanReports.Api.Issues;
 
 namespace UrbanReports.Api.Modules;
 
-public sealed class ProblemaModule : IEndpointModule
+public sealed class IssueModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapGet("/problemas", ListarNaArea)
-            .Validar<ListarProblemasNaAreaRequest>()
+        api.MapGet("/issues", ListInArea)
+            .Validate<ListIssuesInAreaRequest>()
             .AllowAnonymous()
-            .WithTags("Problemas");
+            .WithTags("Issues");
 
-        api.MapGet("/problemas/recentes", ListarRecentes)
-            .Validar<ListarProblemasRecentesRequest>()
+        api.MapGet("/issues/recent", ListRecent)
+            .Validate<ListRecentIssuesRequest>()
             .AllowAnonymous()
-            .WithTags("Problemas");
+            .WithTags("Issues");
 
-        api.MapGet("/problemas/duplicatas", BuscarDuplicatas)
-            .Validar<BuscarDuplicatasRequest>()
-            .WithTags("Problemas");
+        api.MapGet("/issues/duplicates", SearchDuplicates)
+            .Validate<SearchDuplicatesRequest>()
+            .WithTags("Issues");
 
-        api.MapGet("/problemas/{id:guid}", ObterDetalhe)
+        api.MapGet("/issues/{id:guid}", GetDetail)
             .AllowAnonymous()
-            .WithTags("Problemas");
+            .WithTags("Issues");
 
-        api.MapPost("/problemas", Registrar)
-            .Validar<RegistrarProblemaRequest>()
-            .WithTags("Problemas");
+        api.MapPost("/issues", Create)
+            .Validate<CreateIssueRequest>()
+            .WithTags("Issues");
     }
 
-    private static Task<List<ListarProblemasNaAreaResponse>> ListarNaArea(
-        [AsParameters] ListarProblemasNaAreaRequest request, IProblemaService service, CancellationToken ct) =>
-        service.ListarNaAreaAsync(request, ct);
+    private static Task<List<ListIssuesInAreaResponse>> ListInArea(
+        [AsParameters] ListIssuesInAreaRequest request, IIssueService service, CancellationToken ct) =>
+        service.ListInAreaAsync(request, ct);
 
-    private static Task<Paginado<ListarProblemasRecentesItem>> ListarRecentes(
-        [AsParameters] ListarProblemasRecentesRequest request, IProblemaService service, CancellationToken ct) =>
-        service.ListarRecentesAsync(request, ct);
+    private static Task<Paged<ListRecentIssuesItem>> ListRecent(
+        [AsParameters] ListRecentIssuesRequest request, IIssueService service, CancellationToken ct) =>
+        service.ListRecentAsync(request, ct);
 
-    private static Task<List<BuscarDuplicatasResponse>> BuscarDuplicatas(
-        [AsParameters] BuscarDuplicatasRequest request, IProblemaService service, CancellationToken ct) =>
-        service.BuscarDuplicatasAsync(request, ct);
+    private static Task<List<SearchDuplicatesResponse>> SearchDuplicates(
+        [AsParameters] SearchDuplicatesRequest request, IIssueService service, CancellationToken ct) =>
+        service.SearchDuplicatesAsync(request, ct);
 
-    private static async Task<Results<Ok<ObterDetalheProblemaResponse>, NotFound>> ObterDetalhe(
-        Guid id, ClaimsPrincipal principal, IProblemaService service, CancellationToken ct)
+    private static async Task<Results<Ok<GetIssueDetailResponse>, NotFound>> GetDetail(
+        Guid id, ClaimsPrincipal principal, IIssueService service, CancellationToken ct)
     {
-        var r = await service.ObterDetalheAsync(id, principal.ObterUsuarioIdOuNulo(), ct);
-        return r.Erro switch
+        var r = await service.GetDetailAsync(id, principal.GetUserIdOrNull(), ct);
+        return r.Error switch
         {
-            null => TypedResults.Ok(r.Valor!),
-            var e => e.ParaNaoEncontrado(),
+            null => TypedResults.Ok(r.Value!),
+            var e => e.ToNotFound(),
         };
     }
 
-    private static async Task<Results<Created<ObterDetalheProblemaResponse>, ValidationProblem, ProblemHttpResult>> Registrar(
-        RegistrarProblemaRequest request, ClaimsPrincipal principal, IProblemaService service, CancellationToken ct)
+    private static async Task<Results<Created<GetIssueDetailResponse>, ValidationProblem, ProblemHttpResult>> Create(
+        CreateIssueRequest request, ClaimsPrincipal principal, IIssueService service, CancellationToken ct)
     {
-        var r = await service.RegistrarAsync(request, principal.ObterUsuarioId(), ct);
-        return r.Erro switch
+        var r = await service.CreateAsync(request, principal.GetUserId(), ct);
+        return r.Error switch
         {
-            null => TypedResults.Created($"/api/v1/problemas/{r.Valor!.Id}", r.Valor),
-            { Tipo: TipoErro.Campo } e => e.ParaValidacao(),
-            var e => e.ParaProblema(),
+            null => TypedResults.Created($"/api/v1/issues/{r.Value!.Id}", r.Value),
+            { Kind: ErrorType.Field } e => e.ToValidation(),
+            var e => e.ToProblem(),
         };
     }
 }

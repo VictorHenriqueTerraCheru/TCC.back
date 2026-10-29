@@ -1,81 +1,81 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using UrbanReports.Api.Categorias;
+using UrbanReports.Api.Categories;
 using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Modules;
 
-public sealed class CategoriaModule : IEndpointModule
+public sealed class CategoryModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapGet("/categorias", Listar)
+        api.MapGet("/categories", List)
             .AllowAnonymous()
-            .WithTags("Categorias");
+            .WithTags("Categories");
 
-        api.MapGet("/admin/categorias", ListarTodas)
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapGet("/admin/categories", ListAll)
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapPost("/admin/categorias", Criar)
-            .Validar<CriarCategoriaRequest>()
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapPost("/admin/categories", Create)
+            .Validate<CreateCategoryRequest>()
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapPut("/admin/categorias/{id:int}", Editar)
-            .Validar<EditarCategoriaRequest>()
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapPut("/admin/categories/{id:int}", Edit)
+            .Validate<EditCategoryRequest>()
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
 
-        api.MapPatch("/admin/categorias/{id:int}/ativa", AlterarAtiva)
-            .RequireAuthorization(PoliticasAutorizacao.Administrador)
+        api.MapPatch("/admin/categories/{id:int}/active", SetActive)
+            .RequireAuthorization(AuthorizationPolicies.Administrator)
             .WithTags("Admin");
     }
 
-    private static Task<List<ListarCategoriasResponse>> Listar(ICategoriaService service, CancellationToken ct) =>
-        service.ListarAsync(ct);
+    private static Task<List<ListCategoriesResponse>> List(ICategoryService service, CancellationToken ct) =>
+        service.ListAsync(ct);
 
-    private static Task<List<CategoriaAdminResponse>> ListarTodas(ICategoriaService service, CancellationToken ct) =>
-        service.ListarTodasAsync(ct);
+    private static Task<List<CategoryAdminResponse>> ListAll(ICategoryService service, CancellationToken ct) =>
+        service.ListAllAsync(ct);
 
-    private static async Task<Results<Created<CategoriaAdminResponse>, ValidationProblem, ProblemHttpResult>> Criar(
-        CriarCategoriaRequest request, ICategoriaService service, CancellationToken ct)
+    private static async Task<Results<Created<CategoryAdminResponse>, ValidationProblem, ProblemHttpResult>> Create(
+        CreateCategoryRequest request, ICategoryService service, CancellationToken ct)
     {
-        var r = await service.CriarAsync(request, ct);
-        return r.Erro switch
+        var r = await service.CreateAsync(request, ct);
+        return r.Error switch
         {
-            null => TypedResults.Created("/api/v1/admin/categorias", r.Valor),
-            { Tipo: TipoErro.Campo } e => e.ParaValidacao(),
-            var e => e.ParaProblema(),
+            null => TypedResults.Created("/api/v1/admin/categories", r.Value),
+            { Kind: ErrorType.Field } e => e.ToValidation(),
+            var e => e.ToProblem(),
         };
     }
 
-    private static async Task<Results<Ok<CategoriaAdminResponse>, NotFound, ValidationProblem, ProblemHttpResult>> Editar(
-        int id, EditarCategoriaRequest request, ICategoriaService service, CancellationToken ct)
+    private static async Task<Results<Ok<CategoryAdminResponse>, NotFound, ValidationProblem, ProblemHttpResult>> Edit(
+        int id, EditCategoryRequest request, ICategoryService service, CancellationToken ct)
     {
         if (id is < 1 or > short.MaxValue)
         {
             return TypedResults.NotFound();
         }
 
-        var r = await service.EditarAsync((short)id, request, ct);
-        return r.Erro switch
+        var r = await service.EditAsync((short)id, request, ct);
+        return r.Error switch
         {
-            null => TypedResults.Ok(r.Valor),
-            { Tipo: TipoErro.NaoEncontrado } e => e.ParaNaoEncontrado(),
-            { Tipo: TipoErro.Campo } e => e.ParaValidacao(),
-            var e => e.ParaProblema(),
+            null => TypedResults.Ok(r.Value),
+            { Kind: ErrorType.NotFound } e => e.ToNotFound(),
+            { Kind: ErrorType.Field } e => e.ToValidation(),
+            var e => e.ToProblem(),
         };
     }
 
-    private static async Task<Results<NoContent, NotFound>> AlterarAtiva(
-        int id, AlterarAtivaCategoriaRequest request, ICategoriaService service, CancellationToken ct)
+    private static async Task<Results<NoContent, NotFound>> SetActive(
+        int id, SetCategoryActiveRequest request, ICategoryService service, CancellationToken ct)
     {
         if (id is < 1 or > short.MaxValue)
         {
             return TypedResults.NotFound();
         }
 
-        var r = await service.AlterarAtivaAsync((short)id, request.Ativa, ct);
-        return r.Erro is null ? TypedResults.NoContent() : TypedResults.NotFound();
+        var r = await service.SetActiveAsync((short)id, request.Active, ct);
+        return r.Error is null ? TypedResults.NoContent() : TypedResults.NotFound();
     }
 }

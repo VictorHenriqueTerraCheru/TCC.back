@@ -4,21 +4,21 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-public sealed class GrupoCategoriaConfiguration : IEntityTypeConfiguration<GrupoCategoria>
+public sealed class CategoryGroupConfiguration : IEntityTypeConfiguration<CategoryGroup>
 {
-    public void Configure(EntityTypeBuilder<GrupoCategoria> b)
+    public void Configure(EntityTypeBuilder<CategoryGroup> b)
     {
-        b.ToTable("grupos_categoria");
-        b.HasKey(g => g.Chave);
-        b.Property(g => g.Chave).HasMaxLength(30);
-        b.Property(g => g.Rotulo).HasMaxLength(40);
-        b.HasIndex(g => g.Rotulo).IsUnique();
+        b.ToTable("category_groups");
+        b.HasKey(g => g.Key);
+        b.Property(g => g.Key).HasMaxLength(30);
+        b.Property(g => g.Label).HasMaxLength(40);
+        b.HasIndex(g => g.Label).IsUnique();
 
         b.HasData(
-            new GrupoCategoria { Chave = "viaPublica", Rotulo = "Via pública", Tipo = TipoOcorrencia.Problema, Cor = CorGrupo.Laranja, Ordem = 1 },
-            new GrupoCategoria { Chave = "eletrica", Rotulo = "Elétrica", Tipo = TipoOcorrencia.Problema, Cor = CorGrupo.Ocre, Ordem = 2 },
-            new GrupoCategoria { Chave = "limpeza", Rotulo = "Limpeza", Tipo = TipoOcorrencia.Problema, Cor = CorGrupo.Marrom, Ordem = 3 },
-            new GrupoCategoria { Chave = "seguranca", Rotulo = "Segurança", Tipo = TipoOcorrencia.Incidente, Cor = CorGrupo.Vermelho, Ordem = 4 },
-            new GrupoCategoria { Chave = "transito", Rotulo = "Trânsito", Tipo = TipoOcorrencia.Incidente, Cor = CorGrupo.Terracota, Ordem = 5 });
+            new CategoryGroup { Key = "viaPublica", Label = "Via pública", Type = ReportType.Issue, Color = GroupColor.Laranja, SortOrder = 1 },
+            new CategoryGroup { Key = "eletrica", Label = "Elétrica", Type = ReportType.Issue, Color = GroupColor.Ochre, SortOrder = 2 },
+            new CategoryGroup { Key = "limpeza", Label = "Limpeza", Type = ReportType.Issue, Color = GroupColor.Brown, SortOrder = 3 },
+            new CategoryGroup { Key = "seguranca", Label = "Segurança", Type = ReportType.Incident, Color = GroupColor.Red, SortOrder = 4 },
+            new CategoryGroup { Key = "transito", Label = "Trânsito", Type = ReportType.Incident, Color = GroupColor.Terracotta, SortOrder = 5 });
     }
 }

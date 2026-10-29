@@ -4,56 +4,56 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-public static class InicializacaoProducao
+public static class ProductionStartup
 {
-    public static async Task InicializarBancoProducaoAsync(this WebApplication app)
+    public static async Task InitializeProductionDatabaseAsync(this WebApplication app)
     {
-        await using var escopo = app.Services.CreateAsyncScope();
-        var db = escopo.ServiceProvider.GetRequiredService<AppDbContext>();
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
 
-        if (await db.Users.AnyAsync(u => u.Perfil == Perfil.Administrador))
+        if (await db.Users.AnyAsync(u => u.Role == Role.Administrator))
         {
             return;
         }
 
-        var email = app.Configuration["AdminInicial:Email"];
-        var senha = app.Configuration["AdminInicial:Senha"];
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(senha))
+        var email = app.Configuration["InitialAdmin:Email"];
+        var password = app.Configuration["InitialAdmin:Password"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
             app.Logger.LogWarning("Nenhum administrador no banco e AdminInicial__Email/AdminInicial__Senha não configurados.");
             return;
         }
 
-        var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
 
-        var existente = await usuarios.FindByEmailAsync(email);
-        if (existente is not null)
+        var existing = await users.FindByEmailAsync(email);
+        if (existing is not null)
         {
-            existente.Perfil = Perfil.Administrador;
-            Garantir(await usuarios.UpdateAsync(existente), email);
+            existing.Role = Role.Administrator;
+            Ensure(await users.UpdateAsync(existing), email);
             app.Logger.LogInformation("Usuário existente promovido a administrador.");
             return;
         }
 
-        var admin = new Usuario
+        var admin = new User
         {
             Id = Guid.CreateVersion7(),
-            Nome = app.Configuration["AdminInicial:Nome"] ?? "Administrador",
+            Name = app.Configuration["InitialAdmin:Name"] ?? "Administrador",
             Email = email,
             UserName = email,
-            Perfil = Perfil.Administrador,
-            CriadoEm = escopo.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow(),
+            Role = Role.Administrator,
+            CreatedAt = scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow(),
         };
-        Garantir(await usuarios.CreateAsync(admin, senha), email);
+        Ensure(await users.CreateAsync(admin, password), email);
         app.Logger.LogInformation("Administrador inicial criado.");
     }
 
-    private static void Garantir(IdentityResult resultado, string email)
+    private static void Ensure(IdentityResult result, string email)
     {
-        if (!resultado.Succeeded)
+        if (!result.Succeeded)
         {
-            throw new InvalidOperationException($"Administrador inicial falhou para {email}: {string.Join("; ", resultado.Errors.Select(e => e.Code))}");
+            throw new InvalidOperationException($"Administrador inicial falhou para {email}: {string.Join("; ", result.Errors.Select(e => e.Code))}");
         }
     }
 }

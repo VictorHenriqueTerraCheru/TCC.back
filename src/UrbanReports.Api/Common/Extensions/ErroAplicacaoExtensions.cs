@@ -2,15 +2,15 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UrbanReports.Api.Common;
 
-public static class ErroAplicacaoExtensions
+public static class ApplicationErrorExtensions
 {
-    public static ProblemHttpResult ParaProblema(this ErroAplicacao erro) =>
-        TypedResults.Problem(statusCode: erro.Status, type: erro.Type, title: erro.Title);
+    public static ProblemHttpResult ToProblem(this ApplicationError error) =>
+        TypedResults.Problem(statusCode: error.Status, type: error.Type, title: error.Title);
 
-    public static ValidationProblem ParaValidacao(this ErroAplicacao erro) =>
-        TypedResults.ValidationProblem(new Dictionary<string, string[]> { [erro.Campo!] = [erro.Title!] });
+    public static ValidationProblem ToValidation(this ApplicationError error) =>
+        TypedResults.ValidationProblem(new Dictionary<string, string[]> { [error.Field!] = [error.Title!] });
 
-    public static NotFound ParaNaoEncontrado(this ErroAplicacao erro) => TypedResults.NotFound();
+    public static NotFound ToNotFound(this ApplicationError error) => TypedResults.NotFound();
 
-    public static UnauthorizedHttpResult ParaNaoAutorizado(this ErroAplicacao erro) => TypedResults.Unauthorized();
+    public static UnauthorizedHttpResult ToUnauthorized(this ApplicationError error) => TypedResults.Unauthorized();
 }

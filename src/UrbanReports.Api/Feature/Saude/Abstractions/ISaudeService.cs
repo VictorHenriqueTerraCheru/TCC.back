@@ -1,8 +1,8 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Saude;
+namespace UrbanReports.Api.Health;
 
-public interface ISaudeService
+public interface IHealthService
 {
-    Task<Resultado<StatusSaudeResponse>> VerificarBancoAsync(CancellationToken ct);
+    Task<Result<HealthStatusResponse>> VerifyDatabaseAsync(CancellationToken ct);
 }

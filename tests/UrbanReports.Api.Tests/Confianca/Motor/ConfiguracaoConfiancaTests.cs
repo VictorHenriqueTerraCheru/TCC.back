@@ -1,9 +1,9 @@
 using System.Globalization;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 
-namespace UrbanReports.Api.Tests.Confianca.Motor;
+namespace UrbanReports.Api.Tests.Trust.Engine;
 
-public sealed class ConfiguracaoConfiancaTests
+public sealed class TrustConfigurationTests
 {
     [Theory]
     [InlineData("A", "A", 1)]
@@ -12,17 +12,17 @@ public sealed class ConfiguracaoConfiancaTests
     [InlineData("B-v3", "B-v3", 3)]
     [InlineData("B-v5", "B-v5", 5)]
     [InlineData("A-v2.5", "A-v2.5", 2.5)]
-    public void PorNome_resolve_as_configuracoes(string nome, string esperado, double pesoVerificado)
+    public void ByName_resolves_the_configurations(string name, string expected, double verifiedWeight)
     {
-        var cfg = ConfiguracaoConfianca.PorNome(nome);
+        var cfg = TrustConfiguration.ByName(name);
 
-        cfg.Nome.Should().Be(esperado);
-        cfg.PesoVerificado.Should().Be(pesoVerificado);
+        cfg.Name.Should().Be(expected);
+        cfg.VerifiedWeight.Should().Be(verifiedWeight);
     }
 
     [Fact]
-    public void PorNome_B_e_a_propria_instancia_B() =>
-        ConfiguracaoConfianca.PorNome("B").Should().BeSameAs(ConfiguracaoConfianca.B);
+    public void ByName_B_is_the_B_instance_itself() =>
+        TrustConfiguration.ByName("B").Should().BeSameAs(TrustConfiguration.B);
 
     [Theory]
     [InlineData("C")]
@@ -32,25 +32,25 @@ public sealed class ConfiguracaoConfiancaTests
     [InlineData("B-vInfinity")]
     [InlineData("B-v1e400")]
     [InlineData("B-vNaN")]
-    public void PorNome_rejeita_nomes_invalidos(string nome)
+    public void ByName_rejects_invalid_names(string name)
     {
-        var acao = () => ConfiguracaoConfianca.PorNome(nome);
+        var action = () => TrustConfiguration.ByName(name);
 
-        acao.Should().Throw<ArgumentException>();
+        action.Should().Throw<ArgumentException>();
     }
 
     [Fact]
-    public void Nome_da_variante_independe_da_cultura()
+    public void Variant_name_ignores_culture()
     {
-        var anterior = CultureInfo.CurrentCulture;
+        var previous = CultureInfo.CurrentCulture;
         CultureInfo.CurrentCulture = new CultureInfo("pt-BR");
         try
         {
-            ConfiguracaoConfianca.B.ComPesoVerificado(2.5).Nome.Should().Be("B-v2.5");
+            TrustConfiguration.B.WithVerifiedWeight(2.5).Name.Should().Be("B-v2.5");
         }
         finally
         {
-            CultureInfo.CurrentCulture = anterior;
+            CultureInfo.CurrentCulture = previous;
         }
     }
 }

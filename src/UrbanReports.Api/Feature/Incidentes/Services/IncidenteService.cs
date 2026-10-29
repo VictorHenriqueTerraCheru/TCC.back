@@ -1,136 +1,136 @@
 using Microsoft.EntityFrameworkCore;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Geocoding;
 using UrbanReports.Api.Persistence;
 
-namespace UrbanReports.Api.Incidentes;
+namespace UrbanReports.Api.Incidents;
 
-public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geocodificacao, TimeProvider relogio) : IIncidenteService
+public sealed class IncidentService(AppDbContext db, IGeocodingService geocoding, TimeProvider clock) : IIncidentService
 {
-    public async Task<Resultado<IncidenteRegistrado>> RegistrarAsync(RegistrarIncidenteRequest request, Guid autorId, CancellationToken ct)
+    public async Task<Result<CreatedIncident>> CreateAsync(CreateIncidentRequest request, Guid authorId, CancellationToken ct)
     {
-        var categoria = await db.Categorias.FindAsync([request.CategoriaId], ct);
-        if (categoria is not { Ativa: true })
+        var category = await db.Categories.FindAsync([request.CategoryId], ct);
+        if (category is not { Active: true })
         {
-            return ErrosIncidente.CategoriaInexistente;
+            return IncidentErrors.MissingCategory;
         }
 
-        if (categoria.Tipo != TipoOcorrencia.Incidente)
+        if (category.Type != ReportType.Incident)
         {
-            return ErrosIncidente.CategoriaNaoEIncidente;
+            return IncidentErrors.CategoryNotIncident;
         }
 
-        var agora = relogio.GetUtcNow();
-        if (request.OcorridoEm < agora - LimitesIncidente.Janela || request.OcorridoEm > agora)
+        var now = clock.GetUtcNow();
+        if (request.OccurredAt < now - IncidentLimits.Window || request.OccurredAt > now)
         {
-            return ErrosIncidente.HorarioForaDaJanela;
+            return IncidentErrors.TimeOutsideWindow;
         }
 
-        var desde = agora - LimitesIncidente.Janela;
+        var since = now - IncidentLimits.Window;
 
-        if (await ContarRecentesAsync(autorId, desde, ct) >= LimitesIncidente.MaximoPor24h)
+        if (await CountRecentAsync(authorId, since, ct) >= IncidentLimits.MaxPer24h)
         {
-            return ErrosIncidente.LimiteDiarioIncidentes;
+            return IncidentErrors.DailyIncidentLimit;
         }
 
-        var lat = Arredondar(request.Lat);
-        var lng = Arredondar(request.Lng);
-        var endereco = await geocodificacao.ReversaAsync(lat, lng, ct);
+        var lat = Round(request.Lat);
+        var lng = Round(request.Lng);
+        var address = await geocoding.ReverseAsync(lat, lng, ct);
 
-        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveBloqueio(autorId)})", ct);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({LockKey(authorId)})", ct);
 
-        if (await ContarRecentesAsync(autorId, desde, ct) >= LimitesIncidente.MaximoPor24h)
+        if (await CountRecentAsync(authorId, since, ct) >= IncidentLimits.MaxPer24h)
         {
-            return ErrosIncidente.LimiteDiarioIncidentes;
+            return IncidentErrors.DailyIncidentLimit;
         }
 
-        db.Incidentes.Add(new Incidente
+        db.Incidents.Add(new Incident
         {
             Id = Guid.CreateVersion7(),
-            CategoriaId = categoria.Id,
-            AutorId = autorId,
-            AreaAproximada = Geo.Ponto(lat, lng),
-            RaioMetros = LimitesIncidente.RaioMetros,
-            RotuloArea = endereco.RotuloArea,
-            OcorridoEm = request.OcorridoEm.ToUniversalTime(),
-            RegistradoEm = agora,
+            CategoryId = category.Id,
+            AuthorId = authorId,
+            ApproximateArea = Geo.ToPoint(lat, lng),
+            RadiusMeters = IncidentLimits.RadiusMeters,
+            AreaLabel = address.AreaLabel,
+            OccurredAt = request.OccurredAt.ToUniversalTime(),
+            RegisteredAt = now,
         });
         await db.SaveChangesAsync(ct);
-        await transacao.CommitAsync(ct);
+        await transaction.CommitAsync(ct);
 
-        return new IncidenteRegistrado(lat, lng, await ConsultarAreaAsync(lat, lng, agora, ct));
+        return new CreatedIncident(lat, lng, await QueryAreaAsync(lat, lng, now, ct));
     }
 
-    public async Task<List<ObterCalorIncidentesResponse>> ObterCalorAsync(ObterCalorIncidentesRequest request, CancellationToken ct)
+    public async Task<List<GetIncidentHeatmapResponse>> GetHeatmapAsync(GetIncidentHeatmapRequest request, CancellationToken ct)
     {
-        var agora = relogio.GetUtcNow();
-        var desde = agora.AddDays(-request.Dias);
-        var grupos = Listas.Separar(request.Grupos);
+        var now = clock.GetUtcNow();
+        var since = now.AddDays(-request.Days);
+        var groups = Lists.Split(request.Groups);
 
         return await db.Database
-            .SqlQuery<ObterCalorIncidentesResponse>($"""
-                SELECT ST_Y(i.area_aproximada::geometry) AS lat,
-                       ST_X(i.area_aproximada::geometry) AS lng,
-                       count(*)::int AS quantidade
-                FROM incidentes i
-                JOIN categorias c ON c.id = i.categoria_id
-                WHERE i.ocorrido_em >= {desde} AND i.ocorrido_em <= {agora}
-                  AND i.area_aproximada::geometry && ST_MakeEnvelope({request.MinLng}, {request.MinLat}, {request.MaxLng}, {request.MaxLat}, 4326)
-                  AND (cardinality({grupos}) = 0 OR c.grupo = ANY({grupos}))
+            .SqlQuery<GetIncidentHeatmapResponse>($"""
+                SELECT ST_Y(i.approximate_area::geometry) AS lat,
+                       ST_X(i.approximate_area::geometry) AS lng,
+                       count(*)::int AS count
+                FROM incidents i
+                JOIN categories c ON c.id = i.category_id
+                WHERE i.occurred_at >= {since} AND i.occurred_at <= {now}
+                  AND i.approximate_area::geometry && ST_MakeEnvelope({request.MinLng}, {request.MinLat}, {request.MaxLng}, {request.MaxLat}, 4326)
+                  AND (cardinality({groups}) = 0 OR c."group" = ANY({groups}))
                 GROUP BY 1, 2
-                ORDER BY quantidade DESC
-                LIMIT {LimitesIncidente.MaximoCelulasCalor}
+                ORDER BY count DESC
+                LIMIT {IncidentLimits.MaxHeatmapCells}
                 """)
             .ToListAsync(ct);
     }
 
-    public Task<ObterAreaIncidentesResponse> ObterAreaAsync(ObterAreaIncidentesRequest request, CancellationToken ct) =>
-        ConsultarAreaAsync(request.Lat, request.Lng, relogio.GetUtcNow(), ct);
+    public Task<GetIncidentAreaResponse> GetAreaAsync(GetIncidentAreaRequest request, CancellationToken ct) =>
+        QueryAreaAsync(request.Lat, request.Lng, clock.GetUtcNow(), ct);
 
-    public static NivelConcentracao Nivel(int total7Dias) =>
-        total7Dias >= LimitesIncidente.LimiarAlta ? NivelConcentracao.Alta
-        : total7Dias >= LimitesIncidente.LimiarMedia ? NivelConcentracao.Media
-        : NivelConcentracao.Baixa;
+    public static ConcentrationLevel Level(int total7Days) =>
+        total7Days >= IncidentLimits.HighThreshold ? ConcentrationLevel.High
+        : total7Days >= IncidentLimits.MediumThreshold ? ConcentrationLevel.Medium
+        : ConcentrationLevel.Low;
 
-    public static double Arredondar(double coordenada) =>
-        Math.Round(coordenada, LimitesIncidente.CasasDecimais, MidpointRounding.AwayFromZero);
+    public static double Round(double coordinate) =>
+        Math.Round(coordinate, IncidentLimits.DecimalPlaces, MidpointRounding.AwayFromZero);
 
-    private async Task<ObterAreaIncidentesResponse> ConsultarAreaAsync(double lat, double lng, DateTimeOffset agora, CancellationToken ct)
+    private async Task<GetIncidentAreaResponse> QueryAreaAsync(double lat, double lng, DateTimeOffset now, CancellationToken ct)
     {
-        var ponto = Geo.Ponto(lat, lng);
-        var desde7 = agora.AddDays(-7);
-        var desde30 = agora.AddDays(-30);
+        var point = Geo.ToPoint(lat, lng);
+        var since7 = now.AddDays(-7);
+        var since30 = now.AddDays(-30);
 
-        var porCategoria = await db.Incidentes
-            .Where(i => i.OcorridoEm >= desde30 && i.OcorridoEm <= agora && i.AreaAproximada.IsWithinDistance(ponto, LimitesIncidente.RaioAreaMetros))
-            .GroupBy(i => i.CategoriaId)
-            .Select(g => new { CategoriaId = g.Key, Dias7 = g.Count(i => i.OcorridoEm >= desde7), Dias30 = g.Count() })
-            .ToDictionaryAsync(g => g.CategoriaId, ct);
+        var byCategory = await db.Incidents
+            .Where(i => i.OccurredAt >= since30 && i.OccurredAt <= now && i.ApproximateArea.IsWithinDistance(point, IncidentLimits.AreaRadiusMeters))
+            .GroupBy(i => i.CategoryId)
+            .Select(g => new { CategoryId = g.Key, Days7 = g.Count(i => i.OccurredAt >= since7), Days30 = g.Count() })
+            .ToDictionaryAsync(g => g.CategoryId, ct);
 
-        var categorias = await db.Categorias
-            .Where(c => c.Tipo == TipoOcorrencia.Incidente && c.Ativa)
+        var categories = await db.Categories
+            .Where(c => c.Type == ReportType.Incident && c.Active)
             .OrderBy(c => c.Id)
-            .Select(c => new { c.Id, c.Nome })
+            .Select(c => new { c.Id, c.Name })
             .ToListAsync(ct);
 
-        var contagens = categorias
-            .Select(c => porCategoria.TryGetValue(c.Id, out var n)
-                ? new ObterAreaIncidentesContagem(c.Id, c.Nome, n.Dias7, n.Dias30)
-                : new ObterAreaIncidentesContagem(c.Id, c.Nome, 0, 0))
+        var counts = categories
+            .Select(c => byCategory.TryGetValue(c.Id, out var n)
+                ? new GetIncidentAreaCount(c.Id, c.Name, n.Days7, n.Days30)
+                : new GetIncidentAreaCount(c.Id, c.Name, 0, 0))
             .ToList();
 
-        return new ObterAreaIncidentesResponse(LimitesIncidente.RaioAreaMetros, agora, Nivel(contagens.Sum(c => c.Dias7)), contagens);
+        return new GetIncidentAreaResponse(IncidentLimits.AreaRadiusMeters, now, Level(counts.Sum(c => c.Days7)), counts);
     }
 
-    private Task<int> ContarRecentesAsync(Guid autorId, DateTimeOffset desde, CancellationToken ct) =>
-        db.Incidentes.CountAsync(i => i.AutorId == autorId && i.RegistradoEm > desde, ct);
+    private Task<int> CountRecentAsync(Guid authorId, DateTimeOffset since, CancellationToken ct) =>
+        db.Incidents.CountAsync(i => i.AuthorId == authorId && i.RegisteredAt > since, ct);
 
-    private static long ChaveBloqueio(Guid usuarioId)
+    private static long LockKey(Guid userId)
     {
         Span<byte> bytes = stackalloc byte[16];
-        usuarioId.TryWriteBytes(bytes);
+        userId.TryWriteBytes(bytes);
         return BitConverter.ToInt64(bytes[..8]) ^ BitConverter.ToInt64(bytes[8..]);
     }
 }

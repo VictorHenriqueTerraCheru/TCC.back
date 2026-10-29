@@ -2,221 +2,221 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
-using UrbanReports.Api.Incidentes;
+using UrbanReports.Api.Incidents;
 using UrbanReports.Api.Tests.Infra;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Tests.Incidentes;
+namespace UrbanReports.Api.Tests.Incidents;
 
-[Collection(ApiCollection.Nome)]
-public sealed class IncidentesTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class IncidentsTests(ApiFactory factory)
 {
     private static string Inv(FormattableString s) => s.ToString(CultureInfo.InvariantCulture);
 
-    private Task<HttpResponseMessage> RegistrarAsync(Pessoa pessoa, double lat, double lng, short categoriaId = 7, DateTimeOffset? ocorridoEm = null) =>
-        pessoa.Cliente.PostAsJsonAsync("/api/v1/incidentes",
-            new { categoriaId, lat, lng, ocorridoEm = ocorridoEm ?? fabrica.Relogio.GetUtcNow().AddMinutes(-30) },
-            ClienteApi.Json);
+    private Task<HttpResponseMessage> CreateAsync(Person person, double lat, double lng, short categoryId = 7, DateTimeOffset? occurredAt = null) =>
+        person.Client.PostAsJsonAsync("/api/v1/incidents",
+            new { categoryId, lat, lng, occurredAt = occurredAt ?? factory.Clock.GetUtcNow().AddMinutes(-30) },
+            ApiClient.Json);
 
-    private static async Task<string?> TipoErroAsync(HttpResponseMessage resposta) =>
-        (await resposta.LerJsonAsync()).GetProperty("type").GetString();
+    private static async Task<string?> ErrorTypeAsync(HttpResponseMessage response) =>
+        (await response.ReadJsonAsync()).GetProperty("type").GetString();
 
     [Fact]
-    public async Task Registrar_arredonda_em_3_casas_guarda_o_rotulo_e_devolve_a_area()
+    public async Task Create_rounds_to_3_places_keeps_the_label_and_returns_the_area()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (baseLat, baseLng) = ApiFactory.AreaIsolada();
+        var person = await factory.NewPersonAsync();
+        var (baseLat, baseLng) = ApiFactory.IsolatedArea();
         var (lat, lng) = (baseLat + 0.00041, baseLng - 0.00067);
 
-        var resposta = await RegistrarAsync(pessoa, lat, lng);
-        var corpo = await resposta.Content.ReadAsStringAsync();
-        var area = await resposta.LerAsync<ObterAreaIncidentesResponse>();
+        var response = await CreateAsync(person, lat, lng);
+        var body = await response.Content.ReadAsStringAsync();
+        var area = await response.ReadAsync<GetIncidentAreaResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
-        corpo.Should().NotContainEquivalentOf("autor");
-        area.RaioMetros.Should().Be(400);
-        area.AtualizadoEm.Should().Be(fabrica.Relogio.GetUtcNow());
-        area.Nivel.Should().Be(NivelConcentracao.Baixa);
-        area.Contagens.Should().Equal(
-            new ObterAreaIncidentesContagem(7, "Roubo", 1, 1),
-            new ObterAreaIncidentesContagem(8, "Acidente de trânsito", 0, 0));
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        body.Should().NotContainEquivalentOf("author");
+        area.RadiusMeters.Should().Be(400);
+        area.UpdatedAt.Should().Be(factory.Clock.GetUtcNow());
+        area.Level.Should().Be(ConcentrationLevel.Low);
+        area.Counts.Should().Equal(
+            new GetIncidentAreaCount(7, "Roubo", 1, 1),
+            new GetIncidentAreaCount(8, "Acidente de trânsito", 0, 0));
 
-        var gravado = await fabrica.NoBancoAsync(db => db.Incidentes.AsNoTracking()
-            .Where(i => i.AutorId == pessoa.Id).SingleAsync());
-        gravado.AreaAproximada.Y.Should().Be(Math.Round(lat, 3, MidpointRounding.AwayFromZero));
-        gravado.AreaAproximada.X.Should().Be(Math.Round(lng, 3, MidpointRounding.AwayFromZero));
-        gravado.RotuloArea.Should().Be("Rua Voluntários da Pátria, Botafogo");
-        gravado.RaioMetros.Should().Be(100);
+        var written = await factory.InDatabaseAsync(db => db.Incidents.AsNoTracking()
+            .Where(i => i.AuthorId == person.Id).SingleAsync());
+        written.ApproximateArea.Y.Should().Be(Math.Round(lat, 3, MidpointRounding.AwayFromZero));
+        written.ApproximateArea.X.Should().Be(Math.Round(lng, 3, MidpointRounding.AwayFromZero));
+        written.AreaLabel.Should().Be("Rua Voluntários da Pátria, Botafogo");
+        written.RadiusMeters.Should().Be(100);
     }
 
     [Fact]
-    public async Task Registrar_com_nominatim_fora_do_ar_grava_sem_rotulo()
+    public async Task Create_with_nominatim_offline_saves_without_label()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.AreaIsolada();
-        fabrica.Nominatim.ForaDoAr(lat, lng);
+        var person = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.IsolatedArea();
+        factory.Nominatim.SetOffline(lat, lng);
 
-        var resposta = await RegistrarAsync(pessoa, lat, lng);
+        var response = await CreateAsync(person, lat, lng);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
-        var gravado = await fabrica.NoBancoAsync(db => db.Incidentes.AsNoTracking().SingleAsync(i => i.AutorId == pessoa.Id));
-        gravado.RotuloArea.Should().BeNull();
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var written = await factory.InDatabaseAsync(db => db.Incidents.AsNoTracking().SingleAsync(i => i.AuthorId == person.Id));
+        written.AreaLabel.Should().BeNull();
     }
 
     [Fact]
-    public async Task Registrar_com_categoria_de_problema_devolve_422()
+    public async Task Create_with_issue_category_returns_422()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.AreaIsolada();
+        var person = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.IsolatedArea();
 
-        var resposta = await RegistrarAsync(pessoa, lat, lng, categoriaId: 1);
+        var response = await CreateAsync(person, lat, lng, categoryId: 1);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await TipoErroAsync(resposta)).Should().Be("categoria-nao-e-incidente");
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await ErrorTypeAsync(response)).Should().Be("category-not-incident");
     }
 
     [Theory]
     [InlineData(-25 * 60)]
     [InlineData(1)]
-    public async Task Horario_fora_das_ultimas_24h_devolve_422(int minutosDesdeAgora)
+    public async Task Time_outside_last_24h_returns_422(int minutesFromNow)
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.AreaIsolada();
+        var person = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.IsolatedArea();
 
-        var resposta = await RegistrarAsync(pessoa, lat, lng, ocorridoEm: fabrica.Relogio.GetUtcNow().AddMinutes(minutosDesdeAgora));
+        var response = await CreateAsync(person, lat, lng, occurredAt: factory.Clock.GetUtcNow().AddMinutes(minutesFromNow));
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await TipoErroAsync(resposta)).Should().Be("horario-fora-da-janela");
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await ErrorTypeAsync(response)).Should().Be("time-outside-window");
     }
 
     [Fact]
-    public async Task Decimo_primeiro_incidente_em_24h_devolve_429_e_libera_depois()
+    public async Task Eleventh_incident_in_24h_returns_429_and_is_released_later()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.AreaIsolada();
+        var person = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.IsolatedArea();
 
         for (var i = 0; i < 10; i++)
         {
-            (await RegistrarAsync(pessoa, lat, lng)).StatusCode.Should().Be(HttpStatusCode.Created);
+            (await CreateAsync(person, lat, lng)).StatusCode.Should().Be(HttpStatusCode.Created);
         }
 
-        var decimoPrimeiro = await RegistrarAsync(pessoa, lat, lng);
-        decimoPrimeiro.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-        (await TipoErroAsync(decimoPrimeiro)).Should().Be("limite-diario-incidentes");
+        var eleventh = await CreateAsync(person, lat, lng);
+        eleventh.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await ErrorTypeAsync(eleventh)).Should().Be("daily-incident-limit");
 
-        fabrica.Relogio.Advance(TimeSpan.FromHours(24));
-        (await RegistrarAsync(pessoa, lat, lng)).StatusCode.Should().Be(HttpStatusCode.Created);
+        factory.Clock.Advance(TimeSpan.FromHours(24));
+        (await CreateAsync(person, lat, lng)).StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     [Fact]
-    public async Task Registros_simultaneos_nao_furam_o_limite()
+    public async Task Concurrent_reports_do_not_break_the_limit()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.AreaIsolada();
+        var person = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.IsolatedArea();
 
-        var respostas = await Task.WhenAll(Enumerable.Range(0, 15).Select(_ => RegistrarAsync(pessoa, lat, lng)));
+        var responses = await Task.WhenAll(Enumerable.Range(0, 15).Select(_ => CreateAsync(person, lat, lng)));
 
-        respostas.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(10);
-        respostas.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests).Should().Be(5);
+        responses.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(10);
+        responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests).Should().Be(5);
     }
 
     [Fact]
-    public async Task Area_classifica_o_nivel_pelo_total_de_7_dias()
+    public async Task Area_classifies_the_level_by_the_7_day_total()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.AreaIsolada();
+        var person = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.IsolatedArea();
         for (var i = 0; i < 4; i++)
         {
-            await RegistrarAsync(pessoa, Cenarios.Norte(lat, i * 50), lng, categoriaId: (short)(i % 2 == 0 ? 7 : 8));
+            await CreateAsync(person, Scenarios.North(lat, i * 50), lng, categoryId: (short)(i % 2 == 0 ? 7 : 8));
         }
 
-        var baixa = await (await fabrica.CreateClient().GetAsync(Inv($"/api/v1/incidentes/area?lat={lat}&lng={lng}")))
-            .LerAsync<ObterAreaIncidentesResponse>();
-        await RegistrarAsync(pessoa, lat, lng);
-        var media = await (await fabrica.CreateClient().GetAsync(Inv($"/api/v1/incidentes/area?lat={lat}&lng={lng}")))
-            .LerAsync<ObterAreaIncidentesResponse>();
+        var low = await (await factory.CreateClient().GetAsync(Inv($"/api/v1/incidents/area?lat={lat}&lng={lng}")))
+            .ReadAsync<GetIncidentAreaResponse>();
+        await CreateAsync(person, lat, lng);
+        var medium = await (await factory.CreateClient().GetAsync(Inv($"/api/v1/incidents/area?lat={lat}&lng={lng}")))
+            .ReadAsync<GetIncidentAreaResponse>();
 
-        baixa.Nivel.Should().Be(NivelConcentracao.Baixa);
-        media.Nivel.Should().Be(NivelConcentracao.Media);
-        media.Contagens.Sum(c => c.Dias7).Should().Be(5);
+        low.Level.Should().Be(ConcentrationLevel.Low);
+        medium.Level.Should().Be(ConcentrationLevel.Medium);
+        medium.Counts.Sum(c => c.Days7).Should().Be(5);
     }
 
     [Fact]
-    public async Task Area_ignora_incidentes_alem_de_400m()
+    public async Task Area_ignores_incidents_beyond_400m()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.AreaIsolada();
-        await RegistrarAsync(pessoa, Cenarios.Norte(lat, 300), lng);
-        await RegistrarAsync(pessoa, Cenarios.Norte(lat, 500), lng);
+        var person = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.IsolatedArea();
+        await CreateAsync(person, Scenarios.North(lat, 300), lng);
+        await CreateAsync(person, Scenarios.North(lat, 500), lng);
 
-        var area = await (await fabrica.CreateClient().GetAsync(Inv($"/api/v1/incidentes/area?lat={lat}&lng={lng}")))
-            .LerAsync<ObterAreaIncidentesResponse>();
+        var area = await (await factory.CreateClient().GetAsync(Inv($"/api/v1/incidents/area?lat={lat}&lng={lng}")))
+            .ReadAsync<GetIncidentAreaResponse>();
 
-        area.Contagens.Sum(c => c.Dias30).Should().Be(1);
+        area.Counts.Sum(c => c.Days30).Should().Be(1);
     }
 
     [Theory]
-    [InlineData(0, NivelConcentracao.Baixa)]
-    [InlineData(4, NivelConcentracao.Baixa)]
-    [InlineData(5, NivelConcentracao.Media)]
-    [InlineData(14, NivelConcentracao.Media)]
-    [InlineData(15, NivelConcentracao.Alta)]
-    public void Limiares_do_nivel(int total, NivelConcentracao esperado) =>
-        IncidenteService.Nivel(total).Should().Be(esperado);
+    [InlineData(0, ConcentrationLevel.Low)]
+    [InlineData(4, ConcentrationLevel.Low)]
+    [InlineData(5, ConcentrationLevel.Medium)]
+    [InlineData(14, ConcentrationLevel.Medium)]
+    [InlineData(15, ConcentrationLevel.High)]
+    public void Level_thresholds(int total, ConcentrationLevel expected) =>
+        IncidentService.Level(total).Should().Be(expected);
 
     [Fact]
-    public async Task Calor_agrupa_por_ponto_arredondado_e_respeita_janela_e_grupos()
+    public async Task Heatmap_groups_by_rounded_point_and_respects_window_and_groups()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.AreaIsolada();
-        await RegistrarAsync(pessoa, lat + 0.0001, lng);
-        await RegistrarAsync(pessoa, lat - 0.0002, lng + 0.0001);
-        await RegistrarAsync(pessoa, lat + 0.003, lng, categoriaId: 8);
+        var person = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.IsolatedArea();
+        await CreateAsync(person, lat + 0.0001, lng);
+        await CreateAsync(person, lat - 0.0002, lng + 0.0001);
+        await CreateAsync(person, lat + 0.003, lng, categoryId: 8);
 
         var area = Inv($"minLat={lat - 0.01}&minLng={lng - 0.01}&maxLat={lat + 0.01}&maxLng={lng + 0.01}");
-        var celulas = await (await fabrica.CreateClient().GetAsync($"/api/v1/incidentes/calor?{area}"))
-            .LerAsync<List<ObterCalorIncidentesResponse>>();
-        var seguranca = await (await fabrica.CreateClient().GetAsync($"/api/v1/incidentes/calor?{area}&grupos=seguranca"))
-            .LerAsync<List<ObterCalorIncidentesResponse>>();
+        var cells = await (await factory.CreateClient().GetAsync($"/api/v1/incidents/heatmap?{area}"))
+            .ReadAsync<List<GetIncidentHeatmapResponse>>();
+        var security = await (await factory.CreateClient().GetAsync($"/api/v1/incidents/heatmap?{area}&groups=seguranca"))
+            .ReadAsync<List<GetIncidentHeatmapResponse>>();
 
-        celulas.Should().BeEquivalentTo(
+        cells.Should().BeEquivalentTo(
         [
-            new ObterCalorIncidentesResponse(Math.Round(lat, 3), lng, 2),
-            new ObterCalorIncidentesResponse(Math.Round(lat + 0.003, 3), lng, 1),
+            new GetIncidentHeatmapResponse(Math.Round(lat, 3), lng, 2),
+            new GetIncidentHeatmapResponse(Math.Round(lat + 0.003, 3), lng, 1),
         ]);
-        seguranca.Should().ContainSingle().Which.Quantidade.Should().Be(2);
+        security.Should().ContainSingle().Which.Count.Should().Be(2);
 
-        fabrica.Relogio.Advance(TimeSpan.FromDays(8));
-        var em7Dias = await (await fabrica.CreateClient().GetAsync($"/api/v1/incidentes/calor?{area}&dias=7"))
-            .LerAsync<List<ObterCalorIncidentesResponse>>();
-        var em30Dias = await (await fabrica.CreateClient().GetAsync($"/api/v1/incidentes/calor?{area}&dias=30"))
-            .LerAsync<List<ObterCalorIncidentesResponse>>();
+        factory.Clock.Advance(TimeSpan.FromDays(8));
+        var in7Days = await (await factory.CreateClient().GetAsync($"/api/v1/incidents/heatmap?{area}&days=7"))
+            .ReadAsync<List<GetIncidentHeatmapResponse>>();
+        var in30Days = await (await factory.CreateClient().GetAsync($"/api/v1/incidents/heatmap?{area}&days=30"))
+            .ReadAsync<List<GetIncidentHeatmapResponse>>();
 
-        em7Dias.Should().BeEmpty();
-        em30Dias.Sum(c => c.Quantidade).Should().Be(3);
+        in7Days.Should().BeEmpty();
+        in30Days.Sum(c => c.Count).Should().Be(3);
     }
 
     [Fact]
-    public async Task Calor_respeita_o_retangulo_exato_em_viewport_largo()
+    public async Task Heatmap_respects_the_exact_rectangle_on_wide_viewport()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        await RegistrarAsync(pessoa, 70, 0);
-        await RegistrarAsync(pessoa, 60.5, 10);
+        var person = await factory.NewPersonAsync();
+        await CreateAsync(person, 70, 0);
+        await CreateAsync(person, 60.5, 10);
 
-        var celulas = await (await fabrica.CreateClient().GetAsync("/api/v1/incidentes/calor?minLat=60&minLng=-60&maxLat=61&maxLng=60"))
-            .LerAsync<List<ObterCalorIncidentesResponse>>();
+        var cells = await (await factory.CreateClient().GetAsync("/api/v1/incidents/heatmap?minLat=60&minLng=-60&maxLat=61&maxLng=60"))
+            .ReadAsync<List<GetIncidentHeatmapResponse>>();
 
-        celulas.Should().ContainSingle().Which.Should().Be(new ObterCalorIncidentesResponse(60.5, 10, 1));
+        cells.Should().ContainSingle().Which.Should().Be(new GetIncidentHeatmapResponse(60.5, 10, 1));
     }
 
     [Theory]
-    [InlineData("dias=0")]
-    [InlineData("dias=31")]
-    [InlineData("grupos=viaPublica,xyz")]
-    public async Task Calor_com_parametro_invalido_devolve_400(string parametro)
+    [InlineData("days=0")]
+    [InlineData("days=31")]
+    [InlineData("groups=viaPublica,xyz")]
+    public async Task Heatmap_with_invalid_parameter_returns_400(string parameter)
     {
-        var resposta = await fabrica.CreateClient().GetAsync($"/api/v1/incidentes/calor?minLat=-23&minLng=-44&maxLat=-22&maxLng=-43&{parametro}");
+        var response = await factory.CreateClient().GetAsync($"/api/v1/incidents/heatmap?minLat=-23&minLng=-44&maxLat=-22&maxLng=-43&{parameter}");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }

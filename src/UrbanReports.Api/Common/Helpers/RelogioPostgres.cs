@@ -1,11 +1,11 @@
 namespace UrbanReports.Api.Common;
 
-public sealed class RelogioPostgres : TimeProvider
+public sealed class PostgresClock : TimeProvider
 {
-    public static DateTimeOffset Truncar(DateTimeOffset instante) =>
-        new(instante.Ticks - instante.Ticks % TicksPorMicrossegundo, instante.Offset);
+    public static DateTimeOffset Truncate(DateTimeOffset instant) =>
+        new(instant.Ticks - instant.Ticks % TicksPerMicrosecond, instant.Offset);
 
-    private const long TicksPorMicrossegundo = TimeSpan.TicksPerMillisecond / 1000;
+    private const long TicksPerMicrosecond = TimeSpan.TicksPerMillisecond / 1000;
 
-    public override DateTimeOffset GetUtcNow() => Truncar(System.GetUtcNow());
+    public override DateTimeOffset GetUtcNow() => Truncate(System.GetUtcNow());
 }

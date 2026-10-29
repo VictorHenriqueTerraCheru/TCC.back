@@ -3,38 +3,38 @@ using Npgsql;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Persistence;
 
-namespace UrbanReports.Api.Verificacao;
+namespace UrbanReports.Api.Verification;
 
-public sealed class VerificacaoService(AppDbContext db, TimeProvider relogio) : IVerificacaoService
+public sealed class VerificationService(AppDbContext db, TimeProvider clock) : IVerificationService
 {
-    public async Task<Resultado<SolicitarVerificacaoResponse>> SolicitarAsync(Guid usuarioId, SolicitarVerificacaoRequest request, CancellationToken ct)
+    public async Task<Result<RequestVerificationResponse>> RequestAsync(Guid userId, RequestVerificationRequest request, CancellationToken ct)
     {
-        var perfil = await db.Users.Where(u => u.Id == usuarioId).Select(u => (Perfil?)u.Perfil).SingleOrDefaultAsync(ct);
-        if (perfil is null)
+        var role = await db.Users.Where(u => u.Id == userId).Select(u => (Role?)u.Role).SingleOrDefaultAsync(ct);
+        if (role is null)
         {
-            return ErroAplicacao.NaoAutorizado;
+            return ApplicationError.Unauthorized;
         }
 
-        if (perfil != Perfil.Cidadao)
+        if (role != Role.Citizen)
         {
-            return ErrosVerificacao.JaVerificado;
+            return VerificationErrors.AlreadyVerified;
         }
 
-        if (await db.SolicitacoesVerificacao.AnyAsync(s => s.UsuarioId == usuarioId && s.Status == StatusVerificacao.Pendente, ct))
+        if (await db.VerificationRequests.AnyAsync(s => s.UserId == userId && s.Status == VerificationStatus.Pending, ct))
         {
-            return ErrosVerificacao.VerificacaoPendenteExistente;
+            return VerificationErrors.VerificationAlreadyPending;
         }
 
-        var solicitacao = new SolicitacaoVerificacao
+        var verificationRequest = new VerificationRequest
         {
             Id = Guid.CreateVersion7(),
-            UsuarioId = usuarioId,
-            TipoVinculo = request.TipoVinculo,
-            Justificativa = request.Justificativa.Trim(),
-            Status = StatusVerificacao.Pendente,
-            CriadaEm = relogio.GetUtcNow(),
+            UserId = userId,
+            AffiliationType = request.AffiliationType,
+            Justification = request.Justification.Trim(),
+            Status = VerificationStatus.Pending,
+            CreatedAt = clock.GetUtcNow(),
         };
-        db.SolicitacoesVerificacao.Add(solicitacao);
+        db.VerificationRequests.Add(verificationRequest);
 
         try
         {
@@ -42,10 +42,10 @@ public sealed class VerificacaoService(AppDbContext db, TimeProvider relogio) : 
         }
         catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            return ErrosVerificacao.VerificacaoPendenteExistente;
+            return VerificationErrors.VerificationAlreadyPending;
         }
 
-        return new SolicitarVerificacaoResponse(
-            solicitacao.Id, solicitacao.TipoVinculo, solicitacao.Justificativa, solicitacao.Status, solicitacao.CriadaEm);
+        return new RequestVerificationResponse(
+            verificationRequest.Id, verificationRequest.AffiliationType, verificationRequest.Justification, verificationRequest.Status, verificationRequest.CreatedAt);
     }
 }

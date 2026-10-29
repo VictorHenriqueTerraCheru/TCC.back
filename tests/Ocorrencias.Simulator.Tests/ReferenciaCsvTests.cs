@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 using Ocorrencias.Simulator.Experimento;
 using Ocorrencias.Simulator.Modelo;
 using Ocorrencias.Simulator.Saida;
@@ -22,7 +22,7 @@ public sealed class ReferenciaCsvTests
         {
             var resultado = Executor.Executar(
                 CenarioPequeno.Valor,
-                [ConfiguracaoConfianca.A, ConfiguracaoConfianca.B],
+                [TrustConfiguration.A, TrustConfiguration.B],
                 [Variante.S1, Variante.S2, Variante.S3],
                 [1, 2]);
             var arquivos = Csv.Escrever(gerado, resultado);

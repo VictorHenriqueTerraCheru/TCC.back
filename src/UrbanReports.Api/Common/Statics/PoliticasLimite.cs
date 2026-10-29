@@ -1,6 +1,6 @@
 namespace UrbanReports.Api.Common;
 
-public static class PoliticasLimite
+public static class RateLimitPolicies
 {
-    public const string Geocodificacao = "geocodificacao";
+    public const string Geocoding = "geocoding";
 }

@@ -6,31 +6,31 @@ namespace UrbanReports.Api.Infrastructure;
 
 public static class OpenApiConfig
 {
-    public static IServiceCollection AddOpenApiConfigurado(this IServiceCollection services) =>
+    public static IServiceCollection AddConfiguredOpenApi(this IServiceCollection services) =>
         services.AddOpenApi(o =>
         {
             o.CreateSchemaReferenceId = info =>
-                OpenApiOptions.CreateDefaultSchemaReferenceId(info) is null ? null : NomeSchema(info.Type);
+                OpenApiOptions.CreateDefaultSchemaReferenceId(info) is null ? null : SchemaName(info.Type);
 
             o.AddSchemaTransformer((schema, _, _) =>
             {
-                if (schema.Enum is { Count: > 0 } valores)
+                if (schema.Enum is { Count: > 0 } values)
                 {
-                    var semNulo = valores.Where(v => v is not null && v.GetValueKind() != System.Text.Json.JsonValueKind.Null).ToList();
-                    if (semNulo.Count != valores.Count)
+                    var withoutNull = values.Where(v => v is not null && v.GetValueKind() != System.Text.Json.JsonValueKind.Null).ToList();
+                    if (withoutNull.Count != values.Count)
                     {
-                        schema.Enum = semNulo;
+                        schema.Enum = withoutNull;
                     }
                 }
 
                 return Task.CompletedTask;
             });
 
-            o.AddDocumentTransformer((documento, _, _) =>
+            o.AddDocumentTransformer((document, _, _) =>
             {
-                documento.Components ??= new OpenApiComponents();
-                documento.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-                documento.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+                document.Components ??= new OpenApiComponents();
+                document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+                document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.Http,
                     Scheme = "bearer",
@@ -39,35 +39,35 @@ public static class OpenApiConfig
                 return Task.CompletedTask;
             });
 
-            o.AddOperationTransformer((operacao, contexto, _) =>
+            o.AddOperationTransformer((operation, context, _) =>
             {
-                foreach (var parametro in operacao.Parameters?.OfType<OpenApiParameter>() ?? [])
+                foreach (var parameter in operation.Parameters?.OfType<OpenApiParameter>() ?? [])
                 {
-                    if (parametro.In == ParameterLocation.Query && parametro.Name is { Length: > 0 } nome)
+                    if (parameter.In == ParameterLocation.Query && parameter.Name is { Length: > 0 } name)
                     {
-                        parametro.Name = System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(nome);
+                        parameter.Name = System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(name);
                     }
                 }
 
-                var anonima = contexto.Description.ActionDescriptor.EndpointMetadata.OfType<IAllowAnonymous>().Any();
-                if (!anonima)
+                var anonymous = context.Description.ActionDescriptor.EndpointMetadata.OfType<IAllowAnonymous>().Any();
+                if (!anonymous)
                 {
-                    operacao.Security =
+                    operation.Security =
                     [
-                        new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("Bearer", contexto.Document)] = [] },
+                        new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("Bearer", context.Document)] = [] },
                     ];
                 }
 
                 return Task.CompletedTask;
             });
 
-            o.AddDocumentTransformer((documento, _, _) =>
+            o.AddDocumentTransformer((document, _, _) =>
             {
-                if (documento.Tags is { Count: > 0 } tags)
+                if (document.Tags is { Count: > 0 } tags)
                 {
-                    documento.Tags = new SortedSet<OpenApiTag>(tags, Comparer<OpenApiTag>.Create((a, b) =>
+                    document.Tags = new SortedSet<OpenApiTag>(tags, Comparer<OpenApiTag>.Create((a, b) =>
                     {
-                        var (pa, pb) = (PosicaoTag(a.Name), PosicaoTag(b.Name));
+                        var (pa, pb) = (TagPosition(a.Name), TagPosition(b.Name));
                         return pa != pb ? pa.CompareTo(pb) : string.CompareOrdinal(a.Name, b.Name);
                     }));
                 }
@@ -76,26 +76,26 @@ public static class OpenApiConfig
             });
         });
 
-    private static readonly string[] OrdemTags =
-        ["Auth", "Usuários", "Categorias", "Geocodificação", "Problemas", "Votos", "Incidentes", "Verificação", "Admin"];
+    private static readonly string[] TagOrder =
+        ["Auth", "Users", "Categories", "Geocoding", "Issues", "Votes", "Incidents", "Verification", "Admin"];
 
-    private static int PosicaoTag(string? nome)
+    private static int TagPosition(string? name)
     {
-        var posicao = Array.IndexOf(OrdemTags, nome);
-        return posicao < 0 ? int.MaxValue : posicao;
+        var position = Array.IndexOf(TagOrder, name);
+        return position < 0 ? int.MaxValue : position;
     }
 
-    public static string NomeSchema(Type tipo)
+    public static string SchemaName(Type type)
     {
-        tipo = Nullable.GetUnderlyingType(tipo) ?? tipo;
-        var nome = tipo.IsGenericType ? tipo.Name[..tipo.Name.IndexOf('`')] : tipo.Name;
-        if (tipo.IsNested && tipo.DeclaringType is { } externo && !tipo.IsGenericParameter)
+        type = Nullable.GetUnderlyingType(type) ?? type;
+        var name = type.IsGenericType ? type.Name[..type.Name.IndexOf('`')] : type.Name;
+        if (type.IsNested && type.DeclaringType is { } external && !type.IsGenericParameter)
         {
-            nome = externo.Name + nome;
+            name = external.Name + name;
         }
 
-        return tipo.IsGenericType
-            ? nome + string.Concat(tipo.GetGenericArguments().Select(NomeSchema))
-            : nome;
+        return type.IsGenericType
+            ? name + string.Concat(type.GetGenericArguments().Select(SchemaName))
+            : name;
     }
 }

@@ -1,80 +1,80 @@
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Confianca.Motor;
-using static UrbanReports.Api.Tests.Confianca.Motor.Cenario;
+using UrbanReports.Api.Trust.Engine;
+using static UrbanReports.Api.Tests.Trust.Engine.Scenario;
 
-namespace UrbanReports.Api.Tests.Confianca.Motor;
+namespace UrbanReports.Api.Tests.Trust.Engine;
 
-public sealed class PropriedadesTests
+public sealed class PropertiesTests
 {
-    private const int Amostras = 500;
+    private const int Samples = 500;
 
-    public static TheoryData<string> Configuracoes => ["A", "B", "B-v3", "B-v5"];
+    public static TheoryData<string> Configurations => ["A", "B", "B-v3", "B-v5"];
 
-    private static ConfiguracaoConfianca Config(string nome) => nome switch
+    private static TrustConfiguration Config(string name) => name switch
     {
-        "A" => ConfiguracaoConfianca.A,
-        "B" => ConfiguracaoConfianca.B,
-        "B-v3" => ConfiguracaoConfianca.B.ComPesoVerificado(3),
-        "B-v5" => ConfiguracaoConfianca.B.ComPesoVerificado(5),
-        _ => throw new ArgumentOutOfRangeException(nameof(nome)),
+        "A" => TrustConfiguration.A,
+        "B" => TrustConfiguration.B,
+        "B-v3" => TrustConfiguration.B.WithVerifiedWeight(3),
+        "B-v5" => TrustConfiguration.B.WithVerifiedWeight(5),
+        _ => throw new ArgumentOutOfRangeException(nameof(name)),
     };
 
-    private static VotoFato VotoAleatorio(Random rnd, ValorVoto? valor = null) => Voto(
-        valor ?? (rnd.Next(2) == 0 ? ValorVoto.Positivo : ValorVoto.Negativo),
-        (Perfil)rnd.Next(1, 4),
+    private static VoteFact RandomVote(Random rnd, VoteValue? value = null) => Vote(
+        value ?? (rnd.Next(2) == 0 ? VoteValue.Positive : VoteValue.Negative),
+        (Role)rnd.Next(1, 4),
         rnd.Next(4) == 0 ? null : rnd.NextDouble() * 5000,
         T0.AddHours(-rnd.Next(0, 24 * 90)));
 
-    private static List<VotoFato> VotosAleatorios(Random rnd) =>
-        Enumerable.Range(0, rnd.Next(0, 60)).Select(_ => VotoAleatorio(rnd)).ToList();
+    private static List<VoteFact> RandomVotes(Random rnd) =>
+        Enumerable.Range(0, rnd.Next(0, 60)).Select(_ => RandomVote(rnd)).ToList();
 
     [Theory]
-    [MemberData(nameof(Configuracoes))]
-    public void Indice_fica_em_0_inclusive_a_100_exclusive(string nome)
+    [MemberData(nameof(Configurations))]
+    public void Score_stays_from_0_inclusive_to_100_exclusive(string name)
     {
-        var cfg = Config(nome);
+        var cfg = Config(name);
         var rnd = new Random(42);
 
-        for (var i = 0; i < Amostras; i++)
+        for (var i = 0; i < Samples; i++)
         {
-            var r = MotorConfianca.CalcularConfianca(VotosAleatorios(rnd), T0, cfg);
+            var r = TrustEngine.CalculateTrust(RandomVotes(rnd), T0, cfg);
 
-            r.Indice.Should().BeGreaterThanOrEqualTo(0).And.BeLessThan(100);
+            r.Score.Should().BeGreaterThanOrEqualTo(0).And.BeLessThan(100);
         }
     }
 
     [Theory]
-    [MemberData(nameof(Configuracoes))]
-    public void Indice_cresce_quando_entra_um_sim(string nome)
+    [MemberData(nameof(Configurations))]
+    public void Score_grows_when_a_yes_arrives(string name)
     {
-        var cfg = Config(nome);
+        var cfg = Config(name);
         var rnd = new Random(7);
 
-        for (var i = 0; i < Amostras; i++)
+        for (var i = 0; i < Samples; i++)
         {
-            var votos = VotosAleatorios(rnd);
-            var antes = MotorConfianca.CalcularConfianca(votos, T0, cfg);
+            var votes = RandomVotes(rnd);
+            var before = TrustEngine.CalculateTrust(votes, T0, cfg);
 
-            votos.Add(VotoAleatorio(rnd, ValorVoto.Positivo));
-            var depois = MotorConfianca.CalcularConfianca(votos, T0, cfg);
+            votes.Add(RandomVote(rnd, VoteValue.Positive));
+            var after = TrustEngine.CalculateTrust(votes, T0, cfg);
 
-            depois.EPositivo.Should().BeGreaterThan(antes.EPositivo);
-            depois.Indice.Should().BeGreaterThan(antes.Indice);
+            after.PositiveEvidence.Should().BeGreaterThan(before.PositiveEvidence);
+            after.Score.Should().BeGreaterThan(before.Score);
         }
     }
 
     [Fact]
-    public void Config_A_independe_de_agora()
+    public void Config_A_ignores_now()
     {
         var rnd = new Random(2026);
 
-        for (var i = 0; i < Amostras; i++)
+        for (var i = 0; i < Samples; i++)
         {
-            var votos = VotosAleatorios(rnd);
-            var agora = MotorConfianca.CalcularConfianca(votos, T0, ConfiguracaoConfianca.A);
-            var depois = MotorConfianca.CalcularConfianca(votos, T0.AddDays(rnd.Next(1, 1000)), ConfiguracaoConfianca.A);
+            var votes = RandomVotes(rnd);
+            var now = TrustEngine.CalculateTrust(votes, T0, TrustConfiguration.A);
+            var after = TrustEngine.CalculateTrust(votes, T0.AddDays(rnd.Next(1, 1000)), TrustConfiguration.A);
 
-            depois.Should().Be(agora);
+            after.Should().Be(now);
         }
     }
 }

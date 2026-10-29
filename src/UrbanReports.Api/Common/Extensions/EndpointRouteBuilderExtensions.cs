@@ -6,17 +6,17 @@ public static class EndpointRouteBuilderExtensions
 {
     public static IEndpointRouteBuilder MapEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api/v1").RequireAuthorization(PoliticasAutorizacao.Autenticado);
+        var api = app.MapGroup("/api/v1").RequireAuthorization(AuthorizationPolicies.Authenticated);
 
-        foreach (var modulo in Modulos())
+        foreach (var module in Modules())
         {
-            modulo.GetMethod(nameof(IEndpointModule.Map), BindingFlags.Public | BindingFlags.Static)!.Invoke(null, [api]);
+            module.GetMethod(nameof(IEndpointModule.Map), BindingFlags.Public | BindingFlags.Static)!.Invoke(null, [api]);
         }
 
         return app;
     }
 
-    private static IEnumerable<Type> Modulos() =>
+    private static IEnumerable<Type> Modules() =>
         typeof(EndpointRouteBuilderExtensions).Assembly.GetTypes()
             .Where(t => t is { IsAbstract: false, IsInterface: false } && typeof(IEndpointModule).IsAssignableFrom(t))
             .OrderBy(t => t.Name, StringComparer.Ordinal);

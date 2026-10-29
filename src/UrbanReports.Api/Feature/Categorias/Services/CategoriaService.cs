@@ -2,141 +2,141 @@ using Microsoft.EntityFrameworkCore;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Persistence;
 
-namespace UrbanReports.Api.Categorias;
+namespace UrbanReports.Api.Categories;
 
-public sealed class CategoriaService(AppDbContext db) : ICategoriaService
+public sealed class CategoryService(AppDbContext db) : ICategoryService
 {
-    public Task<List<ListarCategoriasResponse>> ListarAsync(CancellationToken ct) =>
-        db.Categorias
-            .Where(c => c.Ativa)
+    public Task<List<ListCategoriesResponse>> ListAsync(CancellationToken ct) =>
+        db.Categories
+            .Where(c => c.Active)
             .OrderBy(c => c.Id)
-            .Select(c => new ListarCategoriasResponse(c.Id, c.Nome, c.Grupo, c.Tipo, c.Icone))
+            .Select(c => new ListCategoriesResponse(c.Id, c.Name, c.Group, c.Type, c.Icon))
             .ToListAsync(ct);
 
-    public Task<List<CategoriaAdminResponse>> ListarTodasAsync(CancellationToken ct) =>
-        db.Categorias
+    public Task<List<CategoryAdminResponse>> ListAllAsync(CancellationToken ct) =>
+        db.Categories
             .OrderBy(c => c.Id)
-            .Select(c => new CategoriaAdminResponse(c.Id, c.Nome, c.Grupo, c.Tipo, c.Icone, c.Ativa))
+            .Select(c => new CategoryAdminResponse(c.Id, c.Name, c.Group, c.Type, c.Icon, c.Active))
             .ToListAsync(ct);
 
-    public async Task<Resultado<CategoriaAdminResponse>> CriarAsync(CriarCategoriaRequest request, CancellationToken ct)
+    public async Task<Result<CategoryAdminResponse>> CreateAsync(CreateCategoryRequest request, CancellationToken ct)
     {
-        var nome = request.Nome.Trim();
-        await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TomarAsync(ct);
+        var name = request.Name.Trim();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.TakeAsync(ct);
 
-        var grupo = await db.Grupos.FindAsync([request.Grupo], ct);
-        if (grupo is null)
+        var group = await db.Groups.FindAsync([request.Group], ct);
+        if (group is null)
         {
-            return ErrosCategoria.GrupoInexistente;
+            return CategoryErrors.MissingGroup;
         }
 
-        if (grupo.Tipo != request.Tipo)
+        if (group.Type != request.Type)
         {
-            return ErrosCategoria.GrupoTipoIncompativel;
+            return CategoryErrors.GroupTypeMismatch;
         }
 
-        if (await NomeEmUsoAsync(nome, null, ct))
+        if (await NameInUseAsync(name, null, ct))
         {
-            return ErrosCategoria.NomeDuplicado;
+            return CategoryErrors.DuplicateName;
         }
 
-        var maior = await db.Categorias.MaxAsync(c => (short?)c.Id, ct) ?? 0;
-        if (maior >= short.MaxValue)
+        var greater = await db.Categories.MaxAsync(c => (short?)c.Id, ct) ?? 0;
+        if (greater >= short.MaxValue)
         {
-            return ErrosCategoria.LimiteDeCategorias;
+            return CategoryErrors.CategoryLimitReached;
         }
 
-        var categoria = new Categoria
+        var category = new Category
         {
-            Id = (short)(maior + 1),
-            Nome = nome,
-            Grupo = request.Grupo,
-            Tipo = request.Tipo,
-            Icone = request.Icone,
+            Id = (short)(greater + 1),
+            Name = name,
+            Group = request.Group,
+            Type = request.Type,
+            Icon = request.Icon,
         };
-        db.Categorias.Add(categoria);
+        db.Categories.Add(category);
         try
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        catch (DbUpdateException e) when (e.ViolatedUniqueness())
         {
-            return ErrosCategoria.NomeDuplicado;
+            return CategoryErrors.DuplicateName;
         }
-        catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
+        catch (DbUpdateException e) when (e.ViolatedForeignKey())
         {
-            return ErrosCategoria.GrupoInexistente;
+            return CategoryErrors.MissingGroup;
         }
 
-        await transacao.CommitAsync(ct);
+        await transaction.CommitAsync(ct);
 
-        return ParaAdmin(categoria);
+        return ToAdmin(category);
     }
 
-    public async Task<Resultado<CategoriaAdminResponse>> EditarAsync(short id, EditarCategoriaRequest request, CancellationToken ct)
+    public async Task<Result<CategoryAdminResponse>> EditAsync(short id, EditCategoryRequest request, CancellationToken ct)
     {
-        var nome = request.Nome.Trim();
-        await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TomarAsync(ct);
+        var name = request.Name.Trim();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.TakeAsync(ct);
 
-        var categoria = await db.Categorias.FindAsync([id], ct);
-        if (categoria is null)
+        var category = await db.Categories.FindAsync([id], ct);
+        if (category is null)
         {
-            return ErroAplicacao.NaoEncontrado;
+            return ApplicationError.NotFound;
         }
 
-        var grupo = await db.Grupos.FindAsync([request.Grupo], ct);
-        if (grupo is null)
+        var group = await db.Groups.FindAsync([request.Group], ct);
+        if (group is null)
         {
-            return ErrosCategoria.GrupoInexistente;
+            return CategoryErrors.MissingGroup;
         }
 
-        if (grupo.Tipo != categoria.Tipo)
+        if (group.Type != category.Type)
         {
-            return ErrosCategoria.GrupoTipoIncompativel;
+            return CategoryErrors.GroupTypeMismatch;
         }
 
-        if (await NomeEmUsoAsync(nome, id, ct))
+        if (await NameInUseAsync(name, id, ct))
         {
-            return ErrosCategoria.NomeDuplicado;
+            return CategoryErrors.DuplicateName;
         }
 
-        categoria.Nome = nome;
-        categoria.Grupo = request.Grupo;
-        categoria.Icone = request.Icone;
+        category.Name = name;
+        category.Group = request.Group;
+        category.Icon = request.Icon;
         try
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        catch (DbUpdateException e) when (e.ViolatedUniqueness())
         {
-            return ErrosCategoria.NomeDuplicado;
+            return CategoryErrors.DuplicateName;
         }
-        catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
+        catch (DbUpdateException e) when (e.ViolatedForeignKey())
         {
-            return ErrosCategoria.GrupoInexistente;
+            return CategoryErrors.MissingGroup;
         }
 
-        await transacao.CommitAsync(ct);
+        await transaction.CommitAsync(ct);
 
-        return ParaAdmin(categoria);
+        return ToAdmin(category);
     }
 
-    public async Task<Resultado<Vazio>> AlterarAtivaAsync(short id, bool ativa, CancellationToken ct)
+    public async Task<Result<Empty>> SetActiveAsync(short id, bool active, CancellationToken ct)
     {
-        var linhas = await db.Categorias
+        var rows = await db.Categories
             .Where(c => c.Id == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(c => c.Ativa, ativa), ct);
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.Active, active), ct);
 
-        return linhas == 0 ? ErroAplicacao.NaoEncontrado : new Vazio();
+        return rows == 0 ? ApplicationError.NotFound : new Empty();
     }
 
-    private Task<bool> NomeEmUsoAsync(string nome, short? ignorarId, CancellationToken ct)
+    private Task<bool> NameInUseAsync(string name, short? ignoreId, CancellationToken ct)
     {
-        var minusculo = nome.ToLower();
-        return db.Categorias.AnyAsync(c => c.Nome.ToLower() == minusculo && c.Id != ignorarId, ct);
+        var lowercase = name.ToLower();
+        return db.Categories.AnyAsync(c => c.Name.ToLower() == lowercase && c.Id != ignoreId, ct);
     }
 
-    private static CategoriaAdminResponse ParaAdmin(Categoria c) => new(c.Id, c.Nome, c.Grupo, c.Tipo, c.Icone, c.Ativa);
+    private static CategoryAdminResponse ToAdmin(Category c) => new(c.Id, c.Name, c.Group, c.Type, c.Icon, c.Active);
 }

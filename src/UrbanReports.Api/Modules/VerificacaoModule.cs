@@ -1,28 +1,28 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Verificacao;
+using UrbanReports.Api.Verification;
 
 namespace UrbanReports.Api.Modules;
 
-public sealed class VerificacaoModule : IEndpointModule
+public sealed class VerificationModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapPost("/verificacoes", Solicitar)
-            .Validar<SolicitarVerificacaoRequest>()
-            .WithTags("Verificação");
+        api.MapPost("/verifications", Request)
+            .Validate<RequestVerificationRequest>()
+            .WithTags("Verification");
     }
 
-    private static async Task<Results<Created<SolicitarVerificacaoResponse>, ProblemHttpResult, UnauthorizedHttpResult>> Solicitar(
-        SolicitarVerificacaoRequest request, ClaimsPrincipal principal, IVerificacaoService service, CancellationToken ct)
+    private static async Task<Results<Created<RequestVerificationResponse>, ProblemHttpResult, UnauthorizedHttpResult>> Request(
+        RequestVerificationRequest request, ClaimsPrincipal principal, IVerificationService service, CancellationToken ct)
     {
-        var r = await service.SolicitarAsync(principal.ObterUsuarioId(), request, ct);
-        return r.Erro switch
+        var r = await service.RequestAsync(principal.GetUserId(), request, ct);
+        return r.Error switch
         {
-            null => TypedResults.Created("/api/v1/me", r.Valor!),
-            { Tipo: TipoErro.NaoAutorizado } e => e.ParaNaoAutorizado(),
-            var e => e.ParaProblema(),
+            null => TypedResults.Created("/api/v1/me", r.Value!),
+            { Kind: ErrorType.Unauthorized } e => e.ToUnauthorized(),
+            var e => e.ToProblem(),
         };
     }
 }

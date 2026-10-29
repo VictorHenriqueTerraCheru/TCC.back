@@ -1,24 +1,24 @@
 using FluentValidation;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Usuarios;
+namespace UrbanReports.Api.Users;
 
-public sealed class AtualizarMeValidator : AbstractValidator<AtualizarMeRequest>
+public sealed class UpdateMeValidator : AbstractValidator<UpdateMeRequest>
 {
-    public AtualizarMeValidator()
+    public UpdateMeValidator()
     {
-        RuleFor(r => r.Nome).NotEmpty().MaximumLength(120);
+        RuleFor(r => r.Name).NotEmpty().MaximumLength(120);
     }
 }
 
-public sealed class ObterHistoricoValidator : AbstractValidator<ObterHistoricoRequest>
+public sealed class GetHistoryValidator : AbstractValidator<GetHistoryRequest>
 {
-    private static readonly string[] Filtros = ["tudo", "registros", "votos"];
+    private static readonly string[] Filters = ["all", "reports", "votes"];
 
-    public ObterHistoricoValidator()
+    public GetHistoryValidator()
     {
-        RuleFor(r => r.Filtro).Must(f => Filtros.Contains(f)).WithMessage("Filtro deve ser tudo, registros ou votos.");
-        RuleFor(r => r.Pagina).InclusiveBetween(1, Paginacao.PaginaMaxima);
-        RuleFor(r => r.Tamanho).InclusiveBetween(1, Paginacao.TamanhoMaximo);
+        RuleFor(r => r.Filter).Must(f => Filters.Contains(f)).WithMessage("Filtro deve ser tudo, registros ou votos.");
+        RuleFor(r => r.Page).InclusiveBetween(1, Pagination.MaxPage);
+        RuleFor(r => r.PageSize).InclusiveBetween(1, Pagination.MaxPageSize);
     }
 }

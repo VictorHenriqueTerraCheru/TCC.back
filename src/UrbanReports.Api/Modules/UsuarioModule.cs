@@ -1,48 +1,48 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Usuarios;
+using UrbanReports.Api.Users;
 
 namespace UrbanReports.Api.Modules;
 
-public sealed class UsuarioModule : IEndpointModule
+public sealed class UserModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapGet("/me", ObterMe).WithTags("Usuários");
+        api.MapGet("/me", GetMe).WithTags("Users");
 
-        api.MapPatch("/me", AtualizarMe)
-            .Validar<AtualizarMeRequest>()
-            .WithTags("Usuários");
+        api.MapPatch("/me", UpdateMe)
+            .Validate<UpdateMeRequest>()
+            .WithTags("Users");
 
-        api.MapGet("/me/historico", ObterHistorico)
-            .Validar<ObterHistoricoRequest>()
-            .WithTags("Usuários");
+        api.MapGet("/me/history", GetHistory)
+            .Validate<GetHistoryRequest>()
+            .WithTags("Users");
     }
 
-    private static async Task<Results<Ok<ObterMeResponse>, UnauthorizedHttpResult>> ObterMe(
-        ClaimsPrincipal principal, IUsuarioService service, CancellationToken ct)
+    private static async Task<Results<Ok<GetMeResponse>, UnauthorizedHttpResult>> GetMe(
+        ClaimsPrincipal principal, IUserService service, CancellationToken ct)
     {
-        var r = await service.ObterMeAsync(principal.ObterUsuarioId(), ct);
-        return r.Erro switch
+        var r = await service.GetMeAsync(principal.GetUserId(), ct);
+        return r.Error switch
         {
-            null => TypedResults.Ok(r.Valor!),
-            var e => e.ParaNaoAutorizado(),
+            null => TypedResults.Ok(r.Value!),
+            var e => e.ToUnauthorized(),
         };
     }
 
-    private static async Task<Results<Ok<ObterMeResponse>, UnauthorizedHttpResult>> AtualizarMe(
-        AtualizarMeRequest request, ClaimsPrincipal principal, IUsuarioService service, CancellationToken ct)
+    private static async Task<Results<Ok<GetMeResponse>, UnauthorizedHttpResult>> UpdateMe(
+        UpdateMeRequest request, ClaimsPrincipal principal, IUserService service, CancellationToken ct)
     {
-        var r = await service.AtualizarMeAsync(principal.ObterUsuarioId(), request, ct);
-        return r.Erro switch
+        var r = await service.UpdateMeAsync(principal.GetUserId(), request, ct);
+        return r.Error switch
         {
-            null => TypedResults.Ok(r.Valor!),
-            var e => e.ParaNaoAutorizado(),
+            null => TypedResults.Ok(r.Value!),
+            var e => e.ToUnauthorized(),
         };
     }
 
-    private static Task<Paginado<ObterHistoricoItem>> ObterHistorico(
-        [AsParameters] ObterHistoricoRequest request, ClaimsPrincipal principal, IUsuarioService service, CancellationToken ct) =>
-        service.ObterHistoricoAsync(principal.ObterUsuarioId(), request, ct);
+    private static Task<Paged<GetHistoryItem>> GetHistory(
+        [AsParameters] GetHistoryRequest request, ClaimsPrincipal principal, IUserService service, CancellationToken ct) =>
+        service.GetHistoryAsync(principal.GetUserId(), request, ct);
 }

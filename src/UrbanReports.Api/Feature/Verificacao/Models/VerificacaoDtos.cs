@@ -1,8 +1,8 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Verificacao;
+namespace UrbanReports.Api.Verification;
 
-public sealed record SolicitarVerificacaoRequest(TipoVinculo TipoVinculo, string Justificativa);
+public sealed record RequestVerificationRequest(AffiliationType AffiliationType, string Justification);
 
-public sealed record SolicitarVerificacaoResponse(
-    Guid Id, TipoVinculo TipoVinculo, string Justificativa, StatusVerificacao Status, DateTimeOffset CriadaEm);
+public sealed record RequestVerificationResponse(
+    Guid Id, AffiliationType AffiliationType, string Justification, VerificationStatus Status, DateTimeOffset CreatedAt);

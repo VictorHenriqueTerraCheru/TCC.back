@@ -1,43 +1,43 @@
 using System.Collections.Concurrent;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Geocoding;
 
 namespace UrbanReports.Api.Tests.Infra;
 
-public sealed class NominatimFalso : INominatimClient
+public sealed class FakeNominatim : INominatimClient
 {
-    private readonly ConcurrentDictionary<(double, double), NominatimResposta?> _respostas = new();
-    private readonly ConcurrentDictionary<(double, double), bool> _foraDoAr = new();
-    private int _chamadas;
+    private readonly ConcurrentDictionary<(double, double), NominatimResponse?> _responses = new();
+    private readonly ConcurrentDictionary<(double, double), bool> _offline = new();
+    private int _calls;
 
-    public int Chamadas => _chamadas;
+    public int Calls => _calls;
 
-    public TimeSpan Atraso { get; set; } = TimeSpan.Zero;
+    public TimeSpan Delay { get; set; } = TimeSpan.Zero;
 
-    public static NominatimResposta Endereco(
-        string? rua = "Rua Voluntários da Pátria", string? numero = "170", string? bairro = "Botafogo",
-        string? cidade = "Rio de Janeiro", string? iso = "BR-RJ") =>
-        new(new NominatimResposta.Endereco { Road = rua, HouseNumber = numero, Suburb = bairro, City = cidade, Iso3166Nivel4 = iso }, null);
+    public static NominatimResponse Address(
+        string? street = "Rua Voluntários da Pátria", string? number = "170", string? neighborhood = "Botafogo",
+        string? city = "Rio de Janeiro", string? iso = "BR-RJ") =>
+        new(new NominatimResponse.AddressParts { Road = street, HouseNumber = number, Suburb = neighborhood, City = city, Iso3166Level4 = iso }, null);
 
-    public void Responder(double lat, double lng, NominatimResposta? resposta) => _respostas[Chave(lat, lng)] = resposta;
+    public void Respond(double lat, double lng, NominatimResponse? response) => _responses[Key(lat, lng)] = response;
 
-    public void ForaDoAr(double lat, double lng, bool fora = true) => _foraDoAr[Chave(lat, lng)] = fora;
+    public void SetOffline(double lat, double lng, bool offline = true) => _offline[Key(lat, lng)] = offline;
 
-    public async Task<NominatimResposta?> ReversaAsync(double lat, double lng, CancellationToken ct)
+    public async Task<NominatimResponse?> ReverseAsync(double lat, double lng, CancellationToken ct)
     {
-        Interlocked.Increment(ref _chamadas);
-        if (Atraso > TimeSpan.Zero)
+        Interlocked.Increment(ref _calls);
+        if (Delay > TimeSpan.Zero)
         {
-            await Task.Delay(Atraso, ct);
+            await Task.Delay(Delay, ct);
         }
 
-        if (_foraDoAr.GetValueOrDefault(Chave(lat, lng)))
+        if (_offline.GetValueOrDefault(Key(lat, lng)))
         {
             throw new HttpRequestException("Nominatim fora do ar (simulado).");
         }
 
-        return _respostas.TryGetValue(Chave(lat, lng), out var resposta) ? resposta : Endereco();
+        return _responses.TryGetValue(Key(lat, lng), out var response) ? response : Address();
     }
 
-    private static (double, double) Chave(double lat, double lng) =>
+    private static (double, double) Key(double lat, double lng) =>
         (Math.Round(lat, 4, MidpointRounding.AwayFromZero), Math.Round(lng, 4, MidpointRounding.AwayFromZero));
 }

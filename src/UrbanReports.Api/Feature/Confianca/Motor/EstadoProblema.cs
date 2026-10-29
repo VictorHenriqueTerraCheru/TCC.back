@@ -1,9 +1,9 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Confianca.Motor;
+namespace UrbanReports.Api.Trust.Engine;
 
-public sealed record EstadoProblema(
-    StatusProblema Status,
-    DateTimeOffset CriadoEm,
-    DateTimeOffset StatusAlteradoEm,
-    DateTimeOffset? CondicaoResolucaoDesde);
+public sealed record IssueState(
+    IssueStatus Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset StatusChangedAt,
+    DateTimeOffset? ResolutionConditionSince);

@@ -1,46 +1,46 @@
 using Microsoft.EntityFrameworkCore;
 using UrbanReports.Api.Persistence;
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 
-namespace UrbanReports.Api.Confianca;
+namespace UrbanReports.Api.Trust;
 
-public sealed class ProcessadorCicloDeVida(
-    AppDbContext db, TimeProvider relogio, ConfiguracaoConfianca cfg, ILogger<ProcessadorCicloDeVida> logger)
+public sealed class LifecycleProcessor(
+    AppDbContext db, TimeProvider clock, TrustConfiguration cfg, ILogger<LifecycleProcessor> logger)
 {
-    public async Task<int> ProcessarAsync(CancellationToken ct)
+    public async Task<int> ProcessAsync(CancellationToken ct)
     {
-        var ids = await db.Problemas
-            .Where(p => p.Status != StatusProblema.Resolvida)
+        var ids = await db.Issues
+            .Where(p => p.Status != IssueStatus.Resolved)
             .Select(p => p.Id)
             .ToListAsync(ct);
 
-        var transicoes = 0;
+        var transitions = 0;
         foreach (var id in ids)
         {
-            await using var transacao = await db.Database.BeginTransactionAsync(ct);
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-            var problema = await RecalculoProblema.CarregarComBloqueioAsync(db, id, ct);
-            if (problema is null || problema.Status == StatusProblema.Resolvida)
+            var issue = await IssueRecalculation.LoadWithLockAsync(db, id, ct);
+            if (issue is null || issue.Status == IssueStatus.Resolved)
             {
                 continue;
             }
 
-            var votos = await db.Votos.Where(v => v.ProblemaId == id).AsNoTracking().ToListAsync(ct);
-            var statusAnterior = problema.Status;
-            RecalculoProblema.Aplicar(problema, votos, relogio.GetUtcNow(), cfg);
+            var votes = await db.Votes.Where(v => v.IssueId == id).AsNoTracking().ToListAsync(ct);
+            var previousStatus = issue.Status;
+            IssueRecalculation.Apply(issue, votes, clock.GetUtcNow(), cfg);
 
             await db.SaveChangesAsync(ct);
-            await transacao.CommitAsync(ct);
+            await transaction.CommitAsync(ct);
             db.ChangeTracker.Clear();
 
-            if (problema.Status != statusAnterior)
+            if (issue.Status != previousStatus)
             {
-                transicoes++;
-                logger.LogInformation("Problema {ProblemaId}: {De} → {Para}.", id, statusAnterior, problema.Status);
+                transitions++;
+                logger.LogInformation("Problema {ProblemaId}: {De} → {Para}.", id, previousStatus, issue.Status);
             }
         }
 
-        return transicoes;
+        return transitions;
     }
 }

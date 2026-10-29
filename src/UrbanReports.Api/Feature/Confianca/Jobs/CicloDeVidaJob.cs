@@ -1,25 +1,25 @@
 using Microsoft.Extensions.Options;
 
-namespace UrbanReports.Api.Confianca;
+namespace UrbanReports.Api.Trust;
 
-public sealed class CicloDeVidaJob(
-    IServiceScopeFactory escopos, IOptions<CicloDeVidaOptions> opcoes, TimeProvider relogio, ILogger<CicloDeVidaJob> logger)
+public sealed class LifecycleJob(
+    IServiceScopeFactory scopes, IOptions<LifecycleOptions> options, TimeProvider clock, ILogger<LifecycleJob> logger)
     : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!opcoes.Value.Habilitado)
+        if (!options.Value.Enabled)
         {
             return;
         }
 
-        using var timer = new PeriodicTimer(opcoes.Value.Intervalo, relogio);
+        using var timer = new PeriodicTimer(options.Value.Interval, clock);
         do
         {
             try
             {
-                await using var escopo = escopos.CreateAsyncScope();
-                await escopo.ServiceProvider.GetRequiredService<ProcessadorCicloDeVida>().ProcessarAsync(stoppingToken);
+                await using var scope = scopes.CreateAsyncScope();
+                await scope.ServiceProvider.GetRequiredService<LifecycleProcessor>().ProcessAsync(stoppingToken);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {

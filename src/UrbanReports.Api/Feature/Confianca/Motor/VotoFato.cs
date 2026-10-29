@@ -1,10 +1,10 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Confianca.Motor;
+namespace UrbanReports.Api.Trust.Engine;
 
-public sealed record VotoFato(
-    Guid UsuarioId,
-    ValorVoto Valor,
-    Perfil PerfilNoMomento,
-    double? DistanciaMetros,
-    DateTimeOffset RegistradoEm);
+public sealed record VoteFact(
+    Guid UserId,
+    VoteValue Value,
+    Role RoleAtVote,
+    double? DistanceMeters,
+    DateTimeOffset RegisteredAt);

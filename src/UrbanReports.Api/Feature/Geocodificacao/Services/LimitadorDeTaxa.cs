@@ -1,40 +1,40 @@
-namespace UrbanReports.Api.Geocodificacao;
+namespace UrbanReports.Api.Geocoding;
 
-public sealed class LimitadorDeTaxa(TimeProvider relogio, TimeSpan intervaloMinimo, TimeSpan esperaMaxima)
+public sealed class RequestThrottle(TimeProvider clock, TimeSpan minInterval, TimeSpan maxWait)
 {
-    private readonly SemaphoreSlim _vez = new(1, 1);
-    private DateTimeOffset? _ultimaChamada;
+    private readonly SemaphoreSlim _turn = new(1, 1);
+    private DateTimeOffset? _lastCall;
 
-    public async Task<T> ExecutarAsync<T>(Func<CancellationToken, Task<T>> acao, CancellationToken ct)
+    public async Task<T> RunAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken ct)
     {
-        if (!await _vez.WaitAsync(esperaMaxima, ct))
+        if (!await _turn.WaitAsync(maxWait, ct))
         {
             throw new TimeoutException("Fila do Nominatim cheia.");
         }
 
         try
         {
-            if (_ultimaChamada is { } ultima)
+            if (_lastCall is { } last)
             {
-                var espera = ultima + intervaloMinimo - relogio.GetUtcNow();
-                if (espera > TimeSpan.Zero)
+                var wait = last + minInterval - clock.GetUtcNow();
+                if (wait > TimeSpan.Zero)
                 {
-                    await Task.Delay(espera, relogio, ct);
+                    await Task.Delay(wait, clock, ct);
                 }
             }
 
             try
             {
-                return await acao(ct);
+                return await action(ct);
             }
             finally
             {
-                _ultimaChamada = relogio.GetUtcNow();
+                _lastCall = clock.GetUtcNow();
             }
         }
         finally
         {
-            _vez.Release();
+            _turn.Release();
         }
     }
 }

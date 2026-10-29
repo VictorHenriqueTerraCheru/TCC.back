@@ -8,34 +8,34 @@ public sealed class AuthModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)
     {
-        api.MapPost("/auth/cadastro", Cadastrar)
-            .Validar<CadastrarRequest>()
+        api.MapPost("/auth/register", Register)
+            .Validate<RegisterRequest>()
             .AllowAnonymous()
             .WithTags("Auth");
 
-        api.MapPost("/auth/login", Entrar)
-            .Validar<EntrarRequest>()
+        api.MapPost("/auth/login", Login)
+            .Validate<LoginRequest>()
             .AllowAnonymous()
             .WithTags("Auth");
     }
 
-    private static async Task<Results<Created<RespostaAuth>, ProblemHttpResult>> Cadastrar(CadastrarRequest request, IAuthService service)
+    private static async Task<Results<Created<AuthResponse>, ProblemHttpResult>> Register(RegisterRequest request, IAuthService service)
     {
-        var r = await service.CadastrarAsync(request);
-        return r.Erro switch
+        var r = await service.RegisterAsync(request);
+        return r.Error switch
         {
-            null => TypedResults.Created("/api/v1/me", r.Valor!),
-            var e => e.ParaProblema(),
+            null => TypedResults.Created("/api/v1/me", r.Value!),
+            var e => e.ToProblem(),
         };
     }
 
-    private static async Task<Results<Ok<RespostaAuth>, ProblemHttpResult>> Entrar(EntrarRequest request, IAuthService service)
+    private static async Task<Results<Ok<AuthResponse>, ProblemHttpResult>> Login(LoginRequest request, IAuthService service)
     {
-        var r = await service.EntrarAsync(request);
-        return r.Erro switch
+        var r = await service.LoginAsync(request);
+        return r.Error switch
         {
-            null => TypedResults.Ok(r.Valor!),
-            var e => e.ParaProblema(),
+            null => TypedResults.Ok(r.Value!),
+            var e => e.ToProblem(),
         };
     }
 }

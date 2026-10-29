@@ -2,115 +2,115 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using UrbanReports.Api.Admin;
-using UrbanReports.Api.Usuarios;
-using UrbanReports.Api.Verificacao;
+using UrbanReports.Api.Users;
+using UrbanReports.Api.Verification;
 using UrbanReports.Api.Tests.Infra;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Tests.Verificacao;
+namespace UrbanReports.Api.Tests.Verification;
 
-[Collection(ApiCollection.Nome)]
-public sealed class VerificacaoTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class VerificationTests(ApiFactory factory)
 {
-    private const string Justificativa = "Moro em Botafogo há dez anos e circulo pelo bairro todos os dias.";
+    private const string Justification = "Moro em Botafogo há dez anos e circulo pelo bairro todos os dias.";
 
-    private static Task<HttpResponseMessage> SolicitarAsync(Pessoa pessoa, string justificativa = Justificativa, string tipoVinculo = "moradorRegiao") =>
-        pessoa.Cliente.PostAsJsonAsync("/api/v1/verificacoes", new { tipoVinculo, justificativa }, ClienteApi.Json);
+    private static Task<HttpResponseMessage> RequestAsync(Person person, string justification = Justification, string affiliationType = "livesInArea") =>
+        person.Client.PostAsJsonAsync("/api/v1/verifications", new { affiliationType, justification }, ApiClient.Json);
 
-    private static async Task<Guid> SolicitacaoIdAsync(Pessoa pessoa)
+    private static async Task<Guid> VerificationRequestIdAsync(Person person)
     {
-        var resposta = await SolicitarAsync(pessoa);
-        resposta.EnsureSuccessStatusCode();
-        return (await resposta.LerAsync<SolicitarVerificacaoResponse>()).Id;
+        var response = await RequestAsync(person);
+        response.EnsureSuccessStatusCode();
+        return (await response.ReadAsync<RequestVerificationResponse>()).Id;
     }
 
-    private static async Task<string?> TipoErroAsync(HttpResponseMessage resposta) =>
-        (await resposta.LerJsonAsync()).GetProperty("type").GetString();
+    private static async Task<string?> ErrorTypeAsync(HttpResponseMessage response) =>
+        (await response.ReadJsonAsync()).GetProperty("type").GetString();
 
     [Fact]
-    public async Task Solicitar_cria_pendente_e_aparece_no_me()
+    public async Task Request_creates_pending_and_shows_in_me()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
+        var person = await factory.NewPersonAsync();
 
-        var resposta = await SolicitarAsync(pessoa);
-        var corpo = await resposta.LerAsync<SolicitarVerificacaoResponse>();
-        var me = await (await pessoa.Cliente.GetAsync("/api/v1/me")).LerAsync<ObterMeResponse>();
+        var response = await RequestAsync(person);
+        var body = await response.ReadAsync<RequestVerificationResponse>();
+        var me = await (await person.Client.GetAsync("/api/v1/me")).ReadAsync<GetMeResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
-        corpo.Status.Should().Be(StatusVerificacao.Pendente);
-        corpo.TipoVinculo.Should().Be(TipoVinculo.MoradorRegiao);
-        me.Verificacao.Should().Be(new ObterMeVerificacaoResumo(StatusVerificacao.Pendente, TipoVinculo.MoradorRegiao, null, corpo.CriadaEm));
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        body.Status.Should().Be(VerificationStatus.Pending);
+        body.AffiliationType.Should().Be(AffiliationType.LivesInArea);
+        me.Verification.Should().Be(new GetMeVerificationSummary(VerificationStatus.Pending, AffiliationType.LivesInArea, null, body.CreatedAt));
     }
 
     [Theory]
     [InlineData(29)]
     [InlineData(501)]
-    public async Task Justificativa_fora_de_30_a_500_caracteres_devolve_400(int tamanho)
+    public async Task Justification_outside_30_to_500_characters_returns_400(int pageSize)
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
+        var person = await factory.NewPersonAsync();
 
-        var resposta = await SolicitarAsync(pessoa, new string('a', tamanho));
+        var response = await RequestAsync(person, new string('a', pageSize));
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task Justificativa_nula_devolve_400()
+    public async Task Null_justification_returns_400()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
+        var person = await factory.NewPersonAsync();
 
-        var resposta = await pessoa.Cliente.PostAsJsonAsync("/api/v1/verificacoes",
-            new { tipoVinculo = "moradorRegiao", justificativa = (string?)null }, ClienteApi.Json);
+        var response = await person.Client.PostAsJsonAsync("/api/v1/verifications",
+            new { affiliationType = "livesInArea", justification = (string?)null }, ApiClient.Json);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task Segunda_pendente_devolve_409()
+    public async Task Second_pending_returns_409()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        await SolicitacaoIdAsync(pessoa);
+        var person = await factory.NewPersonAsync();
+        await VerificationRequestIdAsync(person);
 
-        var resposta = await SolicitarAsync(pessoa);
+        var response = await RequestAsync(person);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await TipoErroAsync(resposta)).Should().Be("verificacao-pendente-existente");
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ErrorTypeAsync(response)).Should().Be("verification-already-pending");
     }
 
     [Fact]
-    public async Task Pendentes_simultaneas_nao_passam_do_indice_unico()
+    public async Task Concurrent_pending_requests_do_not_pass_the_unique_index()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
+        var person = await factory.NewPersonAsync();
 
-        var respostas = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => SolicitarAsync(pessoa)));
+        var responses = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => RequestAsync(person)));
 
-        respostas.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(1);
-        respostas.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(4);
+        responses.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(1);
+        responses.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(4);
     }
 
     [Theory]
-    [InlineData(Perfil.CidadaoVerificado)]
-    [InlineData(Perfil.Administrador)]
-    public async Task Ja_verificado_devolve_422(Perfil perfil)
+    [InlineData(Role.VerifiedCitizen)]
+    [InlineData(Role.Administrator)]
+    public async Task Already_verified_returns_422(Role role)
     {
-        var pessoa = await fabrica.NovaPessoaAsync(perfil);
+        var person = await factory.NewPersonAsync(role);
 
-        var resposta = await SolicitarAsync(pessoa);
+        var response = await RequestAsync(person);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await TipoErroAsync(resposta)).Should().Be("ja-verificado");
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await ErrorTypeAsync(response)).Should().Be("already-verified");
     }
 
     [Fact]
-    public async Task Recusada_permite_nova_solicitacao()
+    public async Task Rejected_allows_new_request()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
-        var id = await SolicitacaoIdAsync(pessoa);
-        await admin.Cliente.PostAsJsonAsync($"/api/v1/admin/verificacoes/{id}/recusar", new { motivo = "Faltam detalhes." }, ClienteApi.Json);
+        var person = await factory.NewPersonAsync();
+        var admin = await factory.NewPersonAsync(Role.Administrator);
+        var id = await VerificationRequestIdAsync(person);
+        await admin.Client.PostAsJsonAsync($"/api/v1/admin/verifications/{id}/reject", new { reason = "Faltam detalhes." }, ApiClient.Json);
 
-        var resposta = await SolicitarAsync(pessoa);
+        var response = await RequestAsync(person);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 }

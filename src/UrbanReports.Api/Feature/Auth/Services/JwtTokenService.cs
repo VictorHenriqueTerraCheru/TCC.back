@@ -7,38 +7,38 @@ using UrbanReports.Api.Persistence;
 
 namespace UrbanReports.Api.Auth;
 
-public sealed class JwtTokenService(IOptions<JwtOptions> opcoes, TimeProvider relogio)
+public sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider clock)
 {
-    public const string ClaimNome = "nome";
-    public const string ClaimPerfil = "perfil";
+    public const string NameClaim = "name";
+    public const string RoleClaim = "role";
 
-    private readonly JwtOptions _opcoes = opcoes.Value;
+    private readonly JwtOptions _options = options.Value;
     private readonly JsonWebTokenHandler _handler = new();
 
-    public static SymmetricSecurityKey Chave(JwtOptions opcoes) => new(Encoding.UTF8.GetBytes(opcoes.Chave));
+    public static SymmetricSecurityKey Key(JwtOptions options) => new(Encoding.UTF8.GetBytes(options.Key));
 
-    public (string Token, DateTimeOffset ExpiraEm) Gerar(Usuario usuario)
+    public (string Token, DateTimeOffset ExpiresAt) Generate(User user)
     {
-        var agora = relogio.GetUtcNow();
-        var expiraEm = agora.AddDays(_opcoes.ValidadeDias);
+        var now = clock.GetUtcNow();
+        var expiresAt = now.AddDays(_options.ValidityDays);
 
         var token = _handler.CreateToken(new SecurityTokenDescriptor
         {
-            Issuer = _opcoes.Emissor,
-            Audience = _opcoes.Audiencia,
-            IssuedAt = agora.UtcDateTime,
-            NotBefore = agora.UtcDateTime,
-            Expires = expiraEm.UtcDateTime,
-            SigningCredentials = new SigningCredentials(Chave(_opcoes), SecurityAlgorithms.HmacSha256),
+            Issuer = _options.Issuer,
+            Audience = _options.Audience,
+            IssuedAt = now.UtcDateTime,
+            NotBefore = now.UtcDateTime,
+            Expires = expiresAt.UtcDateTime,
+            SigningCredentials = new SigningCredentials(Key(_options), SecurityAlgorithms.HmacSha256),
             Claims = new Dictionary<string, object>
             {
-                [JwtRegisteredClaimNames.Sub] = usuario.Id.ToString(),
-                [JwtRegisteredClaimNames.Email] = usuario.Email!,
-                [ClaimNome] = usuario.Nome,
-                [ClaimPerfil] = JsonNamingPolicy.CamelCase.ConvertName(usuario.Perfil.ToString()),
+                [JwtRegisteredClaimNames.Sub] = user.Id.ToString(),
+                [JwtRegisteredClaimNames.Email] = user.Email!,
+                [NameClaim] = user.Name,
+                [RoleClaim] = JsonNamingPolicy.CamelCase.ConvertName(user.Role.ToString()),
             },
         });
 
-        return (token, expiraEm);
+        return (token, expiresAt);
     }
 }

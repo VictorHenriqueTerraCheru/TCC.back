@@ -1,13 +1,13 @@
-namespace UrbanReports.Api.Geocodificacao;
+namespace UrbanReports.Api.Geocoding;
 
-public sealed record ReversaRequest(double Lat, double Lng);
+public sealed record ReverseRequest(double Lat, double Lng);
 
-public sealed record ReversaResponse(
-    bool Disponivel,
-    string Endereco,
-    string? Logradouro,
-    string? Numero,
-    string? Bairro,
-    string? Cidade,
-    string? Uf,
-    string? RotuloArea);
+public sealed record ReverseResponse(
+    bool Available,
+    string Address,
+    string? Street,
+    string? Number,
+    string? Neighborhood,
+    string? City,
+    string? State,
+    string? AreaLabel);

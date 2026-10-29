@@ -3,15 +3,15 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace UrbanReports.Api.Persistence;
 
-public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
+public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
-    public void Configure(EntityTypeBuilder<Usuario> b)
+    public void Configure(EntityTypeBuilder<User> b)
     {
-        b.ToTable("usuarios");
-        b.Property(u => u.Nome).HasMaxLength(120);
-        b.Property(u => u.PasswordHash).HasColumnName("senha_hash");
+        b.ToTable("users");
+        b.Property(u => u.Name).HasMaxLength(120);
+        b.Property(u => u.PasswordHash).HasColumnName("password_hash");
 
-        b.HasIndex(u => u.NormalizedEmail).IsUnique().HasDatabaseName("ix_usuarios_normalized_email");
-        b.HasIndex(u => u.NormalizedUserName).IsUnique().HasDatabaseName("ix_usuarios_normalized_user_name");
+        b.HasIndex(u => u.NormalizedEmail).IsUnique().HasDatabaseName("ix_users_normalized_email");
+        b.HasIndex(u => u.NormalizedUserName).IsUnique().HasDatabaseName("ix_users_normalized_user_name");
     }
 }

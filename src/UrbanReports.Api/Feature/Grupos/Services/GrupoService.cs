@@ -5,158 +5,158 @@ using Npgsql;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Persistence;
 
-namespace UrbanReports.Api.Grupos;
+namespace UrbanReports.Api.Groups;
 
-public sealed class GrupoService(AppDbContext db) : IGrupoService
+public sealed class GroupService(AppDbContext db) : IGroupService
 {
-    private const int TamanhoMaximoChave = 30;
+    private const int MaxKeyLength = 30;
 
-    public Task<List<GrupoResponse>> ListarAsync(CancellationToken ct) =>
-        db.Grupos
-            .OrderBy(g => g.Ordem)
-            .ThenBy(g => g.Rotulo)
-            .Select(g => new GrupoResponse(g.Chave, g.Rotulo, g.Tipo, g.Cor, g.Ordem))
+    public Task<List<GroupResponse>> ListAsync(CancellationToken ct) =>
+        db.Groups
+            .OrderBy(g => g.SortOrder)
+            .ThenBy(g => g.Label)
+            .Select(g => new GroupResponse(g.Key, g.Label, g.Type, g.Color, g.SortOrder))
             .ToListAsync(ct);
 
-    public async Task<Resultado<GrupoResponse>> CriarAsync(CriarGrupoRequest request, CancellationToken ct)
+    public async Task<Result<GroupResponse>> CreateAsync(CreateGroupRequest request, CancellationToken ct)
     {
-        var rotulo = request.Rotulo.Trim();
-        await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TomarAsync(ct);
+        var label = request.Label.Trim();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.TakeAsync(ct);
 
-        if (await RotuloEmUsoAsync(rotulo, null, ct))
+        if (await LabelInUseAsync(label, null, ct))
         {
-            return ErrosGrupo.RotuloDuplicado;
+            return GroupErrors.DuplicateLabel;
         }
 
-        var chave = await ChaveUnicaAsync(rotulo, ct);
-        var ordem = (await db.Grupos.MaxAsync(g => (int?)g.Ordem, ct) ?? 0) + 1;
-        var grupo = new GrupoCategoria { Chave = chave, Rotulo = rotulo, Tipo = request.Tipo, Cor = request.Cor, Ordem = ordem };
-        db.Grupos.Add(grupo);
+        var key = await UniqueKeyAsync(label, ct);
+        var sortOrder = (await db.Groups.MaxAsync(g => (int?)g.SortOrder, ct) ?? 0) + 1;
+        var group = new CategoryGroup { Key = key, Label = label, Type = request.Type, Color = request.Color, SortOrder = sortOrder };
+        db.Groups.Add(group);
         try
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        catch (DbUpdateException e) when (e.ViolatedUniqueness())
         {
-            return ErrosGrupo.RotuloDuplicado;
+            return GroupErrors.DuplicateLabel;
         }
 
-        await transacao.CommitAsync(ct);
+        await transaction.CommitAsync(ct);
 
-        return ParaResposta(grupo);
+        return ToResponse(group);
     }
 
-    public async Task<Resultado<GrupoResponse>> EditarAsync(string chave, EditarGrupoRequest request, CancellationToken ct)
+    public async Task<Result<GroupResponse>> EditAsync(string key, EditGroupRequest request, CancellationToken ct)
     {
-        var rotulo = request.Rotulo.Trim();
-        await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TomarAsync(ct);
+        var label = request.Label.Trim();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.TakeAsync(ct);
 
-        var grupo = await db.Grupos.FindAsync([chave], ct);
-        if (grupo is null)
+        var group = await db.Groups.FindAsync([key], ct);
+        if (group is null)
         {
-            return ErroAplicacao.NaoEncontrado;
+            return ApplicationError.NotFound;
         }
 
-        if (await RotuloEmUsoAsync(rotulo, chave, ct))
+        if (await LabelInUseAsync(label, key, ct))
         {
-            return ErrosGrupo.RotuloDuplicado;
+            return GroupErrors.DuplicateLabel;
         }
 
-        grupo.Rotulo = rotulo;
-        grupo.Cor = request.Cor;
-        grupo.Ordem = request.Ordem;
+        group.Label = label;
+        group.Color = request.Color;
+        group.SortOrder = request.SortOrder;
         try
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException e) when (e.ViolouUnicidade())
+        catch (DbUpdateException e) when (e.ViolatedUniqueness())
         {
-            return ErrosGrupo.RotuloDuplicado;
+            return GroupErrors.DuplicateLabel;
         }
 
-        await transacao.CommitAsync(ct);
+        await transaction.CommitAsync(ct);
 
-        return ParaResposta(grupo);
+        return ToResponse(group);
     }
 
-    public async Task<Resultado<Vazio>> ApagarAsync(string chave, CancellationToken ct)
+    public async Task<Result<Empty>> DeleteAsync(string key, CancellationToken ct)
     {
-        await using var transacao = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TomarAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.TakeAsync(ct);
 
-        if (await db.Categorias.AnyAsync(c => c.Grupo == chave, ct))
+        if (await db.Categories.AnyAsync(c => c.Group == key, ct))
         {
-            return ErrosGrupo.EmUso;
+            return GroupErrors.InUse;
         }
 
         try
         {
-            var linhas = await db.Grupos.Where(g => g.Chave == chave).ExecuteDeleteAsync(ct);
-            if (linhas == 0)
+            var rows = await db.Groups.Where(g => g.Key == key).ExecuteDeleteAsync(ct);
+            if (rows == 0)
             {
-                return ErroAplicacao.NaoEncontrado;
+                return ApplicationError.NotFound;
             }
 
-            await transacao.CommitAsync(ct);
-            return new Vazio();
+            await transaction.CommitAsync(ct);
+            return new Empty();
         }
         catch (Exception e) when (e is DbUpdateException || e is PostgresException)
         {
-            if (!e.ViolouChaveEstrangeira()) throw;
-            return ErrosGrupo.EmUso;
+            if (!e.ViolatedForeignKey()) throw;
+            return GroupErrors.InUse;
         }
     }
 
-    private Task<bool> RotuloEmUsoAsync(string rotulo, string? ignorarChave, CancellationToken ct)
+    private Task<bool> LabelInUseAsync(string label, string? ignoreKey, CancellationToken ct)
     {
-        var minusculo = rotulo.ToLower();
-        return db.Grupos.AnyAsync(g => g.Rotulo.ToLower() == minusculo && g.Chave != ignorarChave, ct);
+        var lowercase = label.ToLower();
+        return db.Groups.AnyAsync(g => g.Label.ToLower() == lowercase && g.Key != ignoreKey, ct);
     }
 
-    private async Task<string> ChaveUnicaAsync(string rotulo, CancellationToken ct)
+    private async Task<string> UniqueKeyAsync(string label, CancellationToken ct)
     {
-        var baseChave = ChaveDe(rotulo);
-        var chave = baseChave;
-        for (var n = 2; await db.Grupos.AnyAsync(g => g.Chave == chave, ct); n++)
+        var baseKey = KeyOf(label);
+        var key = baseKey;
+        for (var n = 2; await db.Groups.AnyAsync(g => g.Key == key, ct); n++)
         {
-            var sufixo = n.ToString(CultureInfo.InvariantCulture);
-            chave = baseChave[..Math.Min(baseChave.Length, TamanhoMaximoChave - sufixo.Length)] + sufixo;
+            var suffix = n.ToString(CultureInfo.InvariantCulture);
+            key = baseKey[..Math.Min(baseKey.Length, MaxKeyLength - suffix.Length)] + suffix;
         }
 
-        return chave;
+        return key;
     }
 
-    public static string ChaveDe(string rotulo)
+    public static string KeyOf(string label)
     {
-        var semAcento = new StringBuilder();
-        foreach (var c in rotulo.Normalize(NormalizationForm.FormD))
+        var withoutAccent = new StringBuilder();
+        foreach (var c in label.Normalize(NormalizationForm.FormD))
         {
             if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
             {
-                semAcento.Append(c);
+                withoutAccent.Append(c);
             }
         }
 
-        var palavras = new string(semAcento.ToString().Select(c => char.IsAsciiLetterOrDigit(c) ? c : ' ').ToArray())
+        var words = new string(withoutAccent.ToString().Select(c => char.IsAsciiLetterOrDigit(c) ? c : ' ').ToArray())
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-        var chave = new StringBuilder();
-        foreach (var palavra in palavras)
+        var key = new StringBuilder();
+        foreach (var word in words)
         {
-            var minuscula = palavra.ToLowerInvariant();
-            chave.Append(chave.Length == 0 ? minuscula : char.ToUpperInvariant(minuscula[0]) + minuscula[1..]);
+            var lowercase = word.ToLowerInvariant();
+            key.Append(key.Length == 0 ? lowercase : char.ToUpperInvariant(lowercase[0]) + lowercase[1..]);
         }
 
-        var texto = chave.ToString();
-        if (texto.Length == 0 || !char.IsAsciiLetter(texto[0]))
+        var text = key.ToString();
+        if (text.Length == 0 || !char.IsAsciiLetter(text[0]))
         {
-            texto = "grupo" + texto;
+            text = "grupo" + text;
         }
 
-        return texto.Length > TamanhoMaximoChave ? texto[..TamanhoMaximoChave] : texto;
+        return text.Length > MaxKeyLength ? text[..MaxKeyLength] : text;
     }
 
-    private static GrupoResponse ParaResposta(GrupoCategoria g) => new(g.Chave, g.Rotulo, g.Tipo, g.Cor, g.Ordem);
+    private static GroupResponse ToResponse(CategoryGroup g) => new(g.Key, g.Label, g.Type, g.Color, g.SortOrder);
 }

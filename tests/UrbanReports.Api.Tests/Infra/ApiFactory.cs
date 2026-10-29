@@ -6,77 +6,77 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Persistence;
-using UrbanReports.Api.Geocodificacao;
+using UrbanReports.Api.Geocoding;
 using Testcontainers.PostgreSql;
 
 namespace UrbanReports.Api.Tests.Infra;
 
 public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    public const string OrigemFront = "http://localhost:5173";
+    public const string FrontOrigin = "http://localhost:5173";
 
-    private readonly PostgreSqlContainer _banco = new PostgreSqlBuilder("postgis/postgis:16-3.4").Build();
+    private readonly PostgreSqlContainer _database = new PostgreSqlBuilder("postgis/postgis:16-3.4").Build();
 
-    public FakeTimeProvider Relogio { get; } = new(RelogioPostgres.Truncar(DateTimeOffset.UtcNow));
+    public FakeTimeProvider Clock { get; } = new(PostgresClock.Truncate(DateTimeOffset.UtcNow));
 
-    public NominatimFalso Nominatim { get; } = new();
+    public FakeNominatim Nominatim { get; } = new();
 
-    public static (double Lat, double Lng) PontoUnico()
+    public static (double Lat, double Lng) UniquePoint()
     {
-        var n = Interlocked.Increment(ref _sequencia);
+        var n = Interlocked.Increment(ref _sequence);
         return (-22.95 - n * 0.001, -43.18 - n * 0.001);
     }
 
-    private static int _sequencia;
+    private static int _sequence;
 
-    public static (double Lat, double Lng) AreaIsolada()
+    public static (double Lat, double Lng) IsolatedArea()
     {
-        var n = Interlocked.Increment(ref _sequenciaIsolada);
+        var n = Interlocked.Increment(ref _isolatedSequence);
         return (-23.5 - n * 0.05, -46.6);
     }
 
-    private static int _sequenciaIsolada;
+    private static int _isolatedSequence;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
-        builder.UseSetting("ConnectionStrings:Default", _banco.GetConnectionString());
-        builder.UseSetting("Jwt:Chave", "chave-de-teste-com-pelo-menos-32-caracteres");
-        builder.UseSetting("Cors:Origens:0", OrigemFront);
-        builder.UseSetting("CicloDeVida:Habilitado", "false");
+        builder.UseSetting("ConnectionStrings:Default", _database.GetConnectionString());
+        builder.UseSetting("Jwt:Key", "test-key-with-at-least-32-characters-long");
+        builder.UseSetting("Cors:Origins:0", FrontOrigin);
+        builder.UseSetting("Lifecycle:Enabled", "false");
         builder.ConfigureTestServices(s =>
         {
-            s.AddSingleton<TimeProvider>(Relogio);
+            s.AddSingleton<TimeProvider>(Clock);
             s.AddSingleton<INominatimClient>(Nominatim);
         });
     }
 
     public async Task InitializeAsync()
     {
-        await _banco.StartAsync();
+        await _database.StartAsync();
 
-        await using var escopo = Services.CreateAsyncScope();
-        await escopo.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+        await using var scope = Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
     }
 
-    public async Task<T> NoBancoAsync<T>(Func<AppDbContext, Task<T>> acao)
+    public async Task<T> InDatabaseAsync<T>(Func<AppDbContext, Task<T>> action)
     {
-        await using var escopo = Services.CreateAsyncScope();
-        return await acao(escopo.ServiceProvider.GetRequiredService<AppDbContext>());
+        await using var scope = Services.CreateAsyncScope();
+        return await action(scope.ServiceProvider.GetRequiredService<AppDbContext>());
     }
 
-    public Task NoBancoAsync(Func<AppDbContext, Task> acao) =>
-        NoBancoAsync(async db => { await acao(db); return true; });
+    public Task InDatabaseAsync(Func<AppDbContext, Task> action) =>
+        InDatabaseAsync(async db => { await action(db); return true; });
 
     async Task IAsyncLifetime.DisposeAsync()
     {
         await DisposeAsync();
-        await _banco.DisposeAsync();
+        await _database.DisposeAsync();
     }
 }
 
-[CollectionDefinition(Nome)]
+[CollectionDefinition(Name)]
 public sealed class ApiCollection : ICollectionFixture<ApiFactory>
 {
-    public const string Nome = "Api";
+    public const string Name = "Api";
 }

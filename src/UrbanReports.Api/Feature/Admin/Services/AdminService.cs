@@ -4,169 +4,169 @@ using UrbanReports.Api.Persistence;
 
 namespace UrbanReports.Api.Admin;
 
-public sealed class AdminService(AppDbContext db, TimeProvider relogio) : IAdminService
+public sealed class AdminService(AppDbContext db, TimeProvider clock) : IAdminService
 {
-    public async Task<Paginado<ListarVerificacoesItem>> ListarVerificacoesAsync(ListarVerificacoesRequest request, CancellationToken ct)
+    public async Task<Paged<ListVerificationsItem>> ListVerificationsAsync(ListVerificationsRequest request, CancellationToken ct)
     {
-        var consulta = db.SolicitacoesVerificacao.AsQueryable();
-        StatusVerificacao? status = request.Status is null ? null : Enum.Parse<StatusVerificacao>(request.Status, ignoreCase: true);
+        var query = db.VerificationRequests.AsQueryable();
+        VerificationStatus? status = request.Status is null ? null : Enum.Parse<VerificationStatus>(request.Status, ignoreCase: true);
         if (status is not null)
         {
-            consulta = consulta.Where(s => s.Status == status);
+            query = query.Where(s => s.Status == status);
         }
 
-        var total = await consulta.CountAsync(ct);
-        var ordenada = status == StatusVerificacao.Pendente
-            ? consulta.OrderBy(s => s.CriadaEm)
-            : consulta.OrderByDescending(s => s.CriadaEm);
+        var total = await query.CountAsync(ct);
+        var sorted = status == VerificationStatus.Pending
+            ? query.OrderBy(s => s.CreatedAt)
+            : query.OrderByDescending(s => s.CreatedAt);
 
-        var linhas = await ordenada
+        var rows = await sorted
             .ThenBy(s => s.Id)
-            .Skip(Paginacao.Pular(request.Pagina, request.Tamanho))
-            .Take(request.Tamanho)
+            .Skip(Pagination.Skip(request.Page, request.PageSize))
+            .Take(request.PageSize)
             .Select(s => new
             {
                 s.Id,
-                s.UsuarioId,
-                s.Usuario.Nome,
-                s.TipoVinculo,
-                s.Justificativa,
+                s.UserId,
+                s.User.Name,
+                s.AffiliationType,
+                s.Justification,
                 s.Status,
-                s.CriadaEm,
-                s.MotivoRecusa,
+                s.CreatedAt,
+                s.RejectionReason,
             })
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var itens = linhas
-            .Select(l => new ListarVerificacoesItem(
-                l.Id, new ListarVerificacoesUsuarioResumo(l.UsuarioId, l.Nome, Iniciais(l.Nome)),
-                l.TipoVinculo, l.Justificativa, l.Status, l.CriadaEm, l.MotivoRecusa))
+        var items = rows
+            .Select(l => new ListVerificationsItem(
+                l.Id, new ListVerificationsUserSummary(l.UserId, l.Name, Initials(l.Name)),
+                l.AffiliationType, l.Justification, l.Status, l.CreatedAt, l.RejectionReason))
             .ToList();
 
-        return new Paginado<ListarVerificacoesItem>(itens, request.Pagina, request.Tamanho, total);
+        return new Paged<ListVerificationsItem>(items, request.Page, request.PageSize, total);
     }
 
-    public async Task<Resultado<Vazio>> AprovarAsync(Guid id, Guid adminId, CancellationToken ct)
+    public async Task<Result<Empty>> ApproveAsync(Guid id, Guid adminId, CancellationToken ct)
     {
-        var agora = relogio.GetUtcNow();
-        await using var transacao = await db.Database.BeginTransactionAsync(ct);
+        var now = clock.GetUtcNow();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-        var conclusao = await ConcluirAsync(id, adminId, StatusVerificacao.Aprovada, null, agora, ct);
-        if (conclusao.Erro is { } erro)
+        var completion = await FinishAsync(id, adminId, VerificationStatus.Approved, null, now, ct);
+        if (completion.Error is { } error)
         {
-            return erro;
+            return error;
         }
 
         await db.Users
-            .Where(u => u.Id == conclusao.Valor && u.Perfil == Perfil.Cidadao)
+            .Where(u => u.Id == completion.Value && u.Role == Role.Citizen)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(u => u.Perfil, Perfil.CidadaoVerificado)
-                .SetProperty(u => u.VerificadoEm, agora), ct);
+                .SetProperty(u => u.Role, Role.VerifiedCitizen)
+                .SetProperty(u => u.VerifiedAt, now), ct);
 
-        await transacao.CommitAsync(ct);
-        return new Vazio();
+        await transaction.CommitAsync(ct);
+        return new Empty();
     }
 
-    public async Task<Resultado<Vazio>> RecusarAsync(Guid id, Guid adminId, RecusarVerificacaoRequest request, CancellationToken ct)
+    public async Task<Result<Empty>> RejectAsync(Guid id, Guid adminId, RejectVerificationRequest request, CancellationToken ct)
     {
-        var conclusao = await ConcluirAsync(id, adminId, StatusVerificacao.Recusada, request.Motivo.Trim(), relogio.GetUtcNow(), ct);
-        if (conclusao.Erro is { } erro)
+        var completion = await FinishAsync(id, adminId, VerificationStatus.Rejected, request.Reason.Trim(), clock.GetUtcNow(), ct);
+        if (completion.Error is { } error)
         {
-            return erro;
+            return error;
         }
 
-        return new Vazio();
+        return new Empty();
     }
 
-    public async Task<Paginado<ListarUsuariosItem>> ListarUsuariosAsync(ListarUsuariosRequest request, CancellationToken ct)
+    public async Task<Paged<ListUsersItem>> ListUsersAsync(ListUsersRequest request, CancellationToken ct)
     {
-        var consulta = db.Users.AsQueryable();
-        if (request.Perfil is not null)
+        var query = db.Users.AsQueryable();
+        if (request.Role is not null)
         {
-            var perfil = Enum.Parse<Perfil>(request.Perfil, ignoreCase: true);
-            consulta = consulta.Where(u => u.Perfil == perfil);
+            var role = Enum.Parse<Role>(request.Role, ignoreCase: true);
+            query = query.Where(u => u.Role == role);
         }
 
-        if (request.Busca?.Trim() is { Length: > 0 } busca)
+        if (request.Search?.Trim() is { Length: > 0 } search)
         {
-            var padrao = $"%{busca.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
-            consulta = consulta.Where(u => EF.Functions.ILike(u.Nome, padrao) || EF.Functions.ILike(u.Email!, padrao));
+            var pattern = $"%{search.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
+            query = query.Where(u => EF.Functions.ILike(u.Name, pattern) || EF.Functions.ILike(u.Email!, pattern));
         }
 
-        var total = await consulta.CountAsync(ct);
-        var itens = await consulta
-            .OrderByDescending(u => u.CriadoEm)
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(u => u.CreatedAt)
             .ThenBy(u => u.Id)
-            .Skip(Paginacao.Pular(request.Pagina, request.Tamanho))
-            .Take(request.Tamanho)
-            .Select(u => new ListarUsuariosItem(u.Id, u.Nome, u.Email!, u.Perfil, u.CriadoEm, u.VerificadoEm))
+            .Skip(Pagination.Skip(request.Page, request.PageSize))
+            .Take(request.PageSize)
+            .Select(u => new ListUsersItem(u.Id, u.Name, u.Email!, u.Role, u.CreatedAt, u.VerifiedAt))
             .AsNoTracking()
             .ToListAsync(ct);
 
-        return new Paginado<ListarUsuariosItem>(itens, request.Pagina, request.Tamanho, total);
+        return new Paged<ListUsersItem>(items, request.Page, request.PageSize, total);
     }
 
-    public async Task<Resultado<Vazio>> AlterarPerfilAsync(Guid id, Guid adminId, AlterarPerfilRequest request, CancellationToken ct)
+    public async Task<Result<Empty>> ChangeRoleAsync(Guid id, Guid adminId, ChangeRoleRequest request, CancellationToken ct)
     {
         if (id == adminId)
         {
-            return ErrosAdmin.ProprioPerfil;
+            return AdminErrors.OwnRole;
         }
 
-        var usuario = await db.Users.SingleOrDefaultAsync(u => u.Id == id, ct);
-        if (usuario is null)
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Id == id, ct);
+        if (user is null)
         {
-            return ErroAplicacao.NaoEncontrado;
+            return ApplicationError.NotFound;
         }
 
-        usuario.Perfil = request.Perfil;
-        switch (request.Perfil)
+        user.Role = request.Role;
+        switch (request.Role)
         {
-            case Perfil.CidadaoVerificado:
-                usuario.VerificadoEm ??= relogio.GetUtcNow();
+            case Role.VerifiedCitizen:
+                user.VerifiedAt ??= clock.GetUtcNow();
                 break;
-            case Perfil.Cidadao:
-                usuario.VerificadoEm = null;
+            case Role.Citizen:
+                user.VerifiedAt = null;
                 break;
         }
 
         await db.SaveChangesAsync(ct);
-        return new Vazio();
+        return new Empty();
     }
 
-    public static string Iniciais(string nome)
+    public static string Initials(string name)
     {
-        var partes = nome.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return partes.Length switch
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length switch
         {
             0 => "",
-            1 => char.ToUpperInvariant(partes[0][0]).ToString(),
-            _ => string.Concat(char.ToUpperInvariant(partes[0][0]), char.ToUpperInvariant(partes[^1][0])),
+            1 => char.ToUpperInvariant(parts[0][0]).ToString(),
+            _ => string.Concat(char.ToUpperInvariant(parts[0][0]), char.ToUpperInvariant(parts[^1][0])),
         };
     }
 
-    private async Task<Resultado<Guid>> ConcluirAsync(
-        Guid id, Guid adminId, StatusVerificacao resultado, string? motivo, DateTimeOffset agora, CancellationToken ct)
+    private async Task<Result<Guid>> FinishAsync(
+        Guid id, Guid adminId, VerificationStatus result, string? reason, DateTimeOffset now, CancellationToken ct)
     {
-        var alteradas = await db.SolicitacoesVerificacao
-            .Where(s => s.Id == id && s.Status == StatusVerificacao.Pendente)
+        var changed = await db.VerificationRequests
+            .Where(s => s.Id == id && s.Status == VerificationStatus.Pending)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(x => x.Status, resultado)
-                .SetProperty(x => x.MotivoRecusa, motivo)
-                .SetProperty(x => x.AnalisadaPorId, adminId)
-                .SetProperty(x => x.AnalisadaEm, agora), ct);
+                .SetProperty(x => x.Status, result)
+                .SetProperty(x => x.RejectionReason, reason)
+                .SetProperty(x => x.ReviewedById, adminId)
+                .SetProperty(x => x.ReviewedAt, now), ct);
 
-        if (alteradas == 1)
+        if (changed == 1)
         {
-            return await db.SolicitacoesVerificacao.Where(s => s.Id == id).Select(s => s.UsuarioId).SingleAsync(ct);
+            return await db.VerificationRequests.Where(s => s.Id == id).Select(s => s.UserId).SingleAsync(ct);
         }
 
-        if (await db.SolicitacoesVerificacao.AnyAsync(s => s.Id == id, ct))
+        if (await db.VerificationRequests.AnyAsync(s => s.Id == id, ct))
         {
-            return ErrosAdmin.VerificacaoJaAnalisada;
+            return AdminErrors.VerificationAlreadyReviewed;
         }
 
-        return ErroAplicacao.NaoEncontrado;
+        return ApplicationError.NotFound;
     }
 }

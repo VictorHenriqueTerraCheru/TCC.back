@@ -1,33 +1,33 @@
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 
-namespace UrbanReports.Api.Tests.Confianca.Motor;
+namespace UrbanReports.Api.Tests.Trust.Engine;
 
-internal static class Cenario
+internal static class Scenario
 {
     public static readonly DateTimeOffset T0 = new(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
 
-    public static VotoFato Voto(
-        ValorVoto valor,
-        Perfil perfil = Perfil.Cidadao,
-        double? distancia = 100,
-        DateTimeOffset? em = null,
-        Guid? usuario = null) =>
-        new(usuario ?? Guid.NewGuid(), valor, perfil, distancia, em ?? T0);
+    public static VoteFact Vote(
+        VoteValue value,
+        Role role = Role.Citizen,
+        double? distance = 100,
+        DateTimeOffset? at = null,
+        Guid? user = null) =>
+        new(user ?? Guid.NewGuid(), value, role, distance, at ?? T0);
 
-    public static VotoFato Sim(Perfil perfil = Perfil.Cidadao, double? distancia = 100, DateTimeOffset? em = null, Guid? usuario = null) =>
-        Voto(ValorVoto.Positivo, perfil, distancia, em, usuario);
+    public static VoteFact Yes(Role role = Role.Citizen, double? distance = 100, DateTimeOffset? at = null, Guid? user = null) =>
+        Vote(VoteValue.Positive, role, distance, at, user);
 
-    public static VotoFato Nao(Perfil perfil = Perfil.Cidadao, double? distancia = 100, DateTimeOffset? em = null, Guid? usuario = null) =>
-        Voto(ValorVoto.Negativo, perfil, distancia, em, usuario);
+    public static VoteFact No(Role role = Role.Citizen, double? distance = 100, DateTimeOffset? at = null, Guid? user = null) =>
+        Vote(VoteValue.Negative, role, distance, at, user);
 
-    public static List<VotoFato> Repetir(int vezes, Func<VotoFato> criar) =>
-        Enumerable.Range(0, vezes).Select(_ => criar()).ToList();
+    public static List<VoteFact> Repeat(int times, Func<VoteFact> create) =>
+        Enumerable.Range(0, times).Select(_ => create()).ToList();
 
-    public static EstadoProblema Estado(
-        StatusProblema status,
-        DateTimeOffset? criadoEm = null,
-        DateTimeOffset? statusAlteradoEm = null,
-        DateTimeOffset? condicaoResolucaoDesde = null) =>
-        new(status, criadoEm ?? T0, statusAlteradoEm ?? criadoEm ?? T0, condicaoResolucaoDesde);
+    public static IssueState State(
+        IssueStatus status,
+        DateTimeOffset? createdAt = null,
+        DateTimeOffset? statusChangedAt = null,
+        DateTimeOffset? resolutionConditionSince = null) =>
+        new(status, createdAt ?? T0, statusChangedAt ?? createdAt ?? T0, resolutionConditionSince);
 }

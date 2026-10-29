@@ -1,44 +1,44 @@
-using UrbanReports.Api.Categorias;
+using UrbanReports.Api.Categories;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Usuarios;
+namespace UrbanReports.Api.Users;
 
-public sealed record ObterMeResponse(
+public sealed record GetMeResponse(
     Guid Id,
-    string Nome,
+    string Name,
     string Email,
-    Perfil Perfil,
-    DateTimeOffset CriadoEm,
-    DateTimeOffset? VerificadoEm,
-    int TotalRegistros,
-    int TotalVotos,
-    ObterMeVerificacaoResumo? Verificacao);
+    Role Role,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? VerifiedAt,
+    int TotalReports,
+    int TotalVotes,
+    GetMeVerificationSummary? Verification);
 
-public sealed record ObterMeVerificacaoResumo(
-    StatusVerificacao Status, TipoVinculo TipoVinculo, string? MotivoRecusa, DateTimeOffset CriadaEm);
+public sealed record GetMeVerificationSummary(
+    VerificationStatus Status, AffiliationType AffiliationType, string? RejectionReason, DateTimeOffset CreatedAt);
 
-public sealed record AtualizarMeRequest(string Nome);
+public sealed record UpdateMeRequest(string Name);
 
-public enum ObterHistoricoTipoItem
+public enum GetHistoryItemType
 {
-    RegistroProblema = 1,
-    RegistroIncidente = 2,
-    Voto = 3,
+    IssueReport = 1,
+    IncidentReport = 2,
+    Vote = 3,
 }
 
-public enum ObterHistoricoValorItem
+public enum GetHistoryItemValue
 {
-    Sim = 1,
-    Nao = 2,
+    Yes = 1,
+    No = 2,
 }
 
-public sealed record ObterHistoricoRequest(string Filtro = "tudo", int Pagina = 1, int Tamanho = Paginacao.TamanhoPadrao);
+public sealed record GetHistoryRequest(string Filter = "all", int Page = 1, int PageSize = Pagination.DefaultPageSize);
 
-public sealed record ObterHistoricoItem(
-    ObterHistoricoTipoItem Tipo,
-    Guid? OcorrenciaId,
-    CategoriaResumo Categoria,
-    string? Endereco,
-    ObterHistoricoValorItem? Valor,
-    StatusProblema? StatusProblema,
-    DateTimeOffset Data);
+public sealed record GetHistoryItem(
+    GetHistoryItemType Type,
+    Guid? ReportId,
+    CategorySummary Category,
+    string? Address,
+    GetHistoryItemValue? Value,
+    IssueStatus? IssueStatus,
+    DateTimeOffset Date);

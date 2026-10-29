@@ -2,11 +2,11 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Auth;
 
-public sealed record CadastrarRequest(string Nome, string Email, string Senha, bool AceitouTermos);
+public sealed record RegisterRequest(string Name, string Email, string Password, bool AcceptedTerms);
 
-public sealed record EntrarRequest(string Email, string Senha);
+public sealed record LoginRequest(string Email, string Password);
 
-public sealed record RespostaAuth(string Token, DateTimeOffset ExpiraEm, RespostaAuth.UsuarioResumo Usuario)
+public sealed record AuthResponse(string Token, DateTimeOffset ExpiresAt, AuthResponse.UserSummary User)
 {
-    public sealed record UsuarioResumo(Guid Id, string Nome, string Email, Perfil Perfil);
+    public sealed record UserSummary(Guid Id, string Name, string Email, Role Role);
 }

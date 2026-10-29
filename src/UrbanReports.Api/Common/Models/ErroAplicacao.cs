@@ -1,21 +1,21 @@
 namespace UrbanReports.Api.Common;
 
-public enum TipoErro
+public enum ErrorType
 {
-    NaoEncontrado,
-    NaoAutorizado,
-    Campo,
-    Regra,
+    NotFound,
+    Unauthorized,
+    Field,
+    Rule,
 }
 
-public sealed record ErroAplicacao(TipoErro Tipo, int Status, string? Type, string? Title, string? Campo = null)
+public sealed record ApplicationError(ErrorType Kind, int Status, string? Type, string? Title, string? Field = null)
 {
-    public static ErroAplicacao NaoEncontrado { get; } = new(TipoErro.NaoEncontrado, StatusCodes.Status404NotFound, null, null);
+    public static ApplicationError NotFound { get; } = new(ErrorType.NotFound, StatusCodes.Status404NotFound, null, null);
 
-    public static ErroAplicacao NaoAutorizado { get; } = new(TipoErro.NaoAutorizado, StatusCodes.Status401Unauthorized, null, null);
+    public static ApplicationError Unauthorized { get; } = new(ErrorType.Unauthorized, StatusCodes.Status401Unauthorized, null, null);
 
-    public static ErroAplicacao DeCampo(string campo, string mensagem) =>
-        new(TipoErro.Campo, StatusCodes.Status400BadRequest, null, mensagem, campo);
+    public static ApplicationError FromField(string field, string message) =>
+        new(ErrorType.Field, StatusCodes.Status400BadRequest, null, message, field);
 
-    public static ErroAplicacao Regra(int status, string? type, string title) => new(TipoErro.Regra, status, type, title);
+    public static ApplicationError Rule(int status, string? type, string title) => new(ErrorType.Rule, status, type, title);
 }

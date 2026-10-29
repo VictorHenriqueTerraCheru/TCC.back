@@ -1,22 +1,22 @@
 namespace UrbanReports.Api.Common;
 
-public readonly struct Resultado<T>
+public readonly struct Result<T>
 {
-    private Resultado(T? valor, ErroAplicacao? erro)
+    private Result(T? value, ApplicationError? error)
     {
-        Valor = valor;
-        Erro = erro;
+        Value = value;
+        Error = error;
     }
 
-    public T? Valor { get; }
+    public T? Value { get; }
 
-    public ErroAplicacao? Erro { get; }
+    public ApplicationError? Error { get; }
 
-    public bool Sucesso => Erro is null;
+    public bool Success => Error is null;
 
-    public static implicit operator Resultado<T>(T valor) => new(valor, null);
+    public static implicit operator Result<T>(T value) => new(value, null);
 
-    public static implicit operator Resultado<T>(ErroAplicacao erro) => new(default, erro);
+    public static implicit operator Result<T>(ApplicationError error) => new(default, error);
 }
 
-public readonly record struct Vazio;
+public readonly record struct Empty;

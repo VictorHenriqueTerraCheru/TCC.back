@@ -1,6 +1,6 @@
-namespace UrbanReports.Api.Saude;
+namespace UrbanReports.Api.Health;
 
-public sealed record StatusSaudeResponse(string Status)
+public sealed record HealthStatusResponse(string Status)
 {
-    public static StatusSaudeResponse Saudavel { get; } = new("saudavel");
+    public static HealthStatusResponse Healthy { get; } = new("healthy");
 }

@@ -1,221 +1,221 @@
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Confianca.Motor;
-using static UrbanReports.Api.Tests.Confianca.Motor.Cenario;
+using UrbanReports.Api.Trust.Engine;
+using static UrbanReports.Api.Tests.Trust.Engine.Scenario;
 
-namespace UrbanReports.Api.Tests.Confianca.Motor;
+namespace UrbanReports.Api.Tests.Trust.Engine;
 
-public sealed class MotorConfiancaTests
+public sealed class TrustEngineTests
 {
-    private const double Tolerancia = 1e-6;
-    private const double ToleranciaIndice = 1e-3;
+    private const double Tolerance = 1e-6;
+    private const double ScoreTolerance = 1e-3;
 
-    private static readonly ConfiguracaoConfianca A = ConfiguracaoConfianca.A;
-    private static readonly ConfiguracaoConfianca B = ConfiguracaoConfianca.B;
-
-    [Fact]
-    public void Caso01_proximidade_ate_200m_vale_2() =>
-        MotorConfianca.PesoProximidade(150, B).Should().BeApproximately(2, Tolerancia);
+    private static readonly TrustConfiguration A = TrustConfiguration.A;
+    private static readonly TrustConfiguration B = TrustConfiguration.B;
 
     [Fact]
-    public void Caso02_proximidade_1100m_vale_1_5() =>
-        MotorConfianca.PesoProximidade(1100, B).Should().BeApproximately(1.5, Tolerancia);
+    public void Case01_proximity_up_to_200m_is_2() =>
+        TrustEngine.ProximityWeight(150, B).Should().BeApproximately(2, Tolerance);
 
     [Fact]
-    public void Caso03_proximidade_longe_ou_sem_gps_vale_1()
+    public void Case02_proximity_1100m_is_1_5() =>
+        TrustEngine.ProximityWeight(1100, B).Should().BeApproximately(1.5, Tolerance);
+
+    [Fact]
+    public void Case03_proximity_far_or_without_gps_is_1()
     {
-        MotorConfianca.PesoProximidade(5000, B).Should().BeApproximately(1, Tolerancia);
-        MotorConfianca.PesoProximidade(null, B).Should().BeApproximately(1, Tolerancia);
+        TrustEngine.ProximityWeight(5000, B).Should().BeApproximately(1, Tolerance);
+        TrustEngine.ProximityWeight(null, B).Should().BeApproximately(1, Tolerance);
     }
 
     [Fact]
-    public void Caso04_config_A_ignora_proximidade() =>
-        MotorConfianca.PesoProximidade(50, A).Should().BeApproximately(1, Tolerancia);
+    public void Case04_config_A_ignores_proximity() =>
+        TrustEngine.ProximityWeight(50, A).Should().BeApproximately(1, Tolerance);
 
     [Fact]
-    public void Caso05_meia_vida_da_confianca_14_dias() =>
-        MotorConfianca.FatorTemporal(TimeSpan.FromDays(14), B.MeiaVidaConfianca, B).Should().BeApproximately(0.5, Tolerancia);
+    public void Case05_trust_half_life_14_days() =>
+        TrustEngine.TimeFactor(TimeSpan.FromDays(14), B.TrustHalfLife, B).Should().BeApproximately(0.5, Tolerance);
 
     [Fact]
-    public void Caso06_meia_vida_do_ciclo_de_vida_3_dias() =>
-        MotorConfianca.FatorTemporal(TimeSpan.FromDays(3), B.MeiaVidaCicloDeVida, B).Should().BeApproximately(0.5, Tolerancia);
+    public void Case06_lifecycle_half_life_3_days() =>
+        TrustEngine.TimeFactor(TimeSpan.FromDays(3), B.LifecycleHalfLife, B).Should().BeApproximately(0.5, Tolerance);
 
-    private static List<VotoFato> QuinzeSimA100m() => Repetir(15, () => Sim());
+    private static List<VoteFact> FifteenYesAt100m() => Repeat(15, () => Yes());
 
     [Fact]
-    public void Caso07_quinze_sim_agora()
+    public void Case07_fifteen_yes_now()
     {
-        var r = MotorConfianca.CalcularConfianca(QuinzeSimA100m(), T0, B);
+        var r = TrustEngine.CalculateTrust(FifteenYesAt100m(), T0, B);
 
-        r.Indice.Should().BeApproximately(90.909, ToleranciaIndice);
-        r.Faixa.Should().Be(FaixaConfianca.Alta);
+        r.Score.Should().BeApproximately(90.909, ScoreTolerance);
+        r.Band.Should().Be(TrustBand.High);
     }
 
     [Fact]
-    public void Caso08_quinze_sim_apos_28_dias()
+    public void Case08_fifteen_yes_after_28_days()
     {
-        var r = MotorConfianca.CalcularConfianca(QuinzeSimA100m(), T0.AddDays(28), B);
+        var r = TrustEngine.CalculateTrust(FifteenYesAt100m(), T0.AddDays(28), B);
 
-        r.Indice.Should().BeApproximately(71.429, ToleranciaIndice);
-        r.Faixa.Should().Be(FaixaConfianca.Alta);
+        r.Score.Should().BeApproximately(71.429, ScoreTolerance);
+        r.Band.Should().Be(TrustBand.High);
     }
 
     [Fact]
-    public void Caso09_quinze_sim_apos_56_dias()
+    public void Case09_fifteen_yes_after_56_days()
     {
-        var r = MotorConfianca.CalcularConfianca(QuinzeSimA100m(), T0.AddDays(56), B);
+        var r = TrustEngine.CalculateTrust(FifteenYesAt100m(), T0.AddDays(56), B);
 
-        r.Indice.Should().BeApproximately(38.462, ToleranciaIndice);
-        r.Faixa.Should().Be(FaixaConfianca.Baixa);
+        r.Score.Should().BeApproximately(38.462, ScoreTolerance);
+        r.Band.Should().Be(TrustBand.Low);
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(28)]
     [InlineData(365)]
-    public void Caso10_config_A_independe_do_tempo(int dias)
+    public void Case10_config_A_ignores_time(int days)
     {
-        var r = MotorConfianca.CalcularConfianca(QuinzeSimA100m(), T0.AddDays(dias), A);
+        var r = TrustEngine.CalculateTrust(FifteenYesAt100m(), T0.AddDays(days), A);
 
-        r.Indice.Should().BeApproximately(83.333, ToleranciaIndice);
+        r.Score.Should().BeApproximately(83.333, ScoreTolerance);
     }
 
     [Fact]
-    public void Caso11_um_verificado_a_100m()
+    public void Case11_one_verified_at_100m()
     {
-        var r = MotorConfianca.CalcularConfianca([Sim(Perfil.CidadaoVerificado)], T0, B);
+        var r = TrustEngine.CalculateTrust([Yes(Role.VerifiedCitizen)], T0, B);
 
-        r.Indice.Should().BeApproximately(86.957, ToleranciaIndice);
-        r.Faixa.Should().Be(FaixaConfianca.Alta);
+        r.Score.Should().BeApproximately(86.957, ScoreTolerance);
+        r.Band.Should().Be(TrustBand.High);
     }
 
     [Fact]
-    public void Caso12_um_verificado_com_peso_3()
+    public void Case12_one_verified_with_weight_3()
     {
-        var cfg = B.ComPesoVerificado(3);
+        var cfg = B.WithVerifiedWeight(3);
 
-        var r = MotorConfianca.CalcularConfianca([Sim(Perfil.CidadaoVerificado)], T0, cfg);
+        var r = TrustEngine.CalculateTrust([Yes(Role.VerifiedCitizen)], T0, cfg);
 
-        cfg.Nome.Should().Be("B-v3");
-        r.EPositivo.Should().BeApproximately(6, Tolerancia);
-        r.Indice.Should().BeApproximately(66.667, ToleranciaIndice);
-        r.Faixa.Should().Be(FaixaConfianca.Media);
+        cfg.Name.Should().Be("B-v3");
+        r.PositiveEvidence.Should().BeApproximately(6, Tolerance);
+        r.Score.Should().BeApproximately(66.667, ScoreTolerance);
+        r.Band.Should().Be(TrustBand.Medium);
     }
 
     [Fact]
-    public void Caso13_sem_votos()
+    public void Case13_no_votes()
     {
-        var r = MotorConfianca.CalcularConfianca([], T0, B);
+        var r = TrustEngine.CalculateTrust([], T0, B);
 
-        r.Indice.Should().Be(0);
-        r.Faixa.Should().Be(FaixaConfianca.Baixa);
+        r.Score.Should().Be(0);
+        r.Band.Should().Be(TrustBand.Low);
     }
 
     [Fact]
-    public void Caso14_nova_com_4_votantes_e_71h_continua_nova()
+    public void Case14_new_with_4_voters_and_71h_stays_new()
     {
-        var votos = Repetir(4, () => Sim());
+        var votes = Repeat(4, () => Yes());
 
-        var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, T0.AddHours(71), B);
+        var e = TrustEngine.EvaluateLifecycle(State(IssueStatus.New), votes, T0.AddHours(71), B);
 
-        e.Status.Should().Be(StatusProblema.Nova);
+        e.Status.Should().Be(IssueStatus.New);
     }
 
     [Fact]
-    public void Caso15_nova_com_5_votantes_distintos_vira_ativa()
+    public void Case15_new_with_5_distinct_voters_becomes_active()
     {
-        var votos = Repetir(5, () => Sim());
-        var agora = T0.AddHours(1);
+        var votes = Repeat(5, () => Yes());
+        var now = T0.AddHours(1);
 
-        var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, agora, B);
+        var e = TrustEngine.EvaluateLifecycle(State(IssueStatus.New), votes, now, B);
 
-        e.Status.Should().Be(StatusProblema.Ativa);
-        e.StatusAlteradoEm.Should().Be(agora);
+        e.Status.Should().Be(IssueStatus.Active);
+        e.StatusChangedAt.Should().Be(now);
     }
 
     [Fact]
-    public void Caso16_nova_com_1_votante_e_72h_vira_ativa()
+    public void Case16_new_with_1_voter_and_72h_becomes_active()
     {
-        var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), [Sim()], T0.AddHours(72), B);
+        var e = TrustEngine.EvaluateLifecycle(State(IssueStatus.New), [Yes()], T0.AddHours(72), B);
 
-        e.Status.Should().Be(StatusProblema.Ativa);
+        e.Status.Should().Be(IssueStatus.Active);
     }
 
-    private static List<VotoFato> VotosCaso17() => [.. Repetir(3, () => Nao()), Sim()];
+    private static List<VoteFact> VotesCase17() => [.. Repeat(3, () => No()), Yes()];
 
-    private static EstadoProblema EstadoAposCaso17() =>
-        MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), VotosCaso17(), T0, B);
-
-    [Fact]
-    public void Caso17_ativa_com_maioria_nao_vira_possivelmente_resolvida()
-    {
-        var e = EstadoAposCaso17();
-
-        e.Status.Should().Be(StatusProblema.PossivelmenteResolvida);
-        e.CondicaoResolucaoDesde.Should().Be(T0);
-        e.StatusAlteradoEm.Should().Be(T0);
-    }
+    private static IssueState StateAfterCase17() =>
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.Active), VotesCase17(), T0, B);
 
     [Fact]
-    public void Caso18_apos_47h_sem_votos_continua_possivelmente_resolvida()
+    public void Case17_active_with_majority_no_becomes_possibly_resolved()
     {
-        var e = MotorConfianca.AvaliarCicloDeVida(EstadoAposCaso17(), VotosCaso17(), T0.AddHours(47), B);
+        var e = StateAfterCase17();
 
-        e.Status.Should().Be(StatusProblema.PossivelmenteResolvida);
-        e.CondicaoResolucaoDesde.Should().Be(T0);
+        e.Status.Should().Be(IssueStatus.PossiblyResolved);
+        e.ResolutionConditionSince.Should().Be(T0);
+        e.StatusChangedAt.Should().Be(T0);
     }
 
     [Fact]
-    public void Caso19_apos_48h_sem_votos_vira_resolvida()
+    public void Case18_after_47h_without_votes_stays_possibly_resolved()
     {
-        var agora = T0.AddHours(48);
+        var e = TrustEngine.EvaluateLifecycle(StateAfterCase17(), VotesCase17(), T0.AddHours(47), B);
 
-        var e = MotorConfianca.AvaliarCicloDeVida(EstadoAposCaso17(), VotosCaso17(), agora, B);
-
-        e.Status.Should().Be(StatusProblema.Resolvida);
-        e.StatusAlteradoEm.Should().Be(agora);
+        e.Status.Should().Be(IssueStatus.PossiblyResolved);
+        e.ResolutionConditionSince.Should().Be(T0);
     }
 
     [Fact]
-    public void Caso20_tres_sim_derrubam_a_proporcao_e_volta_para_ativa()
+    public void Case19_after_48h_without_votes_becomes_resolved()
     {
-        var agora = T0.AddHours(1);
-        List<VotoFato> votos = [.. VotosCaso17(), .. Repetir(3, () => Sim(em: agora))];
+        var now = T0.AddHours(48);
 
-        var e = MotorConfianca.AvaliarCicloDeVida(EstadoAposCaso17(), votos, agora, B);
+        var e = TrustEngine.EvaluateLifecycle(StateAfterCase17(), VotesCase17(), now, B);
 
-        e.Status.Should().Be(StatusProblema.Ativa);
-        e.CondicaoResolucaoDesde.Should().BeNull();
-        e.StatusAlteradoEm.Should().Be(agora);
+        e.Status.Should().Be(IssueStatus.Resolved);
+        e.StatusChangedAt.Should().Be(now);
     }
 
     [Fact]
-    public void Caso21_unicidade_de_voto_e_garantida_pela_api_nao_pelo_domain()
+    public void Case20_three_yes_drop_the_ratio_and_return_to_active()
     {
-        var usuario = Guid.NewGuid();
-        List<VotoFato> duplicados = [Sim(usuario: usuario), Sim(usuario: usuario)];
+        var now = T0.AddHours(1);
+        List<VoteFact> votes = [.. VotesCase17(), .. Repeat(3, () => Yes(at: now))];
 
-        var r = MotorConfianca.CalcularConfianca(duplicados, T0, B);
-        r.EPositivo.Should().BeApproximately(4, Tolerancia);
+        var e = TrustEngine.EvaluateLifecycle(StateAfterCase17(), votes, now, B);
 
-        List<VotoFato> cincoDoMesmo = Repetir(5, () => Sim(usuario: usuario));
-        MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), cincoDoMesmo, T0, B)
-            .Status.Should().Be(StatusProblema.Nova, "votantes conta UsuarioId distintos");
+        e.Status.Should().Be(IssueStatus.Active);
+        e.ResolutionConditionSince.Should().BeNull();
+        e.StatusChangedAt.Should().Be(now);
     }
 
     [Fact]
-    public void Caso22_nova_so_com_nao_sai_do_mapa_em_48h()
+    public void Case21_vote_uniqueness_is_guaranteed_by_the_api_not_the_engine()
     {
-        var votos = Repetir(5, () => Nao());
+        var user = Guid.NewGuid();
+        List<VoteFact> duplicates = [Yes(user: user), Yes(user: user)];
 
-        MotorConfianca.CalcularConfianca(votos, T0, B).Faixa.Should().Be(FaixaConfianca.Baixa);
+        var r = TrustEngine.CalculateTrust(duplicates, T0, B);
+        r.PositiveEvidence.Should().BeApproximately(4, Tolerance);
 
-        var ativa = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, T0, B);
-        ativa.Status.Should().Be(StatusProblema.Ativa);
+        List<VoteFact> fiveFromSameUser = Repeat(5, () => Yes(user: user));
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.New), fiveFromSameUser, T0, B)
+            .Status.Should().Be(IssueStatus.New, "votantes conta UsuarioId distintos");
+    }
 
-        var possivelmente = MotorConfianca.AvaliarCicloDeVida(ativa, votos, T0.AddMinutes(15), B);
-        possivelmente.Status.Should().Be(StatusProblema.PossivelmenteResolvida);
+    [Fact]
+    public void Case22_new_with_only_no_leaves_the_map_in_48h()
+    {
+        var votes = Repeat(5, () => No());
 
-        MotorConfianca.AvaliarCicloDeVida(possivelmente, votos, T0.AddMinutes(15).AddHours(48), B)
-            .Status.Should().Be(StatusProblema.Resolvida);
+        TrustEngine.CalculateTrust(votes, T0, B).Band.Should().Be(TrustBand.Low);
+
+        var active = TrustEngine.EvaluateLifecycle(State(IssueStatus.New), votes, T0, B);
+        active.Status.Should().Be(IssueStatus.Active);
+
+        var possibly = TrustEngine.EvaluateLifecycle(active, votes, T0.AddMinutes(15), B);
+        possibly.Status.Should().Be(IssueStatus.PossiblyResolved);
+
+        TrustEngine.EvaluateLifecycle(possibly, votes, T0.AddMinutes(15).AddHours(48), B)
+            .Status.Should().Be(IssueStatus.Resolved);
     }
 }

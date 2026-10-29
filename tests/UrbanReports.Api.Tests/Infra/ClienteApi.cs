@@ -6,38 +6,38 @@ using UrbanReports.Api.Auth;
 
 namespace UrbanReports.Api.Tests.Infra;
 
-public static class ClienteApi
+public static class ApiClient
 {
-    public static readonly JsonSerializerOptions Json = CriarJson();
+    public static readonly JsonSerializerOptions Json = CreateJson();
 
-    private static JsonSerializerOptions CriarJson()
+    private static JsonSerializerOptions CreateJson()
     {
-        var opcoes = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        JsonConfig.Configurar(opcoes);
-        return opcoes;
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        JsonConfig.Configure(options);
+        return options;
     }
 
-    public static string EmailUnico() => $"u{Guid.NewGuid():N}@teste.local";
+    public static string UniqueEmail() => $"u{Guid.NewGuid():N}@teste.local";
 
-    public static Task<HttpResponseMessage> PostarCadastroAsync(this HttpClient cliente, string email, string senha = "senha-forte", string nome = "Pessoa Teste") =>
-        cliente.PostAsJsonAsync("/api/v1/auth/cadastro", new { nome, email, senha, aceitouTermos = true }, Json);
+    public static Task<HttpResponseMessage> PostRegisterAsync(this HttpClient client, string email, string password = "senha-forte", string name = "Pessoa Teste") =>
+        client.PostAsJsonAsync("/api/v1/auth/register", new { name, email, password, acceptedTerms = true }, Json);
 
-    public static async Task<RespostaAuth> CadastrarAsync(this HttpClient cliente, string? email = null)
+    public static async Task<AuthResponse> RegisterAsync(this HttpClient client, string? email = null)
     {
-        var resposta = await cliente.PostarCadastroAsync(email ?? EmailUnico());
-        resposta.EnsureSuccessStatusCode();
-        return (await resposta.Content.ReadFromJsonAsync<RespostaAuth>(Json))!;
+        var response = await client.PostRegisterAsync(email ?? UniqueEmail());
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<AuthResponse>(Json))!;
     }
 
-    public static HttpClient Autenticado(this HttpClient cliente, string token)
+    public static HttpClient Authenticated(this HttpClient client, string token)
     {
-        cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return cliente;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return client;
     }
 
-    public static async Task<T> LerAsync<T>(this HttpResponseMessage resposta) =>
-        (await resposta.Content.ReadFromJsonAsync<T>(Json))!;
+    public static async Task<T> ReadAsync<T>(this HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<T>(Json))!;
 
-    public static async Task<JsonElement> LerJsonAsync(this HttpResponseMessage resposta) =>
-        await resposta.Content.ReadFromJsonAsync<JsonElement>(Json);
+    public static async Task<JsonElement> ReadJsonAsync(this HttpResponseMessage response) =>
+        await response.Content.ReadFromJsonAsync<JsonElement>(Json);
 }

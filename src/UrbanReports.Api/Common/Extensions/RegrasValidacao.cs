@@ -5,47 +5,47 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Common;
 
-public static class RegrasValidacao
+public static class ValidationRules
 {
-    private static readonly HashSet<string> NomesStatus = new(Enum.GetNames<StatusProblema>(), StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> StatusNames = new(Enum.GetNames<IssueStatus>(), StringComparer.OrdinalIgnoreCase);
 
-    public static IRuleBuilderOptions<T, double> Latitude<T>(this IRuleBuilder<T, double> regra) =>
-        regra.InclusiveBetween(-90, 90);
+    public static IRuleBuilderOptions<T, double> Latitude<T>(this IRuleBuilder<T, double> rule) =>
+        rule.InclusiveBetween(-90, 90);
 
-    public static IRuleBuilderOptions<T, double> Longitude<T>(this IRuleBuilder<T, double> regra) =>
-        regra.InclusiveBetween(-180, 180);
+    public static IRuleBuilderOptions<T, double> Longitude<T>(this IRuleBuilder<T, double> rule) =>
+        rule.InclusiveBetween(-180, 180);
 
-    public static IRuleBuilderOptions<T, double?> Latitude<T>(this IRuleBuilder<T, double?> regra) =>
-        regra.InclusiveBetween(-90, 90);
+    public static IRuleBuilderOptions<T, double?> Latitude<T>(this IRuleBuilder<T, double?> rule) =>
+        rule.InclusiveBetween(-90, 90);
 
-    public static IRuleBuilderOptions<T, double?> Longitude<T>(this IRuleBuilder<T, double?> regra) =>
-        regra.InclusiveBetween(-180, 180);
+    public static IRuleBuilderOptions<T, double?> Longitude<T>(this IRuleBuilder<T, double?> rule) =>
+        rule.InclusiveBetween(-180, 180);
 
-    public static IRuleBuilderOptionsConditions<T, string?> ListaDeGrupos<T>(this IRuleBuilder<T, string?> regra, AppDbContext db) =>
-        regra.CustomAsync(async (valor, contexto, ct) =>
+    public static IRuleBuilderOptionsConditions<T, string?> GroupList<T>(this IRuleBuilder<T, string?> rule, AppDbContext db) =>
+        rule.CustomAsync(async (value, context, ct) =>
         {
-            var pedidos = Listas.Separar(valor);
-            if (pedidos.Length == 0)
+            var requests = Lists.Split(value);
+            if (requests.Length == 0)
             {
                 return;
             }
 
-            var conhecidos = await db.Grupos.OrderBy(g => g.Ordem).Select(g => g.Chave).ToListAsync(ct);
-            if (!pedidos.All(conhecidos.Contains))
+            var known = await db.Groups.OrderBy(g => g.SortOrder).Select(g => g.Key).ToListAsync(ct);
+            if (!requests.All(known.Contains))
             {
-                contexto.AddFailure("Grupo desconhecido. Valores aceitos: " + string.Join(", ", conhecidos) + ".");
+                context.AddFailure("Grupo desconhecido. Valores aceitos: " + string.Join(", ", known) + ".");
             }
         });
 
-    public static IRuleBuilderOptions<T, string?> ListaDeStatus<T>(this IRuleBuilder<T, string?> regra) =>
-        regra.Must(s => Listas.Separar(s).All(v => NomesStatus.Contains(v)))
+    public static IRuleBuilderOptions<T, string?> StatusList<T>(this IRuleBuilder<T, string?> rule) =>
+        rule.Must(s => Lists.Split(s).All(v => StatusNames.Contains(v)))
             .WithMessage("Status desconhecido. Valores aceitos: nova, ativa, possivelmenteResolvida, resolvida.");
 }
 
-public static class Listas
+public static class Lists
 {
-    public static string[] Separar(string? valores) =>
-        string.IsNullOrWhiteSpace(valores)
+    public static string[] Split(string? values) =>
+        string.IsNullOrWhiteSpace(values)
             ? []
-            : valores.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            : values.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

@@ -1,133 +1,133 @@
 using UrbanReports.Api.Common;
-using UrbanReports.Api.Confianca.Motor;
-using static UrbanReports.Api.Tests.Confianca.Motor.Cenario;
+using UrbanReports.Api.Trust.Engine;
+using static UrbanReports.Api.Tests.Trust.Engine.Scenario;
 
-namespace UrbanReports.Api.Tests.Confianca.Motor;
+namespace UrbanReports.Api.Tests.Trust.Engine;
 
-public sealed class RegrasComplementaresTests
+public sealed class ComplementaryRulesTests
 {
-    private static readonly ConfiguracaoConfianca B = ConfiguracaoConfianca.B;
+    private static readonly TrustConfiguration B = TrustConfiguration.B;
 
     [Theory]
-    [InlineData(Perfil.Cidadao, 1)]
-    [InlineData(Perfil.CidadaoVerificado, 10)]
-    [InlineData(Perfil.Administrador, 1)]
-    public void Peso_de_perfil_na_config_B(Perfil perfil, double esperado) =>
-        MotorConfianca.PesoPerfil(perfil, B).Should().Be(esperado);
+    [InlineData(Role.Citizen, 1)]
+    [InlineData(Role.VerifiedCitizen, 10)]
+    [InlineData(Role.Administrator, 1)]
+    public void Role_weight_in_config_B(Role role, double expected) =>
+        TrustEngine.RoleWeight(role, B).Should().Be(expected);
 
     [Fact]
-    public void Config_A_iguala_verificado_ao_cidadao() =>
-        MotorConfianca.PesoPerfil(Perfil.CidadaoVerificado, ConfiguracaoConfianca.A).Should().Be(1);
+    public void Config_A_weighs_verified_as_citizen() =>
+        TrustEngine.RoleWeight(Role.VerifiedCitizen, TrustConfiguration.A).Should().Be(1);
 
     [Theory]
     [InlineData(0, 2)]
     [InlineData(200, 2)]
     [InlineData(2000, 1)]
     [InlineData(2000.001, 1)]
-    public void Proximidade_nos_limites_das_faixas(double distancia, double esperado) =>
-        MotorConfianca.PesoProximidade(distancia, B).Should().BeApproximately(esperado, 1e-6);
+    public void Proximity_at_band_limits(double distance, double expected) =>
+        TrustEngine.ProximityWeight(distance, B).Should().BeApproximately(expected, 1e-6);
 
     [Fact]
-    public void Proximidade_nunca_fica_abaixo_de_1()
+    public void Proximity_never_goes_below_1()
     {
         for (var d = 0.0; d <= 10_000; d += 7.3)
         {
-            MotorConfianca.PesoProximidade(d, B).Should().BeGreaterThanOrEqualTo(1);
+            TrustEngine.ProximityWeight(d, B).Should().BeGreaterThanOrEqualTo(1);
         }
     }
 
     [Fact]
-    public void Voto_registrado_no_futuro_nao_ganha_peso_extra() =>
-        MotorConfianca.FatorTemporal(TimeSpan.FromHours(-5), B.MeiaVidaConfianca, B).Should().Be(1);
+    public void Vote_registered_in_the_future_gains_no_extra_weight() =>
+        TrustEngine.TimeFactor(TimeSpan.FromHours(-5), B.TrustHalfLife, B).Should().Be(1);
 
     [Fact]
-    public void Config_A_nao_decai() =>
-        MotorConfianca.FatorTemporal(TimeSpan.FromDays(365), ConfiguracaoConfianca.A.MeiaVidaCicloDeVida, ConfiguracaoConfianca.A).Should().Be(1);
+    public void Config_A_does_not_decay() =>
+        TrustEngine.TimeFactor(TimeSpan.FromDays(365), TrustConfiguration.A.LifecycleHalfLife, TrustConfiguration.A).Should().Be(1);
 
     [Fact]
-    public void Peso_do_voto_multiplica_perfil_proximidade_e_tempo()
+    public void Vote_weight_multiplies_role_proximity_and_time()
     {
-        var voto = Sim(Perfil.CidadaoVerificado, distancia: 1100, em: T0);
+        var vote = Yes(Role.VerifiedCitizen, distance: 1100, at: T0);
 
-        MotorConfianca.PesoVoto(voto, T0.AddDays(14), B.MeiaVidaConfianca, B).Should().BeApproximately(10 * 1.5 * 0.5, 1e-9);
+        TrustEngine.VoteWeight(vote, T0.AddDays(14), B.TrustHalfLife, B).Should().BeApproximately(10 * 1.5 * 0.5, 1e-9);
     }
 
     [Theory]
-    [InlineData(39.999, FaixaConfianca.Baixa)]
-    [InlineData(40, FaixaConfianca.Media)]
-    [InlineData(69.999, FaixaConfianca.Media)]
-    [InlineData(70, FaixaConfianca.Alta)]
-    public void Faixas_pelos_limiares(double indice, FaixaConfianca esperada) =>
-        MotorConfianca.ClassificarFaixa(indice, B).Should().Be(esperada);
+    [InlineData(39.999, TrustBand.Low)]
+    [InlineData(40, TrustBand.Medium)]
+    [InlineData(69.999, TrustBand.Medium)]
+    [InlineData(70, TrustBand.High)]
+    public void Bands_by_thresholds(double score, TrustBand expected) =>
+        TrustEngine.ClassifyBand(score, B).Should().Be(expected);
 
     [Fact]
-    public void Nova_nao_pula_direto_para_possivelmente_resolvida()
+    public void New_does_not_jump_straight_to_possibly_resolved()
     {
-        List<VotoFato> votos = [.. Repetir(5, () => Sim()), .. Repetir(10, () => Nao())];
+        List<VoteFact> votes = [.. Repeat(5, () => Yes()), .. Repeat(10, () => No())];
 
-        var e = MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, T0, B);
+        var e = TrustEngine.EvaluateLifecycle(State(IssueStatus.New), votes, T0, B);
 
-        e.Status.Should().Be(StatusProblema.Ativa);
-        e.CondicaoResolucaoDesde.Should().BeNull();
+        e.Status.Should().Be(IssueStatus.Active);
+        e.ResolutionConditionSince.Should().BeNull();
     }
 
     [Fact]
-    public void Votos_nao_tambem_contam_como_votantes()
+    public void No_votes_also_count_as_voters()
     {
-        List<VotoFato> votos = [.. Repetir(3, () => Sim()), .. Repetir(2, () => Nao())];
+        List<VoteFact> votes = [.. Repeat(3, () => Yes()), .. Repeat(2, () => No())];
 
-        MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Nova), votos, T0, B)
-            .Status.Should().Be(StatusProblema.Ativa);
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.New), votes, T0, B)
+            .Status.Should().Be(IssueStatus.Active);
     }
 
     [Fact]
-    public void Mesmo_voto_envelhece_devagar_no_indice_e_rapido_no_ciclo_de_vida()
+    public void Same_vote_ages_slowly_in_score_and_fast_in_lifecycle()
     {
-        var voto = Sim(em: T0);
-        var agora = T0.AddDays(3);
+        var vote = Yes(at: T0);
+        var now = T0.AddDays(3);
 
-        MotorConfianca.CalcularConfianca([voto], agora, B).EPositivo
+        TrustEngine.CalculateTrust([vote], now, B).PositiveEvidence
             .Should().BeApproximately(2 * Math.Pow(2, -3.0 / 14), 1e-9);
-        MotorConfianca.PesoVoto(voto, agora, B.MeiaVidaCicloDeVida, B).Should().BeApproximately(1, 1e-9);
+        TrustEngine.VoteWeight(vote, now, B.LifecycleHalfLife, B).Should().BeApproximately(1, 1e-9);
     }
 
     [Fact]
-    public void Ativa_exige_peso_minimo_de_resolvido_para_entrar()
+    public void Active_requires_min_resolved_weight_to_move_on()
     {
-        var votos = Repetir(2, () => Nao());
+        var votes = Repeat(2, () => No());
 
-        MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), votos, T0, B)
-            .Status.Should().Be(StatusProblema.Ativa);
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.Active), votes, T0, B)
+            .Status.Should().Be(IssueStatus.Active);
     }
 
     [Fact]
-    public void Ativa_so_com_sim_continua_ativa() =>
-        MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), [Sim()], T0.AddDays(30), B)
-            .Status.Should().Be(StatusProblema.Ativa);
+    public void Active_with_only_yes_stays_active() =>
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.Active), [Yes()], T0.AddDays(30), B)
+            .Status.Should().Be(IssueStatus.Active);
 
     [Fact]
-    public void Proporcao_exatamente_no_limiar_entra_em_possivelmente_resolvida()
+    public void Ratio_exactly_at_threshold_becomes_possibly_resolved()
     {
-        List<VotoFato> votos = [.. Repetir(3, () => Nao()), .. Repetir(2, () => Sim())];
+        List<VoteFact> votes = [.. Repeat(3, () => No()), .. Repeat(2, () => Yes())];
 
-        MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), votos, T0, B)
-            .Status.Should().Be(StatusProblema.PossivelmenteResolvida);
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.Active), votes, T0, B)
+            .Status.Should().Be(IssueStatus.PossiblyResolved);
     }
 
     [Fact]
-    public void Resolvida_e_estado_final()
+    public void Resolved_is_final()
     {
-        var estado = Estado(StatusProblema.Resolvida);
-        var votos = Repetir(10, () => Sim());
+        var state = State(IssueStatus.Resolved);
+        var votes = Repeat(10, () => Yes());
 
-        MotorConfianca.AvaliarCicloDeVida(estado, votos, T0.AddDays(10), B).Should().Be(estado);
+        TrustEngine.EvaluateLifecycle(state, votes, T0.AddDays(10), B).Should().Be(state);
     }
 
     [Fact]
-    public void Sem_transicao_o_estado_volta_inalterado()
+    public void No_transition_returns_state_unchanged()
     {
-        var estado = Estado(StatusProblema.Ativa, statusAlteradoEm: T0);
+        var state = State(IssueStatus.Active, statusChangedAt: T0);
 
-        MotorConfianca.AvaliarCicloDeVida(estado, [Sim()], T0.AddHours(1), B).Should().Be(estado);
+        TrustEngine.EvaluateLifecycle(state, [Yes()], T0.AddHours(1), B).Should().Be(state);
     }
 }

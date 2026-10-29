@@ -2,23 +2,23 @@ using System.Globalization;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 
-namespace UrbanReports.Api.Geocodificacao;
+namespace UrbanReports.Api.Geocoding;
 
 public interface INominatimClient
 {
-    Task<NominatimResposta?> ReversaAsync(double lat, double lng, CancellationToken ct);
+    Task<NominatimResponse?> ReverseAsync(double lat, double lng, CancellationToken ct);
 }
 
-public sealed class NominatimClient(IHttpClientFactory fabrica, IOptions<NominatimOptions> opcoes, TimeProvider relogio)
+public sealed class NominatimClient(IHttpClientFactory factory, IOptions<NominatimOptions> options, TimeProvider clock)
     : INominatimClient
 {
-    public const string NomeHttpClient = "Nominatim";
+    public const string HttpClientName = "Nominatim";
 
-    private readonly string? _email = opcoes.Value.Email;
-    private readonly LimitadorDeTaxa _limitador = new(relogio, opcoes.Value.IntervaloMinimo, opcoes.Value.EsperaMaximaNaFila);
+    private readonly string? _email = options.Value.Email;
+    private readonly RequestThrottle _limiter = new(clock, options.Value.MinInterval, options.Value.MaxQueueWait);
 
-    public Task<NominatimResposta?> ReversaAsync(double lat, double lng, CancellationToken ct) =>
-        _limitador.ExecutarAsync(async token =>
+    public Task<NominatimResponse?> ReverseAsync(double lat, double lng, CancellationToken ct) =>
+        _limiter.RunAsync(async token =>
         {
             var url = string.Create(CultureInfo.InvariantCulture,
                 $"reverse?format=jsonv2&lat={lat:0.#######}&lon={lng:0.#######}&zoom=18&addressdetails=1");
@@ -27,9 +27,9 @@ public sealed class NominatimClient(IHttpClientFactory fabrica, IOptions<Nominat
                 url += "&email=" + Uri.EscapeDataString(_email);
             }
 
-            var http = fabrica.CreateClient(NomeHttpClient);
-            using var resposta = await http.GetAsync(url, token);
-            resposta.EnsureSuccessStatusCode();
-            return await resposta.Content.ReadFromJsonAsync<NominatimResposta>(token);
+            var http = factory.CreateClient(HttpClientName);
+            using var response = await http.GetAsync(url, token);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<NominatimResponse>(token);
         }, ct);
 }

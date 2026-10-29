@@ -1,122 +1,122 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using UrbanReports.Api.Persistence;
-using UrbanReports.Api.Problemas;
-using UrbanReports.Api.Confianca;
+using UrbanReports.Api.Issues;
+using UrbanReports.Api.Trust;
 using UrbanReports.Api.Tests.Infra;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Tests.Confianca;
+namespace UrbanReports.Api.Tests.Trust;
 
-[Collection(ApiCollection.Nome)]
-public sealed class CicloDeVidaTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class LifecycleTests(ApiFactory factory)
 {
-    private async Task ProcessarAsync()
+    private async Task ProcessAsync()
     {
-        await using var escopo = fabrica.Services.CreateAsyncScope();
-        await escopo.ServiceProvider.GetRequiredService<ProcessadorCicloDeVida>().ProcessarAsync(CancellationToken.None);
+        await using var scope = factory.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<LifecycleProcessor>().ProcessAsync(CancellationToken.None);
     }
 
-    private Task<ObterDetalheProblemaResponse> DetalheAsync(Guid id) =>
-        fabrica.CreateClient().GetAsync($"/api/v1/problemas/{id}").ContinueWith(t => t.Result.LerAsync<ObterDetalheProblemaResponse>()).Unwrap();
+    private Task<GetIssueDetailResponse> DetailAsync(Guid id) =>
+        factory.CreateClient().GetAsync($"/api/v1/issues/{id}").ContinueWith(t => t.Result.ReadAsync<GetIssueDetailResponse>()).Unwrap();
 
     [Fact]
-    public async Task Job_leva_possivelmente_resolvido_a_resolvido_apos_48h()
+    public async Task Job_moves_possibly_resolved_to_resolved_after_48h()
     {
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await factory.ActiveIssueAsync(lat, lng);
         for (var i = 0; i < 4; i++)
         {
-            var votante = await fabrica.NovaPessoaAsync();
-            await votante.VotarAsync(problema.Id, "nao", Cenarios.Norte(lat, 100), lng);
+            var voter = await factory.NewPersonAsync();
+            await voter.VoteAsync(issue.Id, "no", Scenarios.North(lat, 100), lng);
         }
 
-        (await DetalheAsync(problema.Id)).Status.Should().Be(StatusProblema.PossivelmenteResolvida);
+        (await DetailAsync(issue.Id)).Status.Should().Be(IssueStatus.PossiblyResolved);
 
-        fabrica.Relogio.Advance(TimeSpan.FromHours(47));
-        await ProcessarAsync();
-        (await DetalheAsync(problema.Id)).Status.Should().Be(StatusProblema.PossivelmenteResolvida);
+        factory.Clock.Advance(TimeSpan.FromHours(47));
+        await ProcessAsync();
+        (await DetailAsync(issue.Id)).Status.Should().Be(IssueStatus.PossiblyResolved);
 
-        fabrica.Relogio.Advance(TimeSpan.FromHours(1));
-        await ProcessarAsync();
-        var gravado = await fabrica.NoBancoAsync(db => db.Problemas.AsNoTracking().SingleAsync(p => p.Id == problema.Id));
-        gravado.Status.Should().Be(StatusProblema.Resolvida);
-        gravado.StatusAlteradoEm.Should().Be(fabrica.Relogio.GetUtcNow());
+        factory.Clock.Advance(TimeSpan.FromHours(1));
+        await ProcessAsync();
+        var written = await factory.InDatabaseAsync(db => db.Issues.AsNoTracking().SingleAsync(p => p.Id == issue.Id));
+        written.Status.Should().Be(IssueStatus.Resolved);
+        written.StatusChangedAt.Should().Be(factory.Clock.GetUtcNow());
     }
 
     [Fact]
-    public async Task Job_tira_de_nova_apos_72h_sem_votos()
+    public async Task Job_moves_out_of_new_after_72h_without_votes()
     {
-        var autor = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await autor.RegistrarProblemaAsync(lat, lng);
+        var author = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await author.CreateIssueAsync(lat, lng);
 
-        fabrica.Relogio.Advance(TimeSpan.FromHours(72));
-        await ProcessarAsync();
+        factory.Clock.Advance(TimeSpan.FromHours(72));
+        await ProcessAsync();
 
-        var detalhe = await DetalheAsync(problema.Id);
-        detalhe.Status.Should().Be(StatusProblema.Ativa);
-        detalhe.Confianca.Should().Be(0);
-        detalhe.Faixa.Should().Be(FaixaConfianca.Baixa);
+        var detail = await DetailAsync(issue.Id);
+        detail.Status.Should().Be(IssueStatus.Active);
+        detail.TrustScore.Should().Be(0);
+        detail.Band.Should().Be(TrustBand.Low);
     }
 
     [Fact]
-    public async Task Job_aplica_o_decaimento_temporal_sem_votos_novos()
+    public async Task Job_applies_time_decay_without_new_votes()
     {
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await factory.ActiveIssueAsync(lat, lng);
 
-        fabrica.Relogio.Advance(TimeSpan.FromDays(14));
-        await ProcessarAsync();
+        factory.Clock.Advance(TimeSpan.FromDays(14));
+        await ProcessAsync();
 
-        (await DetalheAsync(problema.Id)).Confianca.Should().Be(45.5);
+        (await DetailAsync(issue.Id)).TrustScore.Should().Be(45.5);
     }
 
     [Fact]
-    public async Task Job_nao_mexe_em_resolvido()
+    public async Task Job_leaves_resolved_alone()
     {
-        var autor = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await autor.RegistrarProblemaAsync(lat, lng);
-        await fabrica.NoBancoAsync(db => db.Problemas.Where(p => p.Id == problema.Id).ExecuteUpdateAsync(s => s
-            .SetProperty(p => p.Status, StatusProblema.Resolvida)
-            .SetProperty(p => p.Confianca, (decimal?)12.34m)));
-        var antes = await fabrica.NoBancoAsync(db => db.Problemas.AsNoTracking().SingleAsync(p => p.Id == problema.Id));
+        var author = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await author.CreateIssueAsync(lat, lng);
+        await factory.InDatabaseAsync(db => db.Issues.Where(p => p.Id == issue.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(p => p.Status, IssueStatus.Resolved)
+            .SetProperty(p => p.TrustScore, (decimal?)12.34m)));
+        var before = await factory.InDatabaseAsync(db => db.Issues.AsNoTracking().SingleAsync(p => p.Id == issue.Id));
 
-        fabrica.Relogio.Advance(TimeSpan.FromDays(30));
-        await ProcessarAsync();
+        factory.Clock.Advance(TimeSpan.FromDays(30));
+        await ProcessAsync();
 
-        var depois = await fabrica.NoBancoAsync(db => db.Problemas.AsNoTracking().SingleAsync(p => p.Id == problema.Id));
-        depois.Status.Should().Be(StatusProblema.Resolvida);
-        depois.Confianca.Should().Be(12.34m);
-        depois.StatusAlteradoEm.Should().Be(antes.StatusAlteradoEm);
+        var after = await factory.InDatabaseAsync(db => db.Issues.AsNoTracking().SingleAsync(p => p.Id == issue.Id));
+        after.Status.Should().Be(IssueStatus.Resolved);
+        after.TrustScore.Should().Be(12.34m);
+        after.StatusChangedAt.Should().Be(before.StatusChangedAt);
     }
 
     [Fact]
-    public async Task Job_conta_a_transicao_e_na_execucao_seguinte_nao_acha_mais_nada()
+    public async Task Job_counts_the_transition_and_finds_nothing_on_the_next_run()
     {
-        await RemoverProblemasAsync();
+        await RemoveIssuesAsync();
 
-        var autor = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await autor.RegistrarProblemaAsync(lat, lng);
-        fabrica.Relogio.Advance(TimeSpan.FromHours(72));
+        var author = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await author.CreateIssueAsync(lat, lng);
+        factory.Clock.Advance(TimeSpan.FromHours(72));
 
-        (await ProcessarContandoAsync()).Should().Be(1);
-        (await DetalheAsync(problema.Id)).Status.Should().Be(StatusProblema.Ativa);
+        (await ProcessCountingAsync()).Should().Be(1);
+        (await DetailAsync(issue.Id)).Status.Should().Be(IssueStatus.Active);
 
-        (await ProcessarContandoAsync()).Should().Be(0);
+        (await ProcessCountingAsync()).Should().Be(0);
     }
 
-    private async Task RemoverProblemasAsync()
+    private async Task RemoveIssuesAsync()
     {
-        await using var escopo = fabrica.Services.CreateAsyncScope();
-        await escopo.ServiceProvider.GetRequiredService<AppDbContext>().Problemas.ExecuteDeleteAsync();
+        await using var scope = factory.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Issues.ExecuteDeleteAsync();
     }
 
-    private async Task<int> ProcessarContandoAsync()
+    private async Task<int> ProcessCountingAsync()
     {
-        await using var escopo = fabrica.Services.CreateAsyncScope();
-        return await escopo.ServiceProvider.GetRequiredService<ProcessadorCicloDeVida>().ProcessarAsync(CancellationToken.None);
+        await using var scope = factory.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<LifecycleProcessor>().ProcessAsync(CancellationToken.None);
     }
 }

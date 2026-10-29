@@ -3,55 +3,55 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Tests.Common;
 
-public sealed class ErroAplicacaoTests
+public sealed class ApplicationErrorTests
 {
     [Fact]
-    public void Regra_vira_problem_details_com_status_type_e_title()
+    public void Rule_becomes_problem_details_with_status_type_and_title()
     {
-        var resultado = ErroAplicacao.Regra(StatusCodes.Status422UnprocessableEntity, "problema-resolvido", "O problema já foi resolvido.").ParaProblema();
+        var result = ApplicationError.Rule(StatusCodes.Status422UnprocessableEntity, "issue-resolved", "O problema já foi resolvido.").ToProblem();
 
-        resultado.StatusCode.Should().Be(422);
-        resultado.ProblemDetails.Status.Should().Be(422);
-        resultado.ProblemDetails.Type.Should().Be("problema-resolvido");
-        resultado.ProblemDetails.Title.Should().Be("O problema já foi resolvido.");
+        result.StatusCode.Should().Be(422);
+        result.ProblemDetails.Status.Should().Be(422);
+        result.ProblemDetails.Type.Should().Be("issue-resolved");
+        result.ProblemDetails.Title.Should().Be("O problema já foi resolvido.");
     }
 
     [Fact]
-    public void Regra_sem_type_equivale_ao_problem_de_hoje()
+    public void Rule_without_type_equals_todays_problem()
     {
-        var novo = ErroAplicacao.Regra(StatusCodes.Status401Unauthorized, null, "E-mail ou senha inválidos.").ParaProblema();
-        var antigo = TypedResults.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "E-mail ou senha inválidos.");
+        var newLabel = ApplicationError.Rule(StatusCodes.Status401Unauthorized, null, "E-mail ou senha inválidos.").ToProblem();
+        var old = TypedResults.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "E-mail ou senha inválidos.");
 
-        novo.StatusCode.Should().Be(antigo.StatusCode);
-        novo.ProblemDetails.Should().BeEquivalentTo(antigo.ProblemDetails);
+        newLabel.StatusCode.Should().Be(old.StatusCode);
+        newLabel.ProblemDetails.Should().BeEquivalentTo(old.ProblemDetails);
     }
 
     [Fact]
-    public void Campo_vira_validation_problem_com_o_campo_em_errors()
+    public void Field_becomes_validation_problem_with_the_field_in_errors()
     {
-        var resultado = ErroAplicacao.DeCampo("categoriaId", "Categoria inexistente.").ParaValidacao();
+        var result = ApplicationError.FromField("categoryId", "Categoria inexistente.").ToValidation();
 
-        resultado.StatusCode.Should().Be(400);
-        resultado.ProblemDetails.Errors.Should().ContainKey("categoriaId").WhoseValue.Should().Equal("Categoria inexistente.");
+        result.StatusCode.Should().Be(400);
+        result.ProblemDetails.Errors.Should().ContainKey("categoryId").WhoseValue.Should().Equal("Categoria inexistente.");
     }
 
     [Fact]
-    public void Nao_encontrado_e_nao_autorizado_viram_status_sem_corpo()
+    public void Not_found_and_unauthorized_become_status_without_body()
     {
-        ErroAplicacao.NaoEncontrado.ParaNaoEncontrado().StatusCode.Should().Be(404);
-        ErroAplicacao.NaoAutorizado.ParaNaoAutorizado().StatusCode.Should().Be(401);
+        ApplicationError.NotFound.ToNotFound().StatusCode.Should().Be(404);
+        ApplicationError.Unauthorized.ToUnauthorized().StatusCode.Should().Be(401);
     }
 
     [Fact]
-    public void Resultado_converte_de_valor_e_de_erro()
+    public void Result_converts_from_value_and_from_error()
     {
-        Resultado<int> sucesso = 7;
-        Resultado<int> falha = ErroAplicacao.NaoEncontrado;
+        Result<int> success = 7;
+        Result<int> failure = ApplicationError.NotFound;
 
-        sucesso.Sucesso.Should().BeTrue();
-        sucesso.Valor.Should().Be(7);
-        sucesso.Erro.Should().BeNull();
-        falha.Sucesso.Should().BeFalse();
-        falha.Erro.Should().Be(ErroAplicacao.NaoEncontrado);
+        success.Success.Should().BeTrue();
+        success.Value.Should().Be(7);
+        success.Error.Should().BeNull();
+        failure.Success.Should().BeFalse();
+        failure.Error.Should().Be(ApplicationError.NotFound);
     }
 }

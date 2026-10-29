@@ -4,14 +4,14 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-public static class SeedDesenvolvimento
+public static class DevelopmentSeed
 {
-    public const string Senha = "tcc12345";
+    public const string Password = "tcc12345";
 
-    public static async Task InicializarBancoDesenvolvimentoAsync(this WebApplication app)
+    public static async Task InitializeDevelopmentDatabaseAsync(this WebApplication app)
     {
-        await using var escopo = app.Services.CreateAsyncScope();
-        var db = escopo.ServiceProvider.GetRequiredService<AppDbContext>();
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
 
         if (await db.Users.AnyAsync())
@@ -19,49 +19,49 @@ public static class SeedDesenvolvimento
             return;
         }
 
-        var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
-        var agora = escopo.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var now = scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
 
-        var admin = await Criar(usuarios, "admin@tcc.local", "Administrador TCC", Perfil.Administrador, agora);
-        var verificado = await Criar(usuarios, "verificado@tcc.local", "Carlos Menezes", Perfil.CidadaoVerificado, agora, verificadoEm: agora);
-        await Criar(usuarios, "cidadao1@tcc.local", "Mariana Souza", Perfil.Cidadao, agora);
-        await Criar(usuarios, "cidadao2@tcc.local", "João Pereira", Perfil.Cidadao, agora);
-        await Criar(usuarios, "cidadao3@tcc.local", "Ana Lima", Perfil.Cidadao, agora);
+        var admin = await Create(users, "admin@tcc.local", "Administrador TCC", Role.Administrator, now);
+        var verified = await Create(users, "verificado@tcc.local", "Carlos Menezes", Role.VerifiedCitizen, now, verifiedAt: now);
+        await Create(users, "cidadao1@tcc.local", "Mariana Souza", Role.Citizen, now);
+        await Create(users, "cidadao2@tcc.local", "João Pereira", Role.Citizen, now);
+        await Create(users, "cidadao3@tcc.local", "Ana Lima", Role.Citizen, now);
 
-        db.SolicitacoesVerificacao.Add(new SolicitacaoVerificacao
+        db.VerificationRequests.Add(new VerificationRequest
         {
             Id = Guid.CreateVersion7(),
-            UsuarioId = verificado.Id,
-            TipoVinculo = TipoVinculo.MoradorRegiao,
-            Justificativa = "Moro em Botafogo há 10 anos e circulo diariamente pelo bairro.",
-            Status = StatusVerificacao.Aprovada,
-            AnalisadaPorId = admin.Id,
-            CriadaEm = agora,
-            AnalisadaEm = agora,
+            UserId = verified.Id,
+            AffiliationType = AffiliationType.LivesInArea,
+            Justification = "Moro em Botafogo há 10 anos e circulo diariamente pelo bairro.",
+            Status = VerificationStatus.Approved,
+            ReviewedById = admin.Id,
+            CreatedAt = now,
+            ReviewedAt = now,
         });
         await db.SaveChangesAsync();
     }
 
-    private static async Task<Usuario> Criar(
-        UserManager<Usuario> usuarios, string email, string nome, Perfil perfil, DateTimeOffset agora, DateTimeOffset? verificadoEm = null)
+    private static async Task<User> Create(
+        UserManager<User> users, string email, string name, Role role, DateTimeOffset now, DateTimeOffset? verifiedAt = null)
     {
-        var usuario = new Usuario
+        var user = new User
         {
             Id = Guid.CreateVersion7(),
-            Nome = nome,
+            Name = name,
             Email = email,
             UserName = email,
-            Perfil = perfil,
-            CriadoEm = agora,
-            VerificadoEm = verificadoEm,
+            Role = role,
+            CreatedAt = now,
+            VerifiedAt = verifiedAt,
         };
 
-        var resultado = await usuarios.CreateAsync(usuario, Senha);
-        if (!resultado.Succeeded)
+        var result = await users.CreateAsync(user, Password);
+        if (!result.Succeeded)
         {
-            throw new InvalidOperationException($"Seed falhou para {email}: {string.Join("; ", resultado.Errors.Select(e => e.Code))}");
+            throw new InvalidOperationException($"Seed falhou para {email}: {string.Join("; ", result.Errors.Select(e => e.Code))}");
         }
 
-        return usuario;
+        return user;
     }
 }

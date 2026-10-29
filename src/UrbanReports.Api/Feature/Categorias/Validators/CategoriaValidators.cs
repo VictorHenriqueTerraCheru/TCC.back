@@ -1,37 +1,37 @@
 using FluentValidation;
 
-namespace UrbanReports.Api.Categorias;
+namespace UrbanReports.Api.Categories;
 
-public static class RegrasCategoria
+public static class CategoryRules
 {
-    public static IRuleBuilderOptions<T, string> Nome<T>(this IRuleBuilder<T, string> regra) =>
-        regra.NotEmpty().MaximumLength(60);
+    public static IRuleBuilderOptions<T, string> Name<T>(this IRuleBuilder<T, string> rule) =>
+        rule.NotEmpty().MaximumLength(60);
 
-    public static IRuleBuilderOptions<T, string> Grupo<T>(this IRuleBuilder<T, string> regra) =>
-        regra.NotEmpty().MaximumLength(30);
+    public static IRuleBuilderOptions<T, string> Group<T>(this IRuleBuilder<T, string> rule) =>
+        rule.NotEmpty().MaximumLength(30);
 
-    public static IRuleBuilderOptions<T, string> Icone<T>(this IRuleBuilder<T, string> regra) =>
-        regra.NotEmpty().MaximumLength(40)
+    public static IRuleBuilderOptions<T, string> Icon<T>(this IRuleBuilder<T, string> rule) =>
+        rule.NotEmpty().MaximumLength(40)
             .Matches("^[a-z0-9_-]+$").WithMessage("Use apenas minúsculas, números, hífen e sublinhado.");
 }
 
-public sealed class CriarCategoriaValidator : AbstractValidator<CriarCategoriaRequest>
+public sealed class CreateCategoryValidator : AbstractValidator<CreateCategoryRequest>
 {
-    public CriarCategoriaValidator()
+    public CreateCategoryValidator()
     {
-        RuleFor(r => r.Nome).Nome();
-        RuleFor(r => r.Grupo).Grupo();
-        RuleFor(r => r.Tipo).IsInEnum();
-        RuleFor(r => r.Icone).Icone();
+        RuleFor(r => r.Name).Name();
+        RuleFor(r => r.Group).Group();
+        RuleFor(r => r.Type).IsInEnum();
+        RuleFor(r => r.Icon).Icon();
     }
 }
 
-public sealed class EditarCategoriaValidator : AbstractValidator<EditarCategoriaRequest>
+public sealed class EditCategoryValidator : AbstractValidator<EditCategoryRequest>
 {
-    public EditarCategoriaValidator()
+    public EditCategoryValidator()
     {
-        RuleFor(r => r.Nome).Nome();
-        RuleFor(r => r.Grupo).Grupo();
-        RuleFor(r => r.Icone).Icone();
+        RuleFor(r => r.Name).Name();
+        RuleFor(r => r.Group).Group();
+        RuleFor(r => r.Icon).Icon();
     }
 }

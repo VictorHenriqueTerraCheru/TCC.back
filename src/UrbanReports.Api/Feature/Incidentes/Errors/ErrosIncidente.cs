@@ -1,17 +1,17 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Incidentes;
+namespace UrbanReports.Api.Incidents;
 
-public static class ErrosIncidente
+public static class IncidentErrors
 {
-    public static readonly ErroAplicacao CategoriaInexistente = ErroAplicacao.DeCampo("categoriaId", "Categoria inexistente.");
+    public static readonly ApplicationError MissingCategory = ApplicationError.FromField("categoryId", "Categoria inexistente.");
 
-    public static readonly ErroAplicacao CategoriaNaoEIncidente = ErroAplicacao.Regra(
-        StatusCodes.Status422UnprocessableEntity, "categoria-nao-e-incidente", "A categoria escolhida é de problema, não de incidente.");
+    public static readonly ApplicationError CategoryNotIncident = ApplicationError.Rule(
+        StatusCodes.Status422UnprocessableEntity, "category-not-incident", "A categoria escolhida é de problema, não de incidente.");
 
-    public static readonly ErroAplicacao HorarioForaDaJanela = ErroAplicacao.Regra(
-        StatusCodes.Status422UnprocessableEntity, "horario-fora-da-janela", "O horário do incidente precisa estar nas últimas 24 horas.");
+    public static readonly ApplicationError TimeOutsideWindow = ApplicationError.Rule(
+        StatusCodes.Status422UnprocessableEntity, "time-outside-window", "O horário do incidente precisa estar nas últimas 24 horas.");
 
-    public static readonly ErroAplicacao LimiteDiarioIncidentes = ErroAplicacao.Regra(
-        StatusCodes.Status429TooManyRequests, "limite-diario-incidentes", "Limite de 10 incidentes em 24 horas atingido.");
+    public static readonly ApplicationError DailyIncidentLimit = ApplicationError.Rule(
+        StatusCodes.Status429TooManyRequests, "daily-incident-limit", "Limite de 10 incidentes em 24 horas atingido.");
 }

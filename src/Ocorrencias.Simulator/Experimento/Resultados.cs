@@ -30,7 +30,7 @@ public sealed record LinhaAtaque(
     int Semente,
     bool AtingiuAlta,
     double? PrimeiraAltaHora,
-    StatusProblema StatusFimAtaque,
+    IssueStatus StatusFimAtaque,
     double IndiceFimAtaque,
     double TempoRecuperacaoHoras,
     bool Censurado);

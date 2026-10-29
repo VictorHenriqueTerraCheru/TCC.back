@@ -4,23 +4,23 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-public sealed class SolicitacaoVerificacaoConfiguration : IEntityTypeConfiguration<SolicitacaoVerificacao>
+public sealed class VerificationRequestConfiguration : IEntityTypeConfiguration<VerificationRequest>
 {
-    public void Configure(EntityTypeBuilder<SolicitacaoVerificacao> b)
+    public void Configure(EntityTypeBuilder<VerificationRequest> b)
     {
-        b.ToTable("solicitacoes_verificacao");
-        b.Property(s => s.Justificativa).HasMaxLength(500);
-        b.Property(s => s.MotivoRecusa).HasMaxLength(500);
+        b.ToTable("verification_requests");
+        b.Property(s => s.Justification).HasMaxLength(500);
+        b.Property(s => s.RejectionReason).HasMaxLength(500);
 
-        b.HasOne(s => s.Usuario).WithMany().HasForeignKey(s => s.UsuarioId).OnDelete(DeleteBehavior.Cascade);
-        b.HasOne(s => s.AnalisadaPor).WithMany().HasForeignKey(s => s.AnalisadaPorId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(s => s.User).WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(s => s.ReviewedBy).WithMany().HasForeignKey(s => s.ReviewedById).OnDelete(DeleteBehavior.SetNull);
 
-        b.HasIndex(s => new { s.UsuarioId, s.CriadaEm });
-        b.HasIndex(s => new { s.Status, s.CriadaEm });
+        b.HasIndex(s => new { s.UserId, s.CreatedAt });
+        b.HasIndex(s => new { s.Status, s.CreatedAt });
 
-        b.HasIndex(s => s.UsuarioId)
+        b.HasIndex(s => s.UserId)
             .IsUnique()
-            .HasFilter($"status = {(short)StatusVerificacao.Pendente}")
-            .HasDatabaseName("ix_solicitacoes_verificacao_usuario_pendente");
+            .HasFilter($"status = {(short)VerificationStatus.Pending}")
+            .HasDatabaseName("ix_verification_requests_user_pending");
     }
 }

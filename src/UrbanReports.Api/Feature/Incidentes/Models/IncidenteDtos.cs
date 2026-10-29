@@ -1,18 +1,18 @@
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Incidentes;
+namespace UrbanReports.Api.Incidents;
 
-public sealed record RegistrarIncidenteRequest(short CategoriaId, double Lat, double Lng, DateTimeOffset OcorridoEm);
+public sealed record CreateIncidentRequest(short CategoryId, double Lat, double Lng, DateTimeOffset OccurredAt);
 
-public sealed record ObterCalorIncidentesRequest(double MinLat, double MinLng, double MaxLat, double MaxLng, int Dias = 7, string? Grupos = null);
+public sealed record GetIncidentHeatmapRequest(double MinLat, double MinLng, double MaxLat, double MaxLng, int Days = 7, string? Groups = null);
 
-public sealed record ObterCalorIncidentesResponse(double Lat, double Lng, int Quantidade);
+public sealed record GetIncidentHeatmapResponse(double Lat, double Lng, int Count);
 
-public sealed record ObterAreaIncidentesRequest(double Lat, double Lng);
+public sealed record GetIncidentAreaRequest(double Lat, double Lng);
 
-public sealed record ObterAreaIncidentesResponse(
-    int RaioMetros, DateTimeOffset AtualizadoEm, NivelConcentracao Nivel, IReadOnlyList<ObterAreaIncidentesContagem> Contagens);
+public sealed record GetIncidentAreaResponse(
+    int RadiusMeters, DateTimeOffset UpdatedAt, ConcentrationLevel Level, IReadOnlyList<GetIncidentAreaCount> Counts);
 
-public sealed record ObterAreaIncidentesContagem(short CategoriaId, string Nome, int Dias7, int Dias30);
+public sealed record GetIncidentAreaCount(short CategoryId, string Name, int Days7, int Days30);
 
-public sealed record IncidenteRegistrado(double Lat, double Lng, ObterAreaIncidentesResponse Area);
+public sealed record CreatedIncident(double Lat, double Lng, GetIncidentAreaResponse Area);

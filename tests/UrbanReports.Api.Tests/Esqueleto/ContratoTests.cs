@@ -12,175 +12,175 @@ using Microsoft.Extensions.DependencyInjection;
 using UrbanReports.Api.Tests.Infra;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Tests.Esqueleto;
+namespace UrbanReports.Api.Tests.Skeleton;
 
-[Collection(ApiCollection.Nome)]
-public sealed class ContratoTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class ContractTests(ApiFactory factory)
 {
-    private const string Justificativa = "Moro em Botafogo há dez anos e circulo pelo bairro todos os dias.";
+    private const string Justification = "Moro em Botafogo há dez anos e circulo pelo bairro todos os dias.";
 
-    private static readonly string[] RotasEsperadas =
+    private static readonly string[] ExpectedRoutes =
     [
-        "POST /api/v1/auth/cadastro [anonimo]",
-        "POST /api/v1/auth/login [anonimo]",
+        "POST /api/v1/auth/register [anonymous]",
+        "POST /api/v1/auth/login [anonymous]",
         "GET /api/v1/me",
         "PATCH /api/v1/me",
-        "GET /api/v1/me/historico",
-        "GET /api/v1/categorias [anonimo]",
-        "GET /api/v1/saude [anonimo]",
-        "GET /api/v1/saude/banco [anonimo]",
-        "GET /api/v1/geocodificacao/reversa [anonimo]",
-        "GET /api/v1/problemas [anonimo]",
-        "GET /api/v1/problemas/recentes [anonimo]",
-        "GET /api/v1/problemas/duplicatas",
-        "GET /api/v1/problemas/{id:guid} [anonimo]",
-        "POST /api/v1/problemas",
-        "PUT /api/v1/problemas/{id:guid}/voto",
-        "POST /api/v1/incidentes",
-        "GET /api/v1/incidentes/calor [anonimo]",
-        "GET /api/v1/incidentes/area [anonimo]",
-        "POST /api/v1/verificacoes",
-        "GET /api/v1/admin/verificacoes [admin]",
-        "POST /api/v1/admin/verificacoes/{id:guid}/aprovar [admin]",
-        "POST /api/v1/admin/verificacoes/{id:guid}/recusar [admin]",
-        "GET /api/v1/admin/usuarios [admin]",
-        "PATCH /api/v1/admin/usuarios/{id:guid}/perfil [admin]",
-        "GET /api/v1/admin/categorias [admin]",
-        "POST /api/v1/admin/categorias [admin]",
-        "PUT /api/v1/admin/categorias/{id:int} [admin]",
-        "PATCH /api/v1/admin/categorias/{id:int}/ativa [admin]",
-        "GET /api/v1/grupos [anonimo]",
-        "POST /api/v1/admin/grupos [admin]",
-        "PUT /api/v1/admin/grupos/{chave} [admin]",
-        "DELETE /api/v1/admin/grupos/{chave} [admin]",
+        "GET /api/v1/me/history",
+        "GET /api/v1/categories [anonymous]",
+        "GET /api/v1/health [anonymous]",
+        "GET /api/v1/health/database [anonymous]",
+        "GET /api/v1/geocoding/reverse [anonymous]",
+        "GET /api/v1/issues [anonymous]",
+        "GET /api/v1/issues/recent [anonymous]",
+        "GET /api/v1/issues/duplicates",
+        "GET /api/v1/issues/{id:guid} [anonymous]",
+        "POST /api/v1/issues",
+        "PUT /api/v1/issues/{id:guid}/vote",
+        "POST /api/v1/incidents",
+        "GET /api/v1/incidents/heatmap [anonymous]",
+        "GET /api/v1/incidents/area [anonymous]",
+        "POST /api/v1/verifications",
+        "GET /api/v1/admin/verifications [admin]",
+        "POST /api/v1/admin/verifications/{id:guid}/approve [admin]",
+        "POST /api/v1/admin/verifications/{id:guid}/reject [admin]",
+        "GET /api/v1/admin/users [admin]",
+        "PATCH /api/v1/admin/users/{id:guid}/role [admin]",
+        "GET /api/v1/admin/categories [admin]",
+        "POST /api/v1/admin/categories [admin]",
+        "PUT /api/v1/admin/categories/{id:int} [admin]",
+        "PATCH /api/v1/admin/categories/{id:int}/active [admin]",
+        "GET /api/v1/groups [anonymous]",
+        "POST /api/v1/admin/groups [admin]",
+        "PUT /api/v1/admin/groups/{key} [admin]",
+        "DELETE /api/v1/admin/groups/{key} [admin]",
     ];
 
     [Fact]
-    public async Task Openapi_igual_ao_snapshot()
+    public async Task Openapi_equals_snapshot()
     {
-        var atual = Canonico(await fabrica.CreateClient().GetStringAsync("/openapi/v1.json"));
-        var caminho = CaminhoSnapshot();
-        if (Environment.GetEnvironmentVariable("ATUALIZAR_SNAPSHOT_OPENAPI") == "1")
+        var current = Canonical(await factory.CreateClient().GetStringAsync("/openapi/v1.json"));
+        var path = SnapshotPath();
+        if (Environment.GetEnvironmentVariable("UPDATE_OPENAPI_SNAPSHOT") == "1")
         {
-            await File.WriteAllTextAsync(caminho, atual);
+            await File.WriteAllTextAsync(path, current);
         }
 
-        var esperado = Canonico(await File.ReadAllTextAsync(caminho));
+        var expected = Canonical(await File.ReadAllTextAsync(path));
 
-        atual.Should().Be(esperado, "o contrato do front sai do OpenAPI; regrave o snapshot só para mudança de contrato aprovada");
+        current.Should().Be(expected, "o contrato do front sai do OpenAPI; regrave o snapshot só para mudança de contrato aprovada");
     }
 
     [Fact]
-    public void Rotas_e_politicas_do_contrato()
+    public void Contract_routes_and_policies()
     {
-        var rotas = fabrica.Services.GetRequiredService<EndpointDataSource>().Endpoints
+        var routes = factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
             .OfType<RouteEndpoint>()
             .Where(e => e.RoutePattern.RawText?.StartsWith("/api/v1", StringComparison.Ordinal) == true)
             .SelectMany(e =>
             {
-                var anonimo = e.Metadata.GetMetadata<IAllowAnonymous>() is not null ? " [anonimo]" : "";
-                var admin = e.Metadata.GetOrderedMetadata<IAuthorizeData>().Any(a => a.Policy == "Administrador") ? " [admin]" : "";
+                var anonymous = e.Metadata.GetMetadata<IAllowAnonymous>() is not null ? " [anonymous]" : "";
+                var admin = e.Metadata.GetOrderedMetadata<IAuthorizeData>().Any(a => a.Policy == "Administrator") ? " [admin]" : "";
                 return e.Metadata.GetMetadata<IHttpMethodMetadata>()!.HttpMethods
-                    .Select(m => $"{m} {e.RoutePattern.RawText}{anonimo}{admin}");
+                    .Select(m => $"{m} {e.RoutePattern.RawText}{anonymous}{admin}");
             });
 
-        rotas.Should().BeEquivalentTo(RotasEsperadas);
+        routes.Should().BeEquivalentTo(ExpectedRoutes);
     }
 
     [Fact]
-    public async Task Modelo_do_ef_nao_tem_mudancas_pendentes() =>
-        (await fabrica.NoBancoAsync(db => Task.FromResult(db.Database.HasPendingModelChanges()))).Should().BeFalse();
+    public async Task Ef_model_has_no_pending_changes() =>
+        (await factory.InDatabaseAsync(db => Task.FromResult(db.Database.HasPendingModelChanges()))).Should().BeFalse();
 
     [Fact]
-    public async Task Location_do_cadastro_e_da_verificacao_aponta_para_me()
+    public async Task Register_and_verification_location_points_to_me()
     {
-        var cadastro = await fabrica.CreateClient().PostarCadastroAsync(ClienteApi.EmailUnico());
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var verificacao = await pessoa.Cliente.PostAsJsonAsync(
-            "/api/v1/verificacoes", new { tipoVinculo = "moradorRegiao", justificativa = Justificativa }, ClienteApi.Json);
+        var registration = await factory.CreateClient().PostRegisterAsync(ApiClient.UniqueEmail());
+        var person = await factory.NewPersonAsync();
+        var verification = await person.Client.PostAsJsonAsync(
+            "/api/v1/verifications", new { affiliationType = "livesInArea", justification = Justification }, ApiClient.Json);
 
-        cadastro.StatusCode.Should().Be(HttpStatusCode.Created);
-        cadastro.Headers.Location!.ToString().Should().Be("/api/v1/me");
-        verificacao.StatusCode.Should().Be(HttpStatusCode.Created);
-        verificacao.Headers.Location!.ToString().Should().Be("/api/v1/me");
+        registration.StatusCode.Should().Be(HttpStatusCode.Created);
+        registration.Headers.Location!.ToString().Should().Be("/api/v1/me");
+        verification.StatusCode.Should().Be(HttpStatusCode.Created);
+        verification.Headers.Location!.ToString().Should().Be("/api/v1/me");
     }
 
     [Fact]
-    public async Task Location_do_incidente_usa_o_ponto_arredondado_em_cultura_invariante()
+    public async Task Incident_location_uses_the_rounded_point_in_invariant_culture()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var (baseLat, baseLng) = ApiFactory.AreaIsolada();
+        var person = await factory.NewPersonAsync();
+        var (baseLat, baseLng) = ApiFactory.IsolatedArea();
         var (lat, lng) = (baseLat + 0.00041, baseLng - 0.00067);
-        var culturaOriginal = CultureInfo.CurrentCulture;
-        HttpResponseMessage resposta;
+        var originalCulture = CultureInfo.CurrentCulture;
+        HttpResponseMessage response;
         try
         {
             CultureInfo.CurrentCulture = new CultureInfo("pt-BR");
-            resposta = await pessoa.Cliente.PostAsJsonAsync(
-                "/api/v1/incidentes",
-                new { categoriaId = 7, lat, lng, ocorridoEm = fabrica.Relogio.GetUtcNow().AddMinutes(-30) },
-                ClienteApi.Json);
+            response = await person.Client.PostAsJsonAsync(
+                "/api/v1/incidents",
+                new { categoryId = 7, lat, lng, occurredAt = factory.Clock.GetUtcNow().AddMinutes(-30) },
+                ApiClient.Json);
         }
         finally
         {
-            CultureInfo.CurrentCulture = culturaOriginal;
+            CultureInfo.CurrentCulture = originalCulture;
         }
 
-        var latArredondada = Math.Round(lat, 3, MidpointRounding.AwayFromZero);
-        var lngArredondada = Math.Round(lng, 3, MidpointRounding.AwayFromZero);
-        resposta.StatusCode.Should().Be(HttpStatusCode.Created);
-        resposta.Headers.Location!.ToString().Should().Be(
-            FormattableString.Invariant($"/api/v1/incidentes/area?lat={latArredondada}&lng={lngArredondada}"));
+        var roundedLat = Math.Round(lat, 3, MidpointRounding.AwayFromZero);
+        var roundedLng = Math.Round(lng, 3, MidpointRounding.AwayFromZero);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.Headers.Location!.ToString().Should().Be(
+            FormattableString.Invariant($"/api/v1/incidents/area?lat={roundedLat}&lng={roundedLng}"));
     }
 
     [Fact]
-    public async Task Token_de_usuario_removido_recebe_401()
+    public async Task Removed_user_token_gets_401()
     {
-        var autor = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await autor.RegistrarProblemaAsync(lat, lng);
-        var removido = await fabrica.NovaPessoaAsync();
-        await fabrica.NoBancoAsync(db => db.Users.Where(u => u.Id == removido.Id).ExecuteDeleteAsync());
+        var author = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await author.CreateIssueAsync(lat, lng);
+        var removed = await factory.NewPersonAsync();
+        await factory.InDatabaseAsync(db => db.Users.Where(u => u.Id == removed.Id).ExecuteDeleteAsync());
 
-        (await removido.Cliente.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await removido.Cliente.PatchAsJsonAsync("/api/v1/me", new { nome = "Outro Nome" }, ClienteApi.Json))
+        (await removed.Client.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await removed.Client.PatchAsJsonAsync("/api/v1/me", new { name = "Outro Nome" }, ApiClient.Json))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await removido.Cliente.PostAsJsonAsync("/api/v1/verificacoes", new { tipoVinculo = "moradorRegiao", justificativa = Justificativa }, ClienteApi.Json))
+        (await removed.Client.PostAsJsonAsync("/api/v1/verifications", new { affiliationType = "livesInArea", justification = Justification }, ApiClient.Json))
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await removido.VotarAsync(problema.Id, "sim")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await removed.VoteAsync(issue.Id, "yes")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Recursos_inexistentes_devolvem_404()
+    public async Task Missing_resources_return_404()
     {
-        var pessoa = await fabrica.NovaPessoaAsync();
-        var admin = await fabrica.NovaPessoaAsync(Perfil.Administrador);
+        var person = await factory.NewPersonAsync();
+        var admin = await factory.NewPersonAsync(Role.Administrator);
         var id = Guid.NewGuid();
 
-        (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await pessoa.VotarAsync(id, "sim")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await admin.Cliente.PostAsync($"/api/v1/admin/verificacoes/{id}/aprovar", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await admin.Cliente.PostAsJsonAsync($"/api/v1/admin/verificacoes/{id}/recusar", new { motivo = "Sem vínculo com a região." }, ClienteApi.Json))
+        (await factory.CreateClient().GetAsync($"/api/v1/issues/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await person.VoteAsync(id, "yes")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await admin.Client.PostAsync($"/api/v1/admin/verifications/{id}/approve", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await admin.Client.PostAsJsonAsync($"/api/v1/admin/verifications/{id}/reject", new { reason = "Sem vínculo com a região." }, ApiClient.Json))
             .StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private static string CaminhoSnapshot([CallerFilePath] string arquivo = "") =>
-        Path.Combine(Path.GetDirectoryName(arquivo)!, "openapi.snapshot.json");
+    private static string SnapshotPath([CallerFilePath] string file = "") =>
+        Path.Combine(Path.GetDirectoryName(file)!, "openapi.snapshot.json");
 
-    private static string Canonico(string json) =>
-        Ordenar(JsonNode.Parse(json))!.ToJsonString(new JsonSerializerOptions
+    private static string Canonical(string json) =>
+        Sort(JsonNode.Parse(json))!.ToJsonString(new JsonSerializerOptions
         {
             WriteIndented = true,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         });
 
-    private static JsonNode? Ordenar(JsonNode? no) => no switch
+    private static JsonNode? Sort(JsonNode? node) => node switch
     {
-        JsonObject objeto => new JsonObject(objeto
+        JsonObject jsonObject => new JsonObject(jsonObject
             .OrderBy(p => p.Key, StringComparer.Ordinal)
-            .Select(p => KeyValuePair.Create(p.Key, Ordenar(p.Value)))),
-        JsonArray lista => new JsonArray(lista.Select(Ordenar).ToArray()),
+            .Select(p => KeyValuePair.Create(p.Key, Sort(p.Value)))),
+        JsonArray list => new JsonArray(list.Select(Sort).ToArray()),
         null => null,
-        _ => no.DeepClone(),
+        _ => node.DeepClone(),
     };
 }

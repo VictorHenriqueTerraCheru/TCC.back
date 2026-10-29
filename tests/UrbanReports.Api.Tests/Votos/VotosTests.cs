@@ -1,231 +1,231 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
-using UrbanReports.Api.Problemas;
-using UrbanReports.Api.Votos;
+using UrbanReports.Api.Issues;
+using UrbanReports.Api.Votes;
 using UrbanReports.Api.Tests.Infra;
 using UrbanReports.Api.Common;
 
-namespace UrbanReports.Api.Tests.Votos;
+namespace UrbanReports.Api.Tests.Votes;
 
-[Collection(ApiCollection.Nome)]
-public sealed class VotosTests(ApiFactory fabrica)
+[Collection(ApiCollection.Name)]
+public sealed class VotesTests(ApiFactory factory)
 {
-    private async Task<(Pessoa Autor, ObterDetalheProblemaResponse Problema, double Lat, double Lng)> ProblemaNovoAsync()
+    private async Task<(Person Author, GetIssueDetailResponse Issue, double Lat, double Lng)> NewIssueAsync()
     {
-        var autor = await fabrica.NovaPessoaAsync();
-        var (lat, lng) = ApiFactory.PontoUnico();
-        return (autor, await autor.RegistrarProblemaAsync(lat, lng), lat, lng);
+        var author = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.UniquePoint();
+        return (author, await author.CreateIssueAsync(lat, lng), lat, lng);
     }
 
-    private static async Task<string?> TipoErroAsync(HttpResponseMessage resposta) =>
-        (await resposta.LerJsonAsync()).GetProperty("type").GetString();
+    private static async Task<string?> ErrorTypeAsync(HttpResponseMessage response) =>
+        (await response.ReadJsonAsync()).GetProperty("type").GetString();
 
     [Theory]
-    [InlineData("sim")]
-    [InlineData("nao")]
-    public async Task Autor_nao_vota_no_proprio_problema(string valor)
+    [InlineData("yes")]
+    [InlineData("no")]
+    public async Task Author_cannot_vote_on_own_issue(string value)
     {
-        var (autor, problema, _, _) = await ProblemaNovoAsync();
+        var (author, issue, _, _) = await NewIssueAsync();
 
-        var resposta = await autor.VotarAsync(problema.Id, valor);
+        var response = await author.VoteAsync(issue.Id, value);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await TipoErroAsync(resposta)).Should().Be("autor-nao-vota");
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await ErrorTypeAsync(response)).Should().Be("author-cannot-vote");
     }
 
     [Fact]
-    public async Task Nao_em_nova_e_aceito_e_conta_como_votante()
+    public async Task No_on_new_is_accepted_and_counts_as_voter()
     {
-        var (_, problema, _, _) = await ProblemaNovoAsync();
-        var votante = await fabrica.NovaPessoaAsync();
+        var (_, issue, _, _) = await NewIssueAsync();
+        var voter = await factory.NewPersonAsync();
 
-        var resposta = await votante.VotarAsync(problema.Id, "nao");
-        var detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
+        var response = await voter.VoteAsync(issue.Id, "no");
+        var detail = await response.ReadAsync<GetIssueDetailResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        detalhe.Status.Should().Be(StatusProblema.Nova);
-        detalhe.Avaliacao!.Votantes.Should().Be(1);
-        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 1, 1));
-        detalhe.MeuVoto.Should().Be(ValorVotoContrato.Nao);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        detail.Status.Should().Be(IssueStatus.New);
+        detail.Evaluation!.Voters.Should().Be(1);
+        detail.Votes.Should().Be(new GetIssueDetailVotes(0, 1, 1));
+        detail.MyVote.Should().Be(VoteAnswer.No);
     }
 
     [Fact]
-    public async Task Cinco_votantes_tiram_o_problema_de_nova()
+    public async Task Five_voters_move_the_issue_out_of_new()
     {
-        var (_, problema, _, _) = await ProblemaNovoAsync();
-        ObterDetalheProblemaResponse? detalhe = null;
+        var (_, issue, _, _) = await NewIssueAsync();
+        GetIssueDetailResponse? detail = null;
 
         for (var i = 1; i <= 5; i++)
         {
-            var votante = await fabrica.NovaPessoaAsync();
-            detalhe = await (await votante.VotarAsync(problema.Id, "sim")).LerAsync<ObterDetalheProblemaResponse>();
+            var voter = await factory.NewPersonAsync();
+            detail = await (await voter.VoteAsync(issue.Id, "yes")).ReadAsync<GetIssueDetailResponse>();
 
             if (i < 5)
             {
-                detalhe.Status.Should().Be(StatusProblema.Nova);
-                detalhe.Avaliacao!.Votantes.Should().Be(i);
-                detalhe.Confianca.Should().BeNull();
+                detail.Status.Should().Be(IssueStatus.New);
+                detail.Evaluation!.Voters.Should().Be(i);
+                detail.TrustScore.Should().BeNull();
             }
         }
 
-        detalhe!.Status.Should().Be(StatusProblema.Ativa);
-        detalhe.Avaliacao.Should().BeNull();
-        detalhe.Confianca.Should().Be(62.5);
-        detalhe.Faixa.Should().Be(FaixaConfianca.Media);
-        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(5, 0, 0));
-        detalhe.MeuVoto.Should().Be(ValorVotoContrato.Sim);
+        detail!.Status.Should().Be(IssueStatus.Active);
+        detail.Evaluation.Should().BeNull();
+        detail.TrustScore.Should().Be(62.5);
+        detail.Band.Should().Be(TrustBand.Medium);
+        detail.Votes.Should().Be(new GetIssueDetailVotes(5, 0, 0));
+        detail.MyVote.Should().Be(VoteAnswer.Yes);
     }
 
     [Fact]
-    public async Task Voto_grava_so_a_distancia_calculada_no_postgis()
+    public async Task Vote_stores_only_the_distance_computed_in_postgis()
     {
-        var (_, problema, lat, lng) = await ProblemaNovoAsync();
-        var votante = await fabrica.NovaPessoaAsync();
+        var (_, issue, lat, lng) = await NewIssueAsync();
+        var voter = await factory.NewPersonAsync();
 
-        await votante.VotarAsync(problema.Id, "sim", Cenarios.Norte(lat, 100), lng);
+        await voter.VoteAsync(issue.Id, "yes", Scenarios.North(lat, 100), lng);
 
-        var voto = await fabrica.NoBancoAsync(db => db.Votos.SingleAsync(v => v.ProblemaId == problema.Id));
-        voto.DistanciaMetros!.Value.Should().BeCloseTo(100, 2);
-        voto.PerfilNoMomento.Should().Be(Perfil.Cidadao);
-        voto.RegistradoEm.Should().Be(fabrica.Relogio.GetUtcNow());
+        var vote = await factory.InDatabaseAsync(db => db.Votes.SingleAsync(v => v.IssueId == issue.Id));
+        vote.DistanceMeters!.Value.Should().BeCloseTo(100, 2);
+        vote.RoleAtVote.Should().Be(Role.Citizen);
+        vote.RegisteredAt.Should().Be(factory.Clock.GetUtcNow());
     }
 
     [Fact]
-    public async Task Voto_sem_localizacao_grava_distancia_nula()
+    public async Task Vote_without_location_stores_null_distance()
     {
-        var (_, problema, _, _) = await ProblemaNovoAsync();
-        var votante = await fabrica.NovaPessoaAsync();
+        var (_, issue, _, _) = await NewIssueAsync();
+        var voter = await factory.NewPersonAsync();
 
-        await votante.VotarAsync(problema.Id, "nao");
+        await voter.VoteAsync(issue.Id, "no");
 
-        var voto = await fabrica.NoBancoAsync(db => db.Votos.SingleAsync(v => v.ProblemaId == problema.Id));
-        voto.DistanciaMetros.Should().BeNull();
-        voto.Valor.Should().Be(ValorVoto.Negativo);
+        var vote = await factory.InDatabaseAsync(db => db.Votes.SingleAsync(v => v.IssueId == issue.Id));
+        vote.DistanceMeters.Should().BeNull();
+        vote.Value.Should().Be(VoteValue.Negative);
     }
 
     [Fact]
-    public async Task Votar_de_novo_substitui_o_voto()
+    public async Task Voting_again_replaces_the_vote()
     {
-        var (_, problema, lat, lng) = await ProblemaNovoAsync();
-        var votante = await fabrica.NovaPessoaAsync();
-        await votante.VotarAsync(problema.Id, "sim", Cenarios.Norte(lat, 100), lng);
-        fabrica.Relogio.Advance(TimeSpan.FromMinutes(5));
+        var (_, issue, lat, lng) = await NewIssueAsync();
+        var voter = await factory.NewPersonAsync();
+        await voter.VoteAsync(issue.Id, "yes", Scenarios.North(lat, 100), lng);
+        factory.Clock.Advance(TimeSpan.FromMinutes(5));
 
-        var resposta = await votante.VotarAsync(problema.Id, "nao");
-        var detalhe = await resposta.LerAsync<ObterDetalheProblemaResponse>();
+        var response = await voter.VoteAsync(issue.Id, "no");
+        var detail = await response.ReadAsync<GetIssueDetailResponse>();
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 1, 1));
-        detalhe.MeuVoto.Should().Be(ValorVotoContrato.Nao);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        detail.Votes.Should().Be(new GetIssueDetailVotes(0, 1, 1));
+        detail.MyVote.Should().Be(VoteAnswer.No);
 
-        var votos = await fabrica.NoBancoAsync(db => db.Votos.Where(v => v.ProblemaId == problema.Id).ToListAsync());
-        votos.Should().ContainSingle();
-        votos[0].DistanciaMetros.Should().BeNull();
-        votos[0].RegistradoEm.Should().Be(fabrica.Relogio.GetUtcNow());
+        var votes = await factory.InDatabaseAsync(db => db.Votes.Where(v => v.IssueId == issue.Id).ToListAsync());
+        votes.Should().ContainSingle();
+        votes[0].DistanceMeters.Should().BeNull();
+        votes[0].RegisteredAt.Should().Be(factory.Clock.GetUtcNow());
     }
 
     [Fact]
-    public async Task Perfil_do_voto_vem_do_banco_e_nao_do_token()
+    public async Task Vote_role_comes_from_database_not_token()
     {
-        var (_, problema, _, _) = await ProblemaNovoAsync();
-        var votante = await fabrica.NovaPessoaAsync();
-        await fabrica.NoBancoAsync(db => db.Users.Where(u => u.Id == votante.Id)
-            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Perfil, Perfil.CidadaoVerificado)));
+        var (_, issue, _, _) = await NewIssueAsync();
+        var voter = await factory.NewPersonAsync();
+        await factory.InDatabaseAsync(db => db.Users.Where(u => u.Id == voter.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Role, Role.VerifiedCitizen)));
 
-        await votante.VotarAsync(problema.Id, "sim");
+        await voter.VoteAsync(issue.Id, "yes");
 
-        var voto = await fabrica.NoBancoAsync(db => db.Votos.SingleAsync(v => v.ProblemaId == problema.Id));
-        voto.PerfilNoMomento.Should().Be(Perfil.CidadaoVerificado);
+        var vote = await factory.InDatabaseAsync(db => db.Votes.SingleAsync(v => v.IssueId == issue.Id));
+        vote.RoleAtVote.Should().Be(Role.VerifiedCitizen);
     }
 
     [Fact]
-    public async Task Problema_resolvido_nao_recebe_votos()
+    public async Task Resolved_issue_does_not_accept_votes()
     {
-        var (_, problema, _, _) = await ProblemaNovoAsync();
-        await fabrica.NoBancoAsync(db => db.Problemas.Where(p => p.Id == problema.Id)
-            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, StatusProblema.Resolvida)));
-        var votante = await fabrica.NovaPessoaAsync();
+        var (_, issue, _, _) = await NewIssueAsync();
+        await factory.InDatabaseAsync(db => db.Issues.Where(p => p.Id == issue.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, IssueStatus.Resolved)));
+        var voter = await factory.NewPersonAsync();
 
-        var resposta = await votante.VotarAsync(problema.Id, "sim");
+        var response = await voter.VoteAsync(issue.Id, "yes");
 
-        (await TipoErroAsync(resposta)).Should().Be("problema-resolvido");
+        (await ErrorTypeAsync(response)).Should().Be("issue-resolved");
     }
 
     [Fact]
-    public async Task Quatro_nao_perto_levam_a_possivelmente_resolvida()
+    public async Task Four_nearby_no_lead_to_possibly_resolved()
     {
-        var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
-        ObterDetalheProblemaResponse? detalhe = null;
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await factory.ActiveIssueAsync(lat, lng);
+        GetIssueDetailResponse? detail = null;
 
         for (var i = 0; i < 4; i++)
         {
-            var votante = await fabrica.NovaPessoaAsync();
-            detalhe = await (await votante.VotarAsync(problema.Id, "nao", Cenarios.Norte(lat, 100), lng))
-                .LerAsync<ObterDetalheProblemaResponse>();
+            var voter = await factory.NewPersonAsync();
+            detail = await (await voter.VoteAsync(issue.Id, "no", Scenarios.North(lat, 100), lng))
+                .ReadAsync<GetIssueDetailResponse>();
         }
 
-        detalhe!.Status.Should().Be(StatusProblema.PossivelmenteResolvida);
-        detalhe.Votos.Should().Be(new ObterDetalheProblemaVotos(5, 4, 4));
+        detail!.Status.Should().Be(IssueStatus.PossiblyResolved);
+        detail.Votes.Should().Be(new GetIssueDetailVotes(5, 4, 4));
     }
 
     [Fact]
-    public async Task Problema_inexistente_devolve_404()
+    public async Task Missing_issue_returns_404()
     {
-        var votante = await fabrica.NovaPessoaAsync();
+        var voter = await factory.NewPersonAsync();
 
-        var resposta = await votante.VotarAsync(Guid.NewGuid(), "sim");
+        var response = await voter.VoteAsync(Guid.NewGuid(), "yes");
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Theory]
     [InlineData("talvez", -22.9, -43.1)]
     [InlineData("confirma", -22.9, -43.1)]
-    [InlineData("sim", -22.9, null)]
-    [InlineData("sim", -95.0, -43.1)]
-    public async Task Voto_invalido_devolve_400(string valor, double? lat, double? lng)
+    [InlineData("yes", -22.9, null)]
+    [InlineData("yes", -95.0, -43.1)]
+    public async Task Invalid_vote_returns_400(string value, double? lat, double? lng)
     {
-        var (_, problema, _, _) = await ProblemaNovoAsync();
-        var votante = await fabrica.NovaPessoaAsync();
+        var (_, issue, _, _) = await NewIssueAsync();
+        var voter = await factory.NewPersonAsync();
 
-        var resposta = await votante.VotarAsync(problema.Id, valor, lat, lng);
+        var response = await voter.VoteAsync(issue.Id, value, lat, lng);
 
-        resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task Votos_simultaneos_no_mesmo_problema_nao_perdem_recalculo()
+    public async Task Concurrent_votes_on_the_same_issue_keep_recalculation()
     {
-        var (_, problema, _, _) = await ProblemaNovoAsync();
-        var votantes = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => fabrica.NovaPessoaAsync()));
+        var (_, issue, _, _) = await NewIssueAsync();
+        var voters = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => factory.NewPersonAsync()));
 
-        var respostas = await Task.WhenAll(votantes.Select(v => v.VotarAsync(problema.Id, "sim")));
+        var responses = await Task.WhenAll(voters.Select(v => v.VoteAsync(issue.Id, "yes")));
 
-        respostas.Should().AllSatisfy(r => r.StatusCode.Should().Be(HttpStatusCode.OK));
-        var detalhe = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))
-            .LerAsync<ObterDetalheProblemaResponse>();
-        detalhe.Status.Should().Be(StatusProblema.Ativa);
-        detalhe.Confianca.Should().Be(62.5);
+        responses.Should().AllSatisfy(r => r.StatusCode.Should().Be(HttpStatusCode.OK));
+        var detail = await (await factory.CreateClient().GetAsync($"/api/v1/issues/{issue.Id}"))
+            .ReadAsync<GetIssueDetailResponse>();
+        detail.Status.Should().Be(IssueStatus.Active);
+        detail.TrustScore.Should().Be(62.5);
     }
 
     [Fact]
-    public async Task Nao_ultimas_24h_inclui_exatamente_24h_e_descarta_o_mais_antigo()
+    public async Task No_last_24h_includes_exactly_24h_and_drops_older()
     {
-        var (_, problema, _, _) = await ProblemaNovoAsync();
-        var primeiro = await fabrica.NovaPessoaAsync();
-        var segundo = await fabrica.NovaPessoaAsync();
-        await primeiro.VotarAsync(problema.Id, "nao");
-        fabrica.Relogio.Advance(TimeSpan.FromHours(24));
-        await segundo.VotarAsync(problema.Id, "nao");
+        var (_, issue, _, _) = await NewIssueAsync();
+        var first = await factory.NewPersonAsync();
+        var second = await factory.NewPersonAsync();
+        await first.VoteAsync(issue.Id, "no");
+        factory.Clock.Advance(TimeSpan.FromHours(24));
+        await second.VoteAsync(issue.Id, "no");
 
-        var noLimite = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))
-            .LerAsync<ObterDetalheProblemaResponse>();
-        fabrica.Relogio.Advance(TimeSpan.FromMinutes(1));
-        var depois = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas/{problema.Id}"))
-            .LerAsync<ObterDetalheProblemaResponse>();
+        var atLimit = await (await factory.CreateClient().GetAsync($"/api/v1/issues/{issue.Id}"))
+            .ReadAsync<GetIssueDetailResponse>();
+        factory.Clock.Advance(TimeSpan.FromMinutes(1));
+        var after = await (await factory.CreateClient().GetAsync($"/api/v1/issues/{issue.Id}"))
+            .ReadAsync<GetIssueDetailResponse>();
 
-        noLimite.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 2, 2));
-        depois.Votos.Should().Be(new ObterDetalheProblemaVotos(0, 2, 1));
+        atLimit.Votes.Should().Be(new GetIssueDetailVotes(0, 2, 2));
+        after.Votes.Should().Be(new GetIssueDetailVotes(0, 2, 1));
     }
 }

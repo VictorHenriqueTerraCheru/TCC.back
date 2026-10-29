@@ -11,27 +11,27 @@ namespace UrbanReports.Api.Infrastructure;
 
 public static class AppConfiguration
 {
-    public static IServiceCollection AddCorsConfigurado(this IServiceCollection services, IConfiguration configuracao)
+    public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IConfiguration configuration)
     {
-        var origens = configuracao.GetSection("Cors:Origens").Get<string[]>() ?? [];
+        var origins = configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
 
-        return services.AddCors(o => o.AddPolicy(PoliticasCors.Front, p => p
-            .WithOrigins(origens)
+        return services.AddCors(o => o.AddPolicy(CorsPolicies.Front, p => p
+            .WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod()));
     }
 
-    public static IServiceCollection AddAutenticacao(this IServiceCollection services, IConfiguration configuracao)
+    public static IServiceCollection AddAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var maximoFalhas = configuracao.GetValue("Lockout:MaximoFalhas", 5);
-        var minutosBloqueio = configuracao.GetValue("Lockout:Minutos", 15);
+        var maxFailures = configuration.GetValue("Lockout:MaxFailures", 5);
+        var lockoutMinutes = configuration.GetValue("Lockout:Minutes", 15);
 
         services.AddOptions<JwtOptions>()
-            .BindConfiguration(JwtOptions.Secao)
+            .BindConfiguration(JwtOptions.Section)
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        services.AddIdentityCore<Usuario>(o =>
+        services.AddIdentityCore<User>(o =>
             {
                 o.User.RequireUniqueEmail = true;
                 o.User.AllowedUserNameCharacters = "";
@@ -42,8 +42,8 @@ public static class AppConfiguration
                 o.Password.RequireNonAlphanumeric = false;
                 o.Password.RequiredUniqueChars = 1;
                 o.Lockout.AllowedForNewUsers = true;
-                o.Lockout.MaxFailedAccessAttempts = maximoFalhas;
-                o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(minutosBloqueio);
+                o.Lockout.MaxFailedAccessAttempts = maxFailures;
+                o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(lockoutMinutes);
             })
             .AddEntityFrameworkStores<AppDbContext>();
 
@@ -51,47 +51,47 @@ public static class AppConfiguration
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-            .Configure<IOptions<JwtOptions>, TimeProvider>((bearer, jwt, relogio) =>
+            .Configure<IOptions<JwtOptions>, TimeProvider>((bearer, jwt, clock) =>
             {
                 bearer.MapInboundClaims = false;
                 bearer.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidIssuer = jwt.Value.Emissor,
-                    ValidAudience = jwt.Value.Audiencia,
-                    IssuerSigningKey = JwtTokenService.Chave(jwt.Value),
+                    ValidIssuer = jwt.Value.Issuer,
+                    ValidAudience = jwt.Value.Audience,
+                    IssuerSigningKey = JwtTokenService.Key(jwt.Value),
                     ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
-                    NameClaimType = JwtTokenService.ClaimNome,
-                    RoleClaimType = JwtTokenService.ClaimPerfil,
-                    LifetimeValidator = (inicio, fim, _, parametros) =>
+                    NameClaimType = JwtTokenService.NameClaim,
+                    RoleClaimType = JwtTokenService.RoleClaim,
+                    LifetimeValidator = (start, end, _, parameters) =>
                     {
-                        var agora = relogio.GetUtcNow().UtcDateTime;
-                        var folga = parametros.ClockSkew;
-                        return (inicio is null || inicio.Value <= agora + folga)
-                            && fim is not null && fim.Value > agora - folga;
+                        var now = clock.GetUtcNow().UtcDateTime;
+                        var slack = parameters.ClockSkew;
+                        return (start is null || start.Value <= now + slack)
+                            && end is not null && end.Value > now - slack;
                     },
                 };
             });
 
         services.AddAuthorizationBuilder()
-            .AddPolicy(PoliticasAutorizacao.Autenticado, p => p.RequireAuthenticatedUser())
-            .AddPolicy(PoliticasAutorizacao.Administrador, p => p.RequireAuthenticatedUser().RequireClaim(JwtTokenService.ClaimPerfil, "administrador"));
+            .AddPolicy(AuthorizationPolicies.Authenticated, p => p.RequireAuthenticatedUser())
+            .AddPolicy(AuthorizationPolicies.Administrator, p => p.RequireAuthenticatedUser().RequireClaim(JwtTokenService.RoleClaim, "administrator"));
 
         return services;
     }
 
-    public static IServiceCollection AddLimitesDeRequisicao(this IServiceCollection services, IConfiguration configuracao)
+    public static IServiceCollection AddRateLimits(this IServiceCollection services, IConfiguration configuration)
     {
-        var porMinuto = configuracao.GetValue("LimitesDeRequisicao:GeocodificacaoPorMinuto", 30);
+        var perMinute = configuration.GetValue("RateLimits:GeocodingPerMinute", 30);
 
         return services.AddRateLimiter(o =>
         {
             o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            o.OnRejected = async (contexto, ct) =>
+            o.OnRejected = async (context, ct) =>
             {
-                var http = contexto.HttpContext;
-                if (contexto.Lease.TryGetMetadata(MetadataName.RetryAfter, out var aguardar))
+                var http = context.HttpContext;
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
                 {
-                    http.Response.Headers.RetryAfter = ((int)Math.Ceiling(aguardar.TotalSeconds)).ToString();
+                    http.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
                 }
 
                 await http.RequestServices.GetRequiredService<IProblemDetailsService>().WriteAsync(new ProblemDetailsContext
@@ -100,17 +100,17 @@ public static class AppConfiguration
                     ProblemDetails =
                     {
                         Status = StatusCodes.Status429TooManyRequests,
-                        Type = "limite-requisicoes",
+                        Type = "rate-limited",
                         Title = "Muitas requisições. Tente novamente em instantes.",
                     },
                 });
             };
 
-            o.AddPolicy(PoliticasLimite.Geocodificacao, http => RateLimitPartition.GetFixedWindowLimiter(
+            o.AddPolicy(RateLimitPolicies.Geocoding, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                 _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = porMinuto,
+                    PermitLimit = perMinute,
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0,
                 }));
