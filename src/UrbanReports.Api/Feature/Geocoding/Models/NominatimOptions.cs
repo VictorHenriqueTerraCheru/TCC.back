@@ -6,7 +6,7 @@ public sealed class NominatimOptions
 {
     public const string Section = "Nominatim";
 
-    public string UrlBase { get; set; } = "https://nominatim.openstreetmap.org/";
+    public string BaseUrl { get; set; } = "https://nominatim.openstreetmap.org/";
 
     [Required, Url]
     public string ProjectUrl { get; set; } = "https://github.com/VictorHenriqueTerraCheru/TCC.back";

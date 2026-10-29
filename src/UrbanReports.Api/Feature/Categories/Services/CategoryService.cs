@@ -23,7 +23,7 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
     {
         var name = request.Name.Trim();
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TakeAsync(ct);
+        await db.Database.LockCatalogAsync(ct);
 
         var group = await db.Groups.FindAsync([request.Group], ct);
         if (group is null)
@@ -78,7 +78,7 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
     {
         var name = request.Name.Trim();
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TakeAsync(ct);
+        await db.Database.LockCatalogAsync(ct);
 
         var category = await db.Categories.FindAsync([id], ct);
         if (category is null)

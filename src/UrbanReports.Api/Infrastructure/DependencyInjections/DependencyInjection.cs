@@ -69,7 +69,7 @@ public static class DependencyInjection
         services.AddHttpClient(NominatimClient.HttpClientName, (sp, http) =>
             {
                 var options = sp.GetRequiredService<IOptions<NominatimOptions>>().Value;
-                http.BaseAddress = new Uri(options.UrlBase);
+                http.BaseAddress = new Uri(options.BaseUrl);
                 http.Timeout = options.Timeout;
                 http.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
                 http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("pt-BR");

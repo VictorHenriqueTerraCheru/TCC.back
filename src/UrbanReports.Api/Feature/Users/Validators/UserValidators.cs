@@ -17,7 +17,7 @@ public sealed class GetHistoryValidator : AbstractValidator<GetHistoryRequest>
 
     public GetHistoryValidator()
     {
-        RuleFor(r => r.Filter).Must(f => Filters.Contains(f)).WithMessage("Filtro deve ser tudo, registros ou votos.");
+        RuleFor(r => r.Filter).Must(f => Filters.Contains(f)).WithMessage($"Filtro deve ser {string.Join(", ", Filters)}.");
         RuleFor(r => r.Page).InclusiveBetween(1, Pagination.MaxPage);
         RuleFor(r => r.PageSize).InclusiveBetween(1, Pagination.MaxPageSize);
     }

@@ -56,8 +56,8 @@ public sealed class UserService(AppDbContext db) : IUserService
 
         var total = await union.CountAsync(ct);
         var rows = await union
-            .OrderByDescending(l => l.Date)
-            .ThenBy(l => l.Key)
+            .OrderByDescending(row => row.Date)
+            .ThenBy(row => row.Key)
             .Skip(Pagination.Skip(request.Page, request.PageSize))
             .Take(request.PageSize)
             .ToListAsync(ct);
@@ -75,7 +75,7 @@ public sealed class UserService(AppDbContext db) : IUserService
                 u.Role,
                 u.CreatedAt,
                 u.VerifiedAt,
-                db.Issues.Count(p => p.AuthorId == u.Id) + db.Incidents.Count(i => i.AuthorId == u.Id),
+                db.Issues.Count(issue => issue.AuthorId == u.Id) + db.Incidents.Count(i => i.AuthorId == u.Id),
                 db.Votes.Count(v => v.UserId == u.Id),
                 db.VerificationRequests
                     .Where(s => s.UserId == u.Id)
@@ -85,10 +85,10 @@ public sealed class UserService(AppDbContext db) : IUserService
             .AsNoTracking()
             .FirstOrDefaultAsync(ct);
 
-    private static GetHistoryItem Map(HistoryRow l)
+    private static GetHistoryItem Map(HistoryRow row)
     {
-        var type = (GetHistoryItemType)l.Type;
-        GetHistoryItemValue? value = (VoteValue?)l.Value switch
+        var type = (GetHistoryItemType)row.Type;
+        GetHistoryItemValue? value = (VoteValue?)row.Value switch
         {
             VoteValue.Positive => GetHistoryItemValue.Yes,
             VoteValue.Negative => GetHistoryItemValue.No,
@@ -97,11 +97,11 @@ public sealed class UserService(AppDbContext db) : IUserService
 
         return new GetHistoryItem(
             type,
-            l.ReportId,
-            new CategorySummary(l.CategoryId, l.CategoryName, l.Group, l.Icon),
-            l.Address,
+            row.ReportId,
+            new CategorySummary(row.CategoryId, row.CategoryName, row.Group, row.Icon),
+            row.Address,
             value,
-            (IssueStatus?)l.IssueStatus,
-            l.Date);
+            (IssueStatus?)row.IssueStatus,
+            row.Date);
     }
 }

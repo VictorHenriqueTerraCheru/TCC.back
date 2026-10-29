@@ -21,7 +21,7 @@ public static class ProductionStartup
         var password = app.Configuration["InitialAdmin:Password"];
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
-            app.Logger.LogWarning("Nenhum administrador no banco e AdminInicial__Email/AdminInicial__Senha não configurados.");
+            app.Logger.LogWarning("Nenhum administrador no banco e InitialAdmin__Email/InitialAdmin__Password não configurados.");
             return;
         }
 

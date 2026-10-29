@@ -22,7 +22,7 @@ public sealed class GroupService(AppDbContext db) : IGroupService
     {
         var label = request.Label.Trim();
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TakeAsync(ct);
+        await db.Database.LockCatalogAsync(ct);
 
         if (await LabelInUseAsync(label, null, ct))
         {
@@ -51,7 +51,7 @@ public sealed class GroupService(AppDbContext db) : IGroupService
     {
         var label = request.Label.Trim();
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TakeAsync(ct);
+        await db.Database.LockCatalogAsync(ct);
 
         var group = await db.Groups.FindAsync([key], ct);
         if (group is null)
@@ -84,7 +84,7 @@ public sealed class GroupService(AppDbContext db) : IGroupService
     public async Task<Result<Empty>> DeleteAsync(string key, CancellationToken ct)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.TakeAsync(ct);
+        await db.Database.LockCatalogAsync(ct);
 
         if (await db.Categories.AnyAsync(c => c.Group == key, ct))
         {

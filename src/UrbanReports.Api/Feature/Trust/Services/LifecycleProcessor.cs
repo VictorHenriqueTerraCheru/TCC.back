@@ -11,8 +11,8 @@ public sealed class LifecycleProcessor(
     public async Task<int> ProcessAsync(CancellationToken ct)
     {
         var ids = await db.Issues
-            .Where(p => p.Status != IssueStatus.Resolved)
-            .Select(p => p.Id)
+            .Where(issue => issue.Status != IssueStatus.Resolved)
+            .Select(issue => issue.Id)
             .ToListAsync(ct);
 
         var transitions = 0;
@@ -37,7 +37,7 @@ public sealed class LifecycleProcessor(
             if (issue.Status != previousStatus)
             {
                 transitions++;
-                logger.LogInformation("Problema {ProblemaId}: {De} → {Para}.", id, previousStatus, issue.Status);
+                logger.LogInformation("Issue {IssueId}: {From} → {To}.", id, previousStatus, issue.Status);
             }
         }
 

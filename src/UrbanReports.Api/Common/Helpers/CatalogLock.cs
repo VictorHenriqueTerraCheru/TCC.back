@@ -7,6 +7,6 @@ public static class CatalogLock
 {
     private const long Key = 7_410_001;
 
-    public static Task TakeAsync(this DatabaseFacade database, CancellationToken ct) =>
+    public static Task LockCatalogAsync(this DatabaseFacade database, CancellationToken ct) =>
         database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({Key})", ct);
 }

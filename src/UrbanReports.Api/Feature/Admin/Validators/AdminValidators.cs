@@ -11,7 +11,7 @@ public sealed class ListVerificationsValidator : AbstractValidator<ListVerificat
     {
         RuleFor(r => r.Status)
             .Must(s => s is null || StatusNames.Contains(s))
-            .WithMessage("Status desconhecido. Valores aceitos: pendente, aprovada, recusada.");
+            .WithMessage($"Status desconhecido. Valores aceitos: {Lists.ValuesOf<VerificationStatus>()}.");
         RuleFor(r => r.Page).InclusiveBetween(1, Pagination.MaxPage);
         RuleFor(r => r.PageSize).InclusiveBetween(1, Pagination.MaxPageSize);
     }
@@ -34,7 +34,7 @@ public sealed class ListUsersValidator : AbstractValidator<ListUsersRequest>
         RuleFor(r => r.Search).MaximumLength(100);
         RuleFor(r => r.Role)
             .Must(p => p is null || RoleNames.Contains(p))
-            .WithMessage("Perfil desconhecido. Valores aceitos: cidadao, cidadaoVerificado, administrador.");
+            .WithMessage($"Perfil desconhecido. Valores aceitos: {Lists.ValuesOf<Role>()}.");
         RuleFor(r => r.Page).InclusiveBetween(1, Pagination.MaxPage);
         RuleFor(r => r.PageSize).InclusiveBetween(1, Pagination.MaxPageSize);
     }

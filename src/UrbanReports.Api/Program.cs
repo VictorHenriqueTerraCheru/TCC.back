@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Infrastructure;
 using UrbanReports.Api.Persistence;
@@ -23,6 +24,8 @@ app.UseRateLimiter();
 app.MapOpenApi();
 app.MapScalarApiReference();
 app.MapEndpoints();
+
+app.Services.GetRequiredService<IStartupValidator>().Validate();
 
 if (app.Environment.IsDevelopment())
 {

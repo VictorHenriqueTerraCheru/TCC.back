@@ -39,9 +39,9 @@ public sealed class AdminService(AppDbContext db, TimeProvider clock) : IAdminSe
             .ToListAsync(ct);
 
         var items = rows
-            .Select(l => new ListVerificationsItem(
-                l.Id, new ListVerificationsUserSummary(l.UserId, l.Name, Initials(l.Name)),
-                l.AffiliationType, l.Justification, l.Status, l.CreatedAt, l.RejectionReason))
+            .Select(row => new ListVerificationsItem(
+                row.Id, new ListVerificationsUserSummary(row.UserId, row.Name, Initials(row.Name)),
+                row.AffiliationType, row.Justification, row.Status, row.CreatedAt, row.RejectionReason))
             .ToList();
 
         return new Paged<ListVerificationsItem>(items, request.Page, request.PageSize, total);

@@ -171,7 +171,7 @@ Resposta a "Ainda está lá?". Um voto por usuário e problema; votar de novo su
 `value`: `yes` (está lá) ou `no` (foi resolvido ou não foi encontrado). `lat`/`lng` opcionais, mas **juntos ou nenhum** (só um deles → `400`; sem permissão de localização → peso de proximidade 1). → `200` com o detalhe atualizado. `404` se o problema não existe.
 Erros: `422 author-cannot-vote`, `422 issue-resolved`.
 
-> A API calcula a distância no PostGIS e **descarta** `lat`/`lng`; grava só `role_at_vote` e `distanceMeters`.
+> A API calcula a distância no PostGIS e **descarta** `lat`/`lng`; grava só `role_at_vote` e `distance_meters`.
 
 ## Incidentes
 
@@ -275,7 +275,7 @@ Todas as categorias, inclusive as desativadas.
 
 ### `POST /admin/groups`
 ```json
-{ "label": "obrigatório, até 40, único (sem diferenciar maiúsculas)", "type": "issue | incident", "color": "um dos slots de GET /grupos" }
+{ "label": "obrigatório, até 40, único (sem diferenciar maiúsculas)", "type": "issue | incident", "color": "um dos slots de GET /groups" }
 ```
 → `201` com o grupo. A `key` é gerada pela API a partir do rótulo (camelCase sem acento, até 30; "Água e esgoto" → `aguaEEsgoto`; repetida ganha sufixo numérico) e **não muda**. A `sortOrder` vai para o fim. `409 duplicate-group-label`.
 
@@ -304,20 +304,20 @@ Para o host e o monitoramento; o front não precisa chamar.
 | type | status | quando |
 |---|---|---|
 | `email-already-registered` | 409 | cadastro com e-mail existente |
-| `category-not-issue` | 422 | POST /problemas com categoria de incidente |
-| `category-not-incident` | 422 | POST /incidentes com categoria de problema |
+| `category-not-issue` | 422 | POST /issues com categoria de incidente |
+| `category-not-incident` | 422 | POST /incidents com categoria de problema |
 | `author-cannot-vote` | 422 | autor votando no próprio problema |
 | `issue-resolved` | 422 | voto em problema `resolved` |
 | `time-outside-window` | 422 | incidente com `occurredAt` fora de [agora − 24 h, agora] |
 | `daily-incident-limit` | 429 | 11º incidente da conta em 24 h |
 | `verification-already-pending` | 409 | já existe solicitação pendente |
 | `already-verified` | 422 | usuário já verificado |
-| `duplicate-name` | 409 | POST/PUT /admin/categorias com nome já usado |
-| `category-limit-reached` | 409 | POST /admin/categorias quando o id (smallint) esgotou |
+| `duplicate-name` | 409 | POST/PUT /admin/categories com nome já usado |
+| `category-limit-reached` | 409 | POST /admin/categories quando o id (smallint) esgotou |
 | `group-type-mismatch` | 422 | categoria em grupo de outro tipo |
-| `duplicate-group-label` | 409 | POST/PUT /admin/grupos com rótulo já usado |
-| `group-in-use` | 409 | DELETE /admin/grupos de grupo que tem categorias |
+| `duplicate-group-label` | 409 | POST/PUT /admin/groups com rótulo já usado |
+| `group-in-use` | 409 | DELETE /admin/groups de grupo que tem categorias |
 | `verification-already-reviewed` | 409 | aprovar/recusar solicitação não pendente |
-| `own-role` | 422 | PATCH /admin/usuarios/{id}/perfil no próprio usuário |
+| `own-role` | 422 | PATCH /admin/users/{id}/role no próprio usuário |
 | `rate-limited` | 429 | limite por IP da geocodificação excedido |
-| `database-unavailable` | 503 | GET /saude/banco sem conexão com o banco |
+| `database-unavailable` | 503 | GET /health/database sem conexão com o banco |

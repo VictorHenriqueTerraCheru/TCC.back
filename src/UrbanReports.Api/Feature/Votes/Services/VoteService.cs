@@ -71,8 +71,8 @@ public sealed class VoteService(
 
         var point = Geo.ToPoint(latitude, longitude);
         var meters = await db.Issues
-            .Where(p => p.Id == issueId)
-            .Select(p => p.Location.Distance(point))
+            .Where(issue => issue.Id == issueId)
+            .Select(issue => issue.Location.Distance(point))
             .SingleAsync(ct);
 
         return (int)Math.Round(meters, MidpointRounding.AwayFromZero);

@@ -58,26 +58,26 @@ public sealed class IssueService(
 
     public async Task<GetIssueDetailResponse?> QueryDetailAsync(Guid id, Guid? userId, DateTimeOffset now, CancellationToken ct)
     {
-        var limit24h = now.AddHours(-24);
+        var since24h = now.AddHours(-24);
 
         var row = await db.Issues
-            .Where(p => p.Id == id)
-            .Select(p => new
+            .Where(issue => issue.Id == id)
+            .Select(issue => new
             {
-                p.Id,
-                Category = new CategorySummary(p.Category.Id, p.Category.Name, p.Category.Group, p.Category.Icon),
-                p.Description,
-                p.Location,
-                p.ApproximateAddress,
-                p.CreatedAt,
-                p.Status,
-                p.TrustScore,
-                p.AuthorId,
-                Voters = p.Votes.Select(v => v.UserId).Distinct().Count(),
-                Yes = p.Votes.Count(v => v.Value == VoteValue.Positive),
-                No = p.Votes.Count(v => v.Value == VoteValue.Negative),
-                NoLast24h = p.Votes.Count(v => v.Value == VoteValue.Negative && v.RegisteredAt >= limit24h),
-                MyVote = p.Votes
+                issue.Id,
+                Category = new CategorySummary(issue.Category.Id, issue.Category.Name, issue.Category.Group, issue.Category.Icon),
+                issue.Description,
+                issue.Location,
+                issue.ApproximateAddress,
+                issue.CreatedAt,
+                issue.Status,
+                issue.TrustScore,
+                issue.AuthorId,
+                Voters = issue.Votes.Select(v => v.UserId).Distinct().Count(),
+                Yes = issue.Votes.Count(v => v.Value == VoteValue.Positive),
+                No = issue.Votes.Count(v => v.Value == VoteValue.Negative),
+                NoLast24h = issue.Votes.Count(v => v.Value == VoteValue.Negative && v.RegisteredAt >= since24h),
+                MyVote = issue.Votes
                     .Where(v => v.UserId == userId)
                     .Select(v => (VoteValue?)v.Value)
                     .FirstOrDefault(),
@@ -116,44 +116,44 @@ public sealed class IssueService(
         var point = Geo.ToPoint(request.Lat, request.Lng);
 
         var rows = await db.Issues
-            .Where(p => p.CategoryId == request.CategoryId
-                && p.Status != IssueStatus.Resolved
-                && p.Location.IsWithinDistance(point, IssueLimits.DuplicatesRadiusMeters))
-            .Select(p => new
+            .Where(issue => issue.CategoryId == request.CategoryId
+                && issue.Status != IssueStatus.Resolved
+                && issue.Location.IsWithinDistance(point, IssueLimits.DuplicatesRadiusMeters))
+            .Select(issue => new
             {
-                p.Id,
-                Category = new CategorySummary(p.Category.Id, p.Category.Name, p.Category.Group, p.Category.Icon),
-                p.ApproximateAddress,
-                p.CreatedAt,
-                Distance = p.Location.Distance(point),
-                p.Status,
-                p.TrustScore,
-                Confirmations = p.Votes.Count(v => v.Value == VoteValue.Positive),
+                issue.Id,
+                Category = new CategorySummary(issue.Category.Id, issue.Category.Name, issue.Category.Group, issue.Category.Icon),
+                issue.ApproximateAddress,
+                issue.CreatedAt,
+                Distance = issue.Location.Distance(point),
+                issue.Status,
+                issue.TrustScore,
+                Confirmations = issue.Votes.Count(v => v.Value == VoteValue.Positive),
             })
-            .OrderBy(p => p.Distance)
+            .OrderBy(issue => issue.Distance)
             .Take(IssueLimits.MaxDuplicates)
             .AsNoTracking()
             .ToListAsync(ct);
 
         return rows
-            .Select(l => new SearchDuplicatesResponse(
-                l.Id,
-                l.Category,
-                l.ApproximateAddress,
-                l.CreatedAt,
-                (int)Math.Round(l.Distance, MidpointRounding.AwayFromZero),
-                TrustDisplay.Calculate(l.Status, l.TrustScore, cfg).Band,
-                l.Confirmations))
+            .Select(issue => new SearchDuplicatesResponse(
+                issue.Id,
+                issue.Category,
+                issue.ApproximateAddress,
+                issue.CreatedAt,
+                (int)Math.Round(issue.Distance, MidpointRounding.AwayFromZero),
+                TrustDisplay.Calculate(issue.Status, issue.TrustScore, cfg).Band,
+                issue.Confirmations))
             .ToList();
     }
 
     public async Task<List<ListIssuesInAreaResponse>> ListInAreaAsync(ListIssuesInAreaRequest request, CancellationToken ct)
     {
         var groups = Lists.Split(request.Groups);
-        var requests = Lists.Split(request.Status).Select(s => Enum.Parse<IssueStatus>(s, ignoreCase: true)).ToArray();
-        IssueStatus[] status = requests.Length == 0
+        var requestedStatuses = Lists.Split(request.Status).Select(s => Enum.Parse<IssueStatus>(s, ignoreCase: true)).ToArray();
+        IssueStatus[] status = requestedStatuses.Length == 0
             ? [IssueStatus.New, IssueStatus.Active, IssueStatus.PossiblyResolved]
-            : requests.Where(s => s != IssueStatus.Resolved).Distinct().ToArray();
+            : requestedStatuses.Where(s => s != IssueStatus.Resolved).Distinct().ToArray();
         if (status.Length == 0)
         {
             return [];
@@ -164,26 +164,26 @@ public sealed class IssueService(
                 SELECT * FROM issues
                 WHERE location::geometry && ST_MakeEnvelope({request.MinLng}, {request.MinLat}, {request.MaxLng}, {request.MaxLat}, 4326)
                 """)
-            .Where(p => status.Contains(p.Status));
+            .Where(issue => status.Contains(issue.Status));
         if (groups.Length > 0)
         {
-            query = query.Where(p => groups.Contains(p.Category.Group));
+            query = query.Where(issue => groups.Contains(issue.Category.Group));
         }
 
         var rows = await query
-            .OrderByDescending(p => p.TrustScore.HasValue && p.Status != IssueStatus.New)
-            .ThenByDescending(p => p.TrustScore)
-            .ThenByDescending(p => p.CreatedAt)
+            .OrderByDescending(issue => issue.TrustScore.HasValue && issue.Status != IssueStatus.New)
+            .ThenByDescending(issue => issue.TrustScore)
+            .ThenByDescending(issue => issue.CreatedAt)
             .Take(IssueLimits.MaxInArea)
-            .Select(p => new { p.Id, p.CategoryId, p.Location, p.Status, p.TrustScore })
+            .Select(issue => new { issue.Id, issue.CategoryId, issue.Location, issue.Status, issue.TrustScore })
             .AsNoTracking()
             .ToListAsync(ct);
 
         return rows
-            .Select(l =>
+            .Select(issue =>
             {
-                var (trust, band) = TrustDisplay.Calculate(l.Status, l.TrustScore, cfg);
-                return new ListIssuesInAreaResponse(l.Id, l.CategoryId, l.Location.Y, l.Location.X, l.Status, trust, band);
+                var (trust, band) = TrustDisplay.Calculate(issue.Status, issue.TrustScore, cfg);
+                return new ListIssuesInAreaResponse(issue.Id, issue.CategoryId, issue.Location.Y, issue.Location.X, issue.Status, trust, band);
             })
             .ToList();
     }
@@ -193,35 +193,35 @@ public sealed class IssueService(
         var point = Geo.ToPoint(request.Lat, request.Lng);
         var groups = Lists.Split(request.Groups);
 
-        var query = db.Issues.Where(p =>
-            p.Status != IssueStatus.Resolved && p.Location.IsWithinDistance(point, request.RadiusKm * 1000));
+        var query = db.Issues.Where(issue =>
+            issue.Status != IssueStatus.Resolved && issue.Location.IsWithinDistance(point, request.RadiusKm * 1000));
         if (groups.Length > 0)
         {
-            query = query.Where(p => groups.Contains(p.Category.Group));
+            query = query.Where(issue => groups.Contains(issue.Category.Group));
         }
 
         var total = await query.CountAsync(ct);
         var rows = await query
-            .OrderByDescending(p => p.CreatedAt)
-            .ThenBy(p => p.Id)
+            .OrderByDescending(issue => issue.CreatedAt)
+            .ThenBy(issue => issue.Id)
             .Skip(Pagination.Skip(request.Page, request.PageSize))
             .Take(request.PageSize)
-            .Select(p => new
+            .Select(issue => new
             {
-                p.Id,
-                Category = new CategorySummary(p.Category.Id, p.Category.Name, p.Category.Group, p.Category.Icon),
-                p.ApproximateAddress,
-                p.CreatedAt,
-                p.Status,
-                p.TrustScore,
+                issue.Id,
+                Category = new CategorySummary(issue.Category.Id, issue.Category.Name, issue.Category.Group, issue.Category.Icon),
+                issue.ApproximateAddress,
+                issue.CreatedAt,
+                issue.Status,
+                issue.TrustScore,
             })
             .AsNoTracking()
             .ToListAsync(ct);
 
         var items = rows
-            .Select(l => new ListRecentIssuesItem(
-                l.Id, l.Category, l.ApproximateAddress, l.CreatedAt, l.Status,
-                TrustDisplay.Calculate(l.Status, l.TrustScore, cfg).Band))
+            .Select(issue => new ListRecentIssuesItem(
+                issue.Id, issue.Category, issue.ApproximateAddress, issue.CreatedAt, issue.Status,
+                TrustDisplay.Calculate(issue.Status, issue.TrustScore, cfg).Band))
             .ToList();
 
         return new Paged<ListRecentIssuesItem>(items, request.Page, request.PageSize, total);
