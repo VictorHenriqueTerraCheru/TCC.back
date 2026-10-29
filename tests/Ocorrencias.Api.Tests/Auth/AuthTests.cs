@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Ocorrencias.Api.Auth;
 using Ocorrencias.Api.Tests.Infra;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Tests.Auth;
 

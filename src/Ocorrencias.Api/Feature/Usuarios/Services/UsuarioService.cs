@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Persistence;
-using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Usuarios;
 

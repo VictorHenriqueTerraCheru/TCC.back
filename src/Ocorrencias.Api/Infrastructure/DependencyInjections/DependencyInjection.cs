@@ -15,7 +15,7 @@ using Ocorrencias.Api.Grupos;
 using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Api.Persistence;
-using Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Confianca.Motor;
 
 namespace Ocorrencias.Api.Infrastructure;
 

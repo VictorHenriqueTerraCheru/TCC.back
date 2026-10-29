@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Persistence;
-using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Admin;
 

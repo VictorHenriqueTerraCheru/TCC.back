@@ -1,6 +1,7 @@
 using System.Globalization;
+using Ocorrencias.Api.Common;
 
-namespace Ocorrencias.Domain.Confianca;
+namespace Ocorrencias.Api.Confianca.Motor;
 
 /// <summary>Parâmetros do motor (docs/MOTOR_CONFIANCA.md). A API usa <see cref="B"/>.</summary>
 public sealed record ConfiguracaoConfianca

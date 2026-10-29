@@ -1,7 +1,7 @@
-using Ocorrencias.Domain;
-using Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Confianca.Motor;
 
-namespace Ocorrencias.Domain.Tests.Confianca;
+namespace Ocorrencias.Api.Tests.Confianca.Motor;
 
 /// <summary>Atalhos para montar votos e estados nos testes.</summary>
 internal static class Cenario

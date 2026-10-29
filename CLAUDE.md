@@ -27,8 +27,6 @@ Se uma tarefa exigir mudar a regra ou o contrato, **pare e pergunte** — essas 
 ```
 Ocorrencias.slnx
 src/
-  Ocorrencias.Domain/          # motor de confiança + enums + tipos de valor. ZERO dependências (nem EF, nem ASP.NET)
-    Confianca/MotorConfianca.cs, ConfiguracaoConfianca.cs, VotoFato.cs, ...
   Ocorrencias.Api/
     Program.cs                 # AddAplicacao() + configurações de borda + pipeline + MapEndpoints()
     Modules/                   # um IEndpointModule por área (descobertos por reflexão): só HTTP
@@ -43,29 +41,29 @@ src/
       Errors/Erros<Area>.cs            # ErroAplicacao com o type de docs/API.md
     Feature/Geocodificacao/Services/   # NominatimClient, ServicoGeocodificacao (cache + 1 req/s)
     Feature/Confianca/                 # RecalculoProblema, ProcessadorCicloDeVida, Jobs/CicloDeVidaJob (15 min)
+      Motor/                           # MotorConfianca, ConfiguracaoConfianca, VotoFato...: puro, só BCL + enums (PurezaDoMotorTests)
     Infrastructure/
       DependencyInjections/DependencyInjection.cs   # AddAplicacao: tudo que é interno
       Configurations/AppConfiguration.cs            # CORS, autenticação/policies, rate limit
       Configurations/OpenApiConfig.cs
       Persistence/AppDbContext.cs, Entidades/, Configurations/, Migrations/, SeedDesenvolvimento.cs
-    Common/                    # Resultado<T>, ErroAplicacao, IEndpointModule, Validar<T>(), Paginado, Geo, RelogioPostgres, Statics
-  Ocorrencias.Simulator/       # console: cenários sintéticos A vs B (referencia SÓ o Domain)
+    Common/                    # Enums, Resultado<T>, ErroAplicacao, IEndpointModule, Validar<T>(), Paginado, Geo, RelogioPostgres, Statics
+  Ocorrencias.Simulator/       # console: cenários sintéticos A vs B (referencia a Api só para chamar o motor)
 tests/
-  Ocorrencias.Domain.Tests/
-  Ocorrencias.Api.Tests/       # Esqueleto/ContratoTests + openapi.snapshot.json travam o contrato
-  Ocorrencias.Simulator.Tests/
+  Ocorrencias.Api.Tests/       # Esqueleto/ContratoTests + openapi.snapshot.json travam o contrato; Confianca/Motor/ testa o motor
+  Ocorrencias.Simulator.Tests/ # Referencia/*.csv trava a saída do Simulator (Csv_igual_a_referencia)
 cenarios/base.json
 docs/
 ```
 
-Fluxo: **Module** (valida com `.Validar<T>()`, lê o usuário do token, monta `Location`) → **Service** (EF + Domain, recebe `Guid usuarioId`, devolve `Resultado<T>` com `ErroAplicacao`) → **Module** traduz para o `Results<...>` tipado (o OpenAPI deriva dessa assinatura). Sem MediatR e sem repositório: o service usa o `AppDbContext` direto (o EF já é repositório/unidade de trabalho).
+Fluxo: **Module** (valida com `.Validar<T>()`, lê o usuário do token, monta `Location`) → **Service** (EF + motor, recebe `Guid usuarioId`, devolve `Resultado<T>` com `ErroAplicacao`) → **Module** traduz para o `Results<...>` tipado (o OpenAPI deriva dessa assinatura). Sem MediatR e sem repositório: o service usa o `AppDbContext` direto (o EF já é repositório/unidade de trabalho).
 
 ## Regras inegociáveis
 
-1. **O motor de confiança mora no `Ocorrencias.Domain`, é puro e testado.** A API nunca reimplementa fórmula; chama `MotorConfianca`. O Simulator chama as mesmas funções.
+1. **O motor de confiança mora em `Feature/Confianca/Motor/`, é puro (só BCL e os enums de `Common`, garantido por `PurezaDoMotorTests`) e testado.** A API nunca reimplementa fórmula; chama `MotorConfianca`. O Simulator chama as mesmas funções.
 2. **O voto guarda fatos, não pesos**: `perfil_no_momento` e `distancia_metros` (nulo = sem GPS). A distância é calculada com `ST_Distance` (geography) e o `lat/lng` do votante é **descartado** — nunca persista nem logue a posição do votante (LGPD, RNF03).
 3. **Incidente**: arredonde `lat/lng` para 3 casas **antes** de persistir; nunca exponha `autor_id` em resposta alguma.
-4. A configuração ativa da API é a **B** (`ConfiguracaoConfianca.B`), via `IOptions` só para o nome; os valores vêm do Domain.
+4. A configuração ativa da API é a **B** (`ConfiguracaoConfianca.B`), via `IOptions` só para o nome; os valores vêm do motor.
 5. Use `IClock`/`TimeProvider` injetado — nunca `DateTime.Now` no código de negócio (os testes controlam o tempo).
 6. Unicidade de voto: índice único `(problema_id, usuario_id)` (voto único "Ainda está lá?", sem coluna `tipo`); votar de novo faz UPSERT (substitui valor, perfil, distância e `registrado_em`).
 7. Toda mudança de voto recalcula `confianca` e avalia o ciclo de vida **na mesma transação**.
@@ -76,7 +74,7 @@ Fluxo: **Module** (valida com `.Validar<T>()`, lê o usuário do token, monta `L
 ## Convenções
 
 - Código e identificadores em **português** sem acento (`Problema`, `RegistrarProblema`), como no domínio do TCC. Mensagens de erro para o usuário em português.
-- `record` para DTOs; `sealed` por padrão; nullable habilitado; `TreatWarningsAsErrors` no Domain.
+- `record` para DTOs; `sealed` por padrão; nullable habilitado; `TreatWarningsAsErrors` na Api.
 - Um service por área (`I<Area>Service`, scoped, registrado em `DependencyInjection.AddServicos`), um module por área. Endpoint novo nasce exigindo autenticação (grupo `/api/v1`); visitante só com `AllowAnonymous()` explícito.
 - DTOs de contrato são `record`s de topo com o nome do schema no OpenAPI (`ObterDetalheProblemaResponse`). Mudou o OpenAPI? `ContratoTests.Openapi_igual_ao_snapshot` falha; regrave com `ATUALIZAR_SNAPSHOT_OPENAPI=1 dotnet test --filter Openapi_igual_ao_snapshot` **só** se a mudança de contrato foi aprovada (e replique em `docs/API.md` e no front).
 - Commits em Conventional Commits, em português (`feat(votos): ...`). Uma branch `etapa-N` + PR por etapa do `PLAN.md`.

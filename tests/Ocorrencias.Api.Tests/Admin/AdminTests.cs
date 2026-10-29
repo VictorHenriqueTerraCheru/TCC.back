@@ -7,7 +7,6 @@ using Ocorrencias.Api.Admin;
 using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Verificacao;
 using Ocorrencias.Api.Tests.Infra;
-using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Tests.Admin;
 

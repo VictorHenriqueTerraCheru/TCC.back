@@ -1,7 +1,7 @@
 using System.Globalization;
 using Ocorrencias.Api.Problemas;
-using Ocorrencias.Domain;
-using Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Confianca.Motor;
 
 namespace Ocorrencias.Api.Tests.Problemas;
 

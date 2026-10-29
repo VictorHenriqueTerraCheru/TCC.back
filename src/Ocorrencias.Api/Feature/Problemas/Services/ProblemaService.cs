@@ -4,8 +4,7 @@ using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Votos;
 using Ocorrencias.Api.Geocodificacao;
 using Ocorrencias.Api.Persistence;
-using Ocorrencias.Domain;
-using Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Confianca.Motor;
 
 namespace Ocorrencias.Api.Problemas;
 

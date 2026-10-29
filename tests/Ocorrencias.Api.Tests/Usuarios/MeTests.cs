@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Tests.Infra;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Tests.Usuarios;
 

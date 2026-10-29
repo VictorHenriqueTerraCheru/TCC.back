@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Tests.Infra;
-using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Tests.Problemas;
 

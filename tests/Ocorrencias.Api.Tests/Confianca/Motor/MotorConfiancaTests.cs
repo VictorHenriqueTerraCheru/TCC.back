@@ -1,8 +1,8 @@
-using Ocorrencias.Domain;
-using Ocorrencias.Domain.Confianca;
-using static Ocorrencias.Domain.Tests.Confianca.Cenario;
+using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Confianca.Motor;
+using static Ocorrencias.Api.Tests.Confianca.Motor.Cenario;
 
-namespace Ocorrencias.Domain.Tests.Confianca;
+namespace Ocorrencias.Api.Tests.Confianca.Motor;
 
 /// <summary>Casos obrigatórios de docs/MOTOR_CONFIANCA.md (numeração da tabela).</summary>
 public sealed class MotorConfiancaTests

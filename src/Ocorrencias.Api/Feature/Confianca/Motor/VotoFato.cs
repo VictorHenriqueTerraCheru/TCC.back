@@ -1,4 +1,6 @@
-namespace Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Common;
+
+namespace Ocorrencias.Api.Confianca.Motor;
 
 /// <summary>
 /// O voto guarda fatos, não pesos. <paramref name="DistanciaMetros"/> nulo = votante sem localização.

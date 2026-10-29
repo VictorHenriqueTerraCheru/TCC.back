@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Confianca.Motor;
 using Ocorrencias.Simulator.Modelo;
 
 namespace Ocorrencias.Simulator;

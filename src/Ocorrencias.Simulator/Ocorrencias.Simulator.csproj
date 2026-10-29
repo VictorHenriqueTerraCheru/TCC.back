@@ -4,9 +4,16 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
-  <!-- O Simulator referencia SÓ o Domain: mede exatamente o motor usado pela API. -->
+  <!-- O Simulator referencia a Api só para chamar o motor de confiança: mede exatamente o motor usado em produção. -->
   <ItemGroup>
-    <ProjectReference Include="..\Ocorrencias.Domain\Ocorrencias.Domain.csproj" />
+    <ProjectReference Include="..\Ocorrencias.Api\Ocorrencias.Api.csproj" />
   </ItemGroup>
+
+  <!-- O gerador de comentários do OpenAPI vem junto com a Api e injetaria código de ASP.NET no Simulator. -->
+  <Target Name="RemoverGeradorOpenApi" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'Microsoft.AspNetCore.OpenApi.SourceGenerators'" />
+    </ItemGroup>
+  </Target>
 
 </Project>

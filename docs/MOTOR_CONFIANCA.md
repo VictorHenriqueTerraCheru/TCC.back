@@ -1,6 +1,6 @@
 # Motor de confiança — especificação normativa
 
-Este arquivo é a **fonte da verdade** do mecanismo de confiança (TCC, Seção 5.2). O projeto `Ocorrencias.Domain` implementa exatamente isto. Se o código e este arquivo divergirem, o código está errado — ou este arquivo precisa ser atualizado *e* o TCC também.
+Este arquivo é a **fonte da verdade** do mecanismo de confiança (TCC, Seção 5.2). O motor em `src/Ocorrencias.Api/Feature/Confianca/Motor/` implementa exatamente isto. Se o código e este arquivo divergirem, o código está errado — ou este arquivo precisa ser atualizado *e* o TCC também.
 
 ## Princípios
 
@@ -107,7 +107,7 @@ O mínimo `R⁻ ≥ 5` vale **só para entrar** em PossivelmenteResolvida. Para 
 
 Avaliar **uma transição por chamada** é suficiente, porque o job roda a cada 15 min; `Nova → Ativa → PossivelmenteResolvida` nunca acontece na mesma chamada.
 
-## API pública do Domain
+## API pública do motor
 
 ```csharp
 public static class MotorConfianca
@@ -122,7 +122,7 @@ public static class MotorConfianca
 public sealed record ResultadoConfianca(double Indice, FaixaConfianca Faixa, double EPositivo, double ENegativo);
 ```
 
-## Casos de teste obrigatórios (xUnit, `Ocorrencias.Domain.Tests`)
+## Casos de teste obrigatórios (xUnit, `Ocorrencias.Api.Tests/Confianca/Motor/`)
 
 Tolerância `1e-6` salvo indicação. `t0 = 2026-10-01T12:00:00Z`.
 
@@ -148,7 +148,7 @@ Tolerância `1e-6` salvo indicação. `t0 = 2026-10-01T12:00:00Z`.
 | 18 | Do 17, `agora + 47 h` sem novos votos | continua PossivelmenteResolvida |
 | 19 | Do 17, `agora + 48 h` sem novos votos | Resolvida |
 | 20 | PossivelmenteResolvida, chegam 3 "sim" a 100 m (p < 0,6) | Ativa, `CondicaoResolucaoDesde = null` |
-| 21 | Mesmo usuário com 2 votos na lista | **não pode acontecer** — a API garante unicidade; o Domain pode assumir isso, mas o teste documenta |
+| 21 | Mesmo usuário com 2 votos na lista | **não pode acontecer** — a API garante unicidade; o motor pode assumir isso, mas o teste documenta |
 | 22 | Nova com 5 "não" de cidadãos a 100 m | Baixa; Ativa → PossivelmenteResolvida na avaliação seguinte → Resolvida 48 h depois |
 
 Se algum caso parecer contraintuitivo, **não altere a regra para fazer o teste passar**: registre e discuta com os autores, porque a regra está no texto do TCC.

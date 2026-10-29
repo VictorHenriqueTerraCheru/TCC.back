@@ -1,4 +1,6 @@
-namespace Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Common;
+
+namespace Ocorrencias.Api.Confianca.Motor;
 
 /// <summary>
 /// Motor de confiança (TCC, Seção 5.2). Funções puras: o instante atual e a configuração entram
