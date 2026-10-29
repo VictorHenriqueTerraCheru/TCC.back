@@ -6,7 +6,7 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplication(builder.Configuration)
-    .AddConfiguredCors(builder.Configuration)
+    .AddConfiguredCors(builder.Configuration, builder.Environment)
     .AddConfiguredOpenApi()
     .AddAuthentication(builder.Configuration)
     .AddRateLimits(builder.Configuration);

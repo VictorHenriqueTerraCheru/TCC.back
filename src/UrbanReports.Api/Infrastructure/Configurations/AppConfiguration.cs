@@ -11,9 +11,13 @@ namespace UrbanReports.Api.Infrastructure;
 
 public static class AppConfiguration
 {
-    public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         var origins = configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
+        if (origins.Length == 0 && environment.IsProduction())
+        {
+            throw new InvalidOperationException("Cors:Origins is empty: set Cors__Origins__0 to the front-end domain.");
+        }
 
         return services.AddCors(o => o.AddPolicy(CorsPolicies.Front, p => p
             .WithOrigins(origins)
