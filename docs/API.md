@@ -106,7 +106,7 @@ Grupos de categorias, em ordem de exibição (`sortOrder`, depois `label`). Cada
 ```json
 [ { "key": "viaPublica", "label": "Via pública", "type": "issue", "color": "orange", "sortOrder": 1 } ]
 ```
-Conjunto inicial: `viaPublica` (Via pública, problema, laranja), `eletrica` (Elétrica, problema, ocre), `limpeza` (Limpeza, problema, marrom), `seguranca` (Segurança, incidente, vermelho), `transito` (Trânsito, incidente, terracota). O filtro `groups=` de `/issues` e `/incidents/heatmap` aceita qualquer `key` cadastrada.
+Conjunto inicial: `viaPublica` (Via pública, `issue`, `orange`), `eletrica` (Elétrica, `issue`, `ochre`), `limpeza` (Limpeza, `issue`, `brown`), `seguranca` (Segurança, `incident`, `red`), `transito` (Trânsito, `incident`, `terracotta`). O filtro `groups=` de `/issues` e `/incidents/heatmap` aceita qualquer `key` cadastrada.
 
 ## Problemas
 

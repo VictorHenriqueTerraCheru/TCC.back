@@ -624,7 +624,7 @@
       },
       "GroupColor": {
         "enum": [
-          "laranja",
+          "orange",
           "ochre",
           "brown",
           "red",

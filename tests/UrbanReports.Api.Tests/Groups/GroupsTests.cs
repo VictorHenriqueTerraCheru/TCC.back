@@ -33,7 +33,7 @@ public sealed class GroupsTests(ApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         groups.Take(5).Select(g => g.Key).Should().Equal("viaPublica", "eletrica", "limpeza", "seguranca", "transito");
-        groups[0].Should().Be(new GroupResponse("viaPublica", "Via pública", ReportType.Issue, GroupColor.Laranja, 1));
+        groups[0].Should().Be(new GroupResponse("viaPublica", "Via pública", ReportType.Issue, GroupColor.Orange, 1));
         groups[3].Type.Should().Be(ReportType.Incident);
     }
 

@@ -36,7 +36,7 @@ public enum ReportType
 
 public enum GroupColor
 {
-    Laranja = 1,
+    Orange = 1,
     Ochre = 2,
     Brown = 3,
     Red = 4,
