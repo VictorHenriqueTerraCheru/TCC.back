@@ -1,0 +1,88 @@
+op delete seg=5 params=[path:string:obrigatorio] corpo=[-] respostas=[204,404] bearer
+op get seg=3 params=[] corpo=[-] respostas=[200:application/json:array itens<ref>] anonimo
+op get seg=3 params=[] corpo=[-] respostas=[200:application/json:array itens<ref>] anonimo
+op get seg=3 params=[] corpo=[-] respostas=[200:application/json:ref] anonimo
+op get seg=3 params=[] corpo=[-] respostas=[200:application/json:ref] bearer
+op get seg=3 params=[query:number double:obrigatorio,query:number double:obrigatorio,query:number double:obrigatorio,query:number double:obrigatorio,query:string:opcional,query:string:opcional] corpo=[-] respostas=[200:application/json:array itens<ref>,400:application/problem+json:ref] anonimo
+op get seg=4 params=[] corpo=[-] respostas=[200:application/json:array itens<ref>] bearer
+op get seg=4 params=[] corpo=[-] respostas=[200:application/json:ref,503:application/problem+json:ref] anonimo
+op get seg=4 params=[path:string uuid:obrigatorio] corpo=[-] respostas=[200:application/json:ref,404] anonimo
+op get seg=4 params=[query:integer int16:obrigatorio,query:number double:obrigatorio,query:number double:obrigatorio] corpo=[-] respostas=[200:application/json:array itens<ref>,400:application/problem+json:ref] bearer
+op get seg=4 params=[query:integer int32:opcional,query:integer int32:opcional,query:number double:obrigatorio,query:number double:obrigatorio,query:number double:opcional,query:string:opcional] corpo=[-] respostas=[200:application/json:ref,400:application/problem+json:ref] anonimo
+op get seg=4 params=[query:integer int32:opcional,query:integer int32:opcional,query:string:opcional,query:string:opcional] corpo=[-] respostas=[200:application/json:ref,400:application/problem+json:ref] bearer
+op get seg=4 params=[query:integer int32:opcional,query:integer int32:opcional,query:string:opcional] corpo=[-] respostas=[200:application/json:ref,400:application/problem+json:ref] bearer
+op get seg=4 params=[query:integer int32:opcional,query:integer int32:opcional,query:string:opcional] corpo=[-] respostas=[200:application/json:ref,400:application/problem+json:ref] bearer
+op get seg=4 params=[query:integer int32:opcional,query:number double:obrigatorio,query:number double:obrigatorio,query:number double:obrigatorio,query:number double:obrigatorio,query:string:opcional] corpo=[-] respostas=[200:application/json:array itens<ref>,400:application/problem+json:ref] anonimo
+op get seg=4 params=[query:number double:obrigatorio,query:number double:obrigatorio] corpo=[-] respostas=[200:application/json:ref,400:application/problem+json:ref,429:application/problem+json:ref] anonimo
+op get seg=4 params=[query:number double:obrigatorio,query:number double:obrigatorio] corpo=[-] respostas=[200:application/json:ref,400:application/problem+json:ref] anonimo
+op patch seg=3 params=[] corpo=[application/json:ref] respostas=[200:application/json:ref,400:application/problem+json:ref] bearer
+op patch seg=6 params=[path:integer int32:obrigatorio] corpo=[application/json:ref] respostas=[204,404] bearer
+op patch seg=6 params=[path:string uuid:obrigatorio] corpo=[application/json:ref] respostas=[204,400:application/problem+json:ref,404] bearer
+op post seg=3 params=[] corpo=[application/json:ref] respostas=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post seg=3 params=[] corpo=[application/json:ref] respostas=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post seg=3 params=[] corpo=[application/json:ref] respostas=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post seg=4 params=[] corpo=[application/json:ref] respostas=[200:application/json:ref,400:application/problem+json:ref] anonimo
+op post seg=4 params=[] corpo=[application/json:ref] respostas=[201:application/json:ref,400:application/problem+json:ref] anonimo
+op post seg=4 params=[] corpo=[application/json:ref] respostas=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post seg=4 params=[] corpo=[application/json:ref] respostas=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post seg=6 params=[path:string uuid:obrigatorio] corpo=[-] respostas=[204,404] bearer
+op post seg=6 params=[path:string uuid:obrigatorio] corpo=[application/json:ref] respostas=[204,400:application/problem+json:ref,404] bearer
+op put seg=5 params=[path:integer int32:obrigatorio] corpo=[application/json:ref] respostas=[200:application/json:ref,400:application/problem+json:ref,404] bearer
+op put seg=5 params=[path:string uuid:obrigatorio] corpo=[application/json:ref] respostas=[200:application/json:ref,400:application/problem+json:ref,404] bearer
+op put seg=5 params=[path:string:obrigatorio] corpo=[application/json:ref] respostas=[200:application/json:ref,400:application/problem+json:ref,404] bearer
+schema enum10
+schema enum2
+schema enum2
+schema enum2
+schema enum3
+schema enum3
+schema enum3
+schema enum3
+schema enum3
+schema enum4
+schema enum4
+schema object props<array itens<ref>,date-time,integer int32,ref> obrigatorias=4
+schema object props<array itens<ref>,integer int32,integer int32,integer int32> obrigatorias=4
+schema object props<array itens<ref>,integer int32,integer int32,integer int32> obrigatorias=4
+schema object props<array itens<ref>,integer int32,integer int32,integer int32> obrigatorias=4
+schema object props<array itens<ref>,integer int32,integer int32,integer int32> obrigatorias=4
+schema object props<boolean,date-time,null|number double,null|string,number double,number double,oneOf<null,ref>,oneOf<null,ref>,oneOf<null,ref>,ref,ref,ref,string,string uuid> obrigatorias=14
+schema object props<boolean,integer int16,ref,string,string,string> obrigatorias=6
+schema object props<boolean,null|string,null|string,null|string,null|string,null|string,null|string,string> obrigatorias=8
+schema object props<boolean,string,string,string> obrigatorias=4
+schema object props<boolean> obrigatorias=1
+schema object props<date-time,date-time,integer int32,integer int32,oneOf<null,ref>,ref,string,string,string uuid> obrigatorias=9
+schema object props<date-time,date-time,ref,string,string,string uuid> obrigatorias=6
+schema object props<date-time,integer int16,number double,number double> obrigatorias=4
+schema object props<date-time,integer int32,integer int32,oneOf<null,ref>,ref,string,string uuid> obrigatorias=7
+schema object props<date-time,integer int32,integer int32> obrigatorias=3
+schema object props<date-time,null|string,null|string uuid,oneOf<null,ref>,oneOf<null,ref>,ref,ref> obrigatorias=7
+schema object props<date-time,null|string,ref,ref,ref,string,string uuid> obrigatorias=7
+schema object props<date-time,null|string,ref,ref> obrigatorias=4
+schema object props<date-time,oneOf<null,ref>,ref,ref,string,string uuid> obrigatorias=6
+schema object props<date-time,ref,ref,string,string uuid> obrigatorias=5
+schema object props<date-time,ref,string> obrigatorias=3
+schema object props<integer int16,integer int32,integer int32,string> obrigatorias=4
+schema object props<integer int16,null|number double,number double,number double,oneOf<null,ref>,ref,string uuid> obrigatorias=7
+schema object props<integer int16,null|string,number double,number double> obrigatorias=4
+schema object props<integer int16,ref,string,string,string> obrigatorias=5
+schema object props<integer int16,string,string,string> obrigatorias=4
+schema object props<integer int32,integer int32,integer int32> obrigatorias=3
+schema object props<integer int32,number double,number double> obrigatorias=3
+schema object props<integer int32,ref,ref,string,string> obrigatorias=5
+schema object props<integer int32,ref,string> obrigatorias=3
+schema object props<integer|null int32,null|string,null|string,null|string,null|string,object> obrigatorias=0
+schema object props<integer|null int32,null|string,null|string,null|string,null|string> obrigatorias=0
+schema object props<null|number double,null|number double,ref> obrigatorias=3
+schema object props<ref,ref,string> obrigatorias=3
+schema object props<ref,string,string,string uuid> obrigatorias=4
+schema object props<ref,string,string,string> obrigatorias=4
+schema object props<ref,string> obrigatorias=2
+schema object props<ref> obrigatorias=1
+schema object props<string,string,string uuid> obrigatorias=3
+schema object props<string,string,string> obrigatorias=3
+schema object props<string,string> obrigatorias=2
+schema object props<string> obrigatorias=1
+schema object props<string> obrigatorias=1
+schema object props<string> obrigatorias=1
+tags 10

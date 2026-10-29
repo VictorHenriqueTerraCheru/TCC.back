@@ -1,4 +1,4 @@
-using Ocorrencias.Api.Common;
+using UrbanReports.Api.Common;
 using Ocorrencias.Simulator.Modelo;
 
 namespace Ocorrencias.Simulator.Tests;

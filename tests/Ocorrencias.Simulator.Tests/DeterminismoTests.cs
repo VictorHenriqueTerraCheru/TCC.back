@@ -1,4 +1,4 @@
-using Ocorrencias.Api.Confianca.Motor;
+using UrbanReports.Api.Confianca.Motor;
 using Ocorrencias.Simulator.Experimento;
 using Ocorrencias.Simulator.Modelo;
 using Ocorrencias.Simulator.Saida;
@@ -61,7 +61,7 @@ public sealed class DeterminismoTests
     {
         var referencias = typeof(Executor).Assembly.GetReferencedAssemblies().Select(a => a.Name!).ToList();
 
-        referencias.Where(n => n.StartsWith("Ocorrencias", StringComparison.Ordinal)).Should().Equal("Ocorrencias.Api");
-        referencias.Should().OnlyContain(n => n == "Ocorrencias.Api" || n.StartsWith("System", StringComparison.Ordinal) || n == "netstandard");
+        referencias.Where(n => n.StartsWith("Ocorrencias", StringComparison.Ordinal) || n.StartsWith("UrbanReports", StringComparison.Ordinal)).Should().Equal("UrbanReports.Api");
+        referencias.Should().OnlyContain(n => n == "UrbanReports.Api" || n.StartsWith("System", StringComparison.Ordinal) || n == "netstandard");
     }
 }

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/UrbanReports.Api/UrbanReports.Api.csproj" />
+    <Project Path="src/Ocorrencias.Simulator/Ocorrencias.Simulator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UrbanReports.Api.Tests/UrbanReports.Api.Tests.csproj" />
+    <Project Path="tests/Ocorrencias.Simulator.Tests/Ocorrencias.Simulator.Tests.csproj" />
+  </Folder>
+</Solution>

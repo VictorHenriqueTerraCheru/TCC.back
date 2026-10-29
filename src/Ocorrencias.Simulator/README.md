@@ -1,6 +1,6 @@
 # Ocorrencias.Simulator
 
-Console que compara configurações do motor de confiança (A, B e variantes de peso do verificado) em cenários sintéticos, com e sem ataque coordenado. Referencia a `Ocorrencias.Api` só para chamar o motor de confiança (`Feature/Confianca/Motor/`): os pesos, o índice e o ciclo de vida são calculados pelas mesmas funções que a API usa (`MotorConfianca`). Roda em memória, sem banco, e é **determinístico**: a mesma semente gera CSVs idênticos byte a byte (RNF06).
+Console que compara configurações do motor de confiança (A, B e variantes de peso do verificado) em cenários sintéticos, com e sem ataque coordenado. Referencia a `UrbanReports.Api` só para chamar o motor de confiança (`Feature/Confianca/Motor/`): os pesos, o índice e o ciclo de vida são calculados pelas mesmas funções que a API usa (`MotorConfianca`). Roda em memória, sem banco, e é **determinístico**: a mesma semente gera CSVs idênticos byte a byte (RNF06).
 
 ## Como rodar
 

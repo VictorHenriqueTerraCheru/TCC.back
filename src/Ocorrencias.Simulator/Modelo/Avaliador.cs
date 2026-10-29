@@ -1,5 +1,5 @@
-using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Confianca.Motor;
+using UrbanReports.Api.Common;
+using UrbanReports.Api.Confianca.Motor;
 
 namespace Ocorrencias.Simulator.Modelo;
 
