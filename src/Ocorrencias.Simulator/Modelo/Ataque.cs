@@ -1,4 +1,4 @@
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Simulator.Modelo;
 

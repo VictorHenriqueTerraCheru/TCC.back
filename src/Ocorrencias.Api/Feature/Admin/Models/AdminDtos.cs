@@ -1,5 +1,4 @@
 using Ocorrencias.Api.Common;
-using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Admin;
 

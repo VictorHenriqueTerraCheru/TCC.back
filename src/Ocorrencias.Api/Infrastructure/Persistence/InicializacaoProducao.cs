@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Persistence;
 

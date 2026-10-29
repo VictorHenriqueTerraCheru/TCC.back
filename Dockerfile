@@ -4,7 +4,6 @@ WORKDIR /src
 
 # Primeiro só os arquivos de projeto: se eles não mudarem, o Docker reaproveita o restore (cache)
 COPY global.json Directory.Build.props Directory.Packages.props ./
-COPY src/Ocorrencias.Domain/Ocorrencias.Domain.csproj src/Ocorrencias.Domain/
 COPY src/Ocorrencias.Api/Ocorrencias.Api.csproj src/Ocorrencias.Api/
 RUN dotnet restore src/Ocorrencias.Api/Ocorrencias.Api.csproj
 

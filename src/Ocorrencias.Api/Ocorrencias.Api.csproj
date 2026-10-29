@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <UserSecretsId>b3168579-1302-419a-95cb-0dd27899672b</UserSecretsId>
   </PropertyGroup>
 
@@ -21,8 +22,5 @@
     <InternalsVisibleTo Include="Ocorrencias.Api.Tests" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Ocorrencias.Domain\Ocorrencias.Domain.csproj" />
-  </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-using Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Confianca.Motor;
 using Ocorrencias.Simulator.Experimento;
 using Ocorrencias.Simulator.Modelo;
 using Ocorrencias.Simulator.Saida;
@@ -57,11 +57,11 @@ public sealed class DeterminismoTests
     }
 
     [Fact]
-    public void Simulator_referencia_so_o_domain()
+    public void Simulator_referencia_so_a_api()
     {
         var referencias = typeof(Executor).Assembly.GetReferencedAssemblies().Select(a => a.Name!).ToList();
 
-        referencias.Where(n => n.StartsWith("Ocorrencias", StringComparison.Ordinal)).Should().Equal("Ocorrencias.Domain");
-        referencias.Should().OnlyContain(n => n == "Ocorrencias.Domain" || n.StartsWith("System", StringComparison.Ordinal) || n == "netstandard");
+        referencias.Where(n => n.StartsWith("Ocorrencias", StringComparison.Ordinal)).Should().Equal("Ocorrencias.Api");
+        referencias.Should().OnlyContain(n => n == "Ocorrencias.Api" || n.StartsWith("System", StringComparison.Ordinal) || n == "netstandard");
     }
 }

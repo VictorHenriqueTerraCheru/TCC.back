@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Persistence;
-using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Verificacao;
 

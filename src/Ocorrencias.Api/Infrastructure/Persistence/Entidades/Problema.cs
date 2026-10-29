@@ -1,5 +1,5 @@
 using NetTopologySuite.Geometries;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Persistence;
 

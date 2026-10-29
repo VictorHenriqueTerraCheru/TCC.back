@@ -1,7 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Persistence;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Common;
 

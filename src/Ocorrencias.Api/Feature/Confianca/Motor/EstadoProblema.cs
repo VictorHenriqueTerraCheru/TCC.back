@@ -1,4 +1,6 @@
-namespace Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Common;
+
+namespace Ocorrencias.Api.Confianca.Motor;
 
 public sealed record EstadoProblema(
     StatusProblema Status,

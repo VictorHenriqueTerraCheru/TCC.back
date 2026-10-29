@@ -1,6 +1,6 @@
 # Plano de implementação — API
 
-Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `dotnet test` verde e um commit. **Não pule a Etapa 1**: ela é o núcleo do TCC e destrava o Simulator em paralelo com o front.
+Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings, `dotnet test` verde e um commit. **Não pule a Etapa 1**: ela é o núcleo do TCC e destrava o Simulator em paralelo com o front.
 
 > Os nomes `Area/Acao` das etapas (ex.: `Problemas/Registrar`) são as operações de cada área. No código atual viram métodos do service da área (`IProblemaService.RegistrarAsync`), não pastas por ação.
 
@@ -8,7 +8,7 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `
 
 ## Etapa 0 — Esqueleto (≈ ½ dia)
 
-- Solution com os 6 projetos da árvore do `CLAUDE.md` (Domain, Api e Simulator em `src/`; um projeto de testes para cada em `tests/`); `Directory.Build.props` com `net10.0`, `Nullable`, `ImplicitUsings`, `LangVersion latest`.
+- Solution com os 4 projetos da árvore do `CLAUDE.md` (Api e Simulator em `src/`; um projeto de testes para cada em `tests/`); `Directory.Build.props` com `net10.0`, `Nullable`, `ImplicitUsings`, `LangVersion latest`.
 - `docker-compose.yml` com `postgis/postgis:16-3.4` (usuário/senha/banco `ocorrencias`).
 - `Program.cs` mínimo: OpenAPI + Scalar, ProblemDetails, `JsonStringEnumConverter` camelCase, CORS por configuração (`Cors:Origens`, com `http://localhost:5173` em Development), health checks em `GET /api/v1/saude` (aplicação) e `GET /api/v1/saude/banco` (banco; 503 se fora), anônimos e documentados no OpenAPI (tag `Saude`).
 - Garanta que o documento OpenAPI (`/openapi/v1.json`) descreva os enums como string e os campos anuláveis corretamente: o front gera os tipos TypeScript a partir dele.
@@ -16,12 +16,12 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `
 
 **Aceite:** `dotnet run` sobe e `/scalar` abre; CI verde.
 
-## Etapa 1 — Motor de confiança no Domain (≈ 1–2 dias) ⭐
+## Etapa 1 — Motor de confiança (`Feature/Confianca/Motor/`) (≈ 1–2 dias) ⭐
 
 - Implementar tudo de `docs/MOTOR_CONFIANCA.md`: enums, `VotoFato`, `EstadoProblema`, `ConfiguracaoConfianca` (A, B, `ComPesoVerificado`), `MotorConfianca`.
-- `Ocorrencias.Domain.Tests` com **todos** os casos da tabela, mais testes de propriedade simples: C ∈ [0, 100); C monotônico em E⁺; A independe de `agora`.
+- Testes do motor (`Ocorrencias.Api.Tests/Confianca/Motor/`) com **todos** os casos da tabela, mais testes de propriedade simples: C ∈ [0, 100); C monotônico em E⁺; A independe de `agora`.
 
-**Aceite:** 100% dos casos da tabela passam; o Domain não referencia nenhum pacote.
+**Aceite:** 100% dos casos da tabela passam; o motor só usa BCL e os enums de `Common` (`PurezaDoMotorTests`).
 
 ## Etapa 2 — Dados e autenticação (≈ 1–2 dias)
 
@@ -72,7 +72,7 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings no Domain, `
 
 ## Etapa 7 — Simulator (≈ 2–3 dias) ⭐
 
-Console que referencia **só** o `Ocorrencias.Domain`. Roda em memória, sem banco.
+Console que referencia a `Ocorrencias.Api` só para chamar o motor. Roda em memória, sem banco.
 
 **Modelo do cenário base** (parâmetros em `cenarios/base.json`, todos ajustáveis):
 - Área: retângulo de ~10 × 6 km na Zona Sul do Rio; usuários com um "centro de circulação" sorteado e raio de circulação de 1,5 km.

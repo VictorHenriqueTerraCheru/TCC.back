@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Votos;
 using Ocorrencias.Api.Tests.Infra;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Tests.Votos;
 

@@ -89,7 +89,7 @@ public sealed class EsqueletoTests(ApiFactory fabrica)
 
     [Fact]
     public void Nullable_usa_o_mesmo_nome_do_tipo() =>
-        OpenApiConfig.NomeSchema(typeof(Domain.Perfil?)).Should().Be("Perfil");
+        OpenApiConfig.NomeSchema(typeof(Api.Common.Perfil?)).Should().Be("Perfil");
 
     [Fact]
     public async Task Nenhum_schema_e_variacao_nullable()

@@ -4,7 +4,7 @@ using Ocorrencias.Api.Persistence;
 using Ocorrencias.Api.Problemas;
 using Ocorrencias.Api.Confianca;
 using Ocorrencias.Api.Tests.Infra;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Tests.Confianca;
 

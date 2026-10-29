@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Persistence;
 

@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using Ocorrencias.Api.Common;
 using Ocorrencias.Api.Usuarios;
 using Ocorrencias.Api.Tests.Infra;
-using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Tests.Usuarios;
 

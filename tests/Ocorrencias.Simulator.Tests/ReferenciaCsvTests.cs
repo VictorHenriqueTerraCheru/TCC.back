@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Confianca.Motor;
 using Ocorrencias.Simulator.Experimento;
 using Ocorrencias.Simulator.Modelo;
 using Ocorrencias.Simulator.Saida;

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ocorrencias.Api.Persistence;
-using Ocorrencias.Domain;
-using Ocorrencias.Domain.Confianca;
+using Ocorrencias.Api.Common;
+using Ocorrencias.Api.Confianca.Motor;
 
 namespace Ocorrencias.Api.Confianca;
 

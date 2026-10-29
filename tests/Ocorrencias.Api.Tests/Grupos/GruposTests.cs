@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Grupos;
 using Ocorrencias.Api.Tests.Infra;
-using Ocorrencias.Domain;
+using Ocorrencias.Api.Common;
 
 namespace Ocorrencias.Api.Tests.Grupos;
 

@@ -1,6 +1,5 @@
 using Ocorrencias.Api.Categorias;
 using Ocorrencias.Api.Common;
-using Ocorrencias.Domain;
 
 namespace Ocorrencias.Api.Usuarios;
 

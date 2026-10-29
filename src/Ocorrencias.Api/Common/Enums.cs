@@ -1,4 +1,4 @@
-namespace Ocorrencias.Domain;
+namespace Ocorrencias.Api.Common;
 
 public enum Perfil
 {
