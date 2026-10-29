@@ -119,7 +119,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var (lat, lng) = ApiFactory.PontoUnico();
         var perto = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 30), lng);
         await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 60), lng);
-        await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 10), lng, categoriaId: 2); // outra categoria
+        await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 10), lng, categoriaId: 2);
 
         var resposta = await pessoa.Cliente.GetAsync(Inv($"/api/v1/problemas/duplicatas?categoriaId=1&lat={lat}&lng={lng}"));
         var duplicatas = await resposta.LerAsync<List<BuscarDuplicatasResponse>>();
@@ -153,7 +153,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var (lat, lng) = ApiFactory.PontoUnico();
         var buraco = await pessoa.RegistrarProblemaAsync(lat, lng, categoriaId: 1);
         var poste = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 20), lng, categoriaId: 3);
-        await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 2000), lng); // fora do retângulo
+        await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 2000), lng);
 
         var area = Inv($"minLat={lat - 0.0005}&minLng={lng - 0.0005}&maxLat={lat + 0.0005}&maxLng={lng + 0.0005}");
         var todos = await (await fabrica.CreateClient().GetAsync($"/api/v1/problemas?{area}"))
@@ -191,8 +191,6 @@ public sealed class ProblemasTests(ApiFactory fabrica)
     public async Task Listar_na_area_respeita_o_retangulo_exato_em_viewport_largo()
     {
         var pessoa = await fabrica.NovaPessoaAsync();
-        // Em geography as arestas do retângulo seriam geodésicas (a de lat 61 sobe até ~74° N em lng 0):
-        // 70° N entraria e 60,5° N / 10° E ficaria de fora. O recorte precisa ser o retângulo de lat/lng.
         var fora = await pessoa.RegistrarProblemaAsync(70, 0);
         var dentro = await pessoa.RegistrarProblemaAsync(60.5, 10);
 
@@ -270,7 +268,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var resolvida = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 10), lng);
         await fabrica.NoBancoAsync(db => db.Problemas.Where(p => p.Id == resolvida.Id)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, StatusProblema.Resolvida)));
-        var ativo = await fabrica.ProblemaAtivoAsync(Cenarios.Norte(lat, 20), lng); // 5 "sim": C = 62,5
+        var ativo = await fabrica.ProblemaAtivoAsync(Cenarios.Norte(lat, 20), lng);
 
         var duplicatas = await (await pessoa.Cliente.GetAsync(Inv($"/api/v1/problemas/duplicatas?categoriaId=1&lat={lat}&lng={lng}")))
             .LerAsync<List<BuscarDuplicatasResponse>>();
@@ -289,7 +287,7 @@ public sealed class ProblemasTests(ApiFactory fabrica)
         var buraco = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 10), lng, categoriaId: 1);
         var poste = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 20), lng, categoriaId: 3);
         var resolvida = await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 5), lng);
-        await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 200), lng); // fora de 50 m
+        await pessoa.RegistrarProblemaAsync(Cenarios.Norte(lat, 200), lng);
         await fabrica.NoBancoAsync(db => db.Problemas.Where(p => p.Id == resolvida.Id)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, StatusProblema.Resolvida)));
 

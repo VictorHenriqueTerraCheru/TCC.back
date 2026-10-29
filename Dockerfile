@@ -1,17 +1,13 @@
-# ---------- Etapa 1: compilar ----------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Primeiro só os arquivos de projeto: se eles não mudarem, o Docker reaproveita o restore (cache)
 COPY global.json Directory.Build.props Directory.Packages.props ./
 COPY src/UrbanReports.Api/UrbanReports.Api.csproj src/UrbanReports.Api/
 RUN dotnet restore src/UrbanReports.Api/UrbanReports.Api.csproj
 
-# Agora o código e a compilação
 COPY src/ src/
 RUN dotnet publish src/UrbanReports.Api/UrbanReports.Api.csproj -c Release -o /app --no-restore
 
-# ---------- Etapa 2: rodar ----------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .

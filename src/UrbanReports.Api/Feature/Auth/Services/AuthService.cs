@@ -33,7 +33,6 @@ public sealed class AuthService(UserManager<Usuario> usuarios, JwtTokenService j
         }
         catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            // Corrida entre a checagem acima e o INSERT: o índice único de e-mail barra no banco.
             return ErrosAuth.EmailJaCadastrado;
         }
 
@@ -59,7 +58,6 @@ public sealed class AuthService(UserManager<Usuario> usuarios, JwtTokenService j
             return ErrosAuth.CredenciaisInvalidas;
         }
 
-        // Conta bloqueada responde igual a credencial inválida (contrato: só 401), sem checar a senha.
         if (await usuarios.IsLockedOutAsync(usuario))
         {
             return ErrosAuth.CredenciaisInvalidas;
@@ -76,12 +74,6 @@ public sealed class AuthService(UserManager<Usuario> usuarios, JwtTokenService j
         return CriarResposta(usuario);
     }
 
-    /// <summary>
-    /// Conta a falha e, ao atingir o máximo, define o fim do bloqueio e zera o contador (mesma regra do
-    /// <c>AccessFailedAsync</c> do Identity). Numa única instrução: o <c>AccessFailedAsync</c> lê e grava com
-    /// o concurrency stamp, então tentativas paralelas perdem contagens e driblariam o bloqueio.
-    /// O fim do bloqueio usa o relógio do banco, o mesmo critério de <c>IsLockedOutAsync</c> (relógio do sistema).
-    /// </summary>
     private async Task RegistrarFalhaAsync(Guid usuarioId)
     {
         var lockout = identity.Value.Lockout;

@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 
 namespace UrbanReports.Api.Confianca;
 
-/// <summary>Roda o <see cref="ProcessadorCicloDeVida"/> na inicialização e depois a cada 15 min.</summary>
 public sealed class CicloDeVidaJob(
     IServiceScopeFactory escopos, IOptions<CicloDeVidaOptions> opcoes, TimeProvider relogio, ILogger<CicloDeVidaJob> logger)
     : BackgroundService

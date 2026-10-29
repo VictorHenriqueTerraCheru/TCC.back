@@ -3,7 +3,6 @@ using UrbanReports.Api.Geocodificacao;
 
 namespace UrbanReports.Api.Tests.Infra;
 
-/// <summary>Substitui o Nominatim real nos testes (nunca chamamos o serviço público em teste).</summary>
 public sealed class NominatimFalso : INominatimClient
 {
     private readonly ConcurrentDictionary<(double, double), NominatimResposta?> _respostas = new();
@@ -12,7 +11,6 @@ public sealed class NominatimFalso : INominatimClient
 
     public int Chamadas => _chamadas;
 
-    /// <summary>Atraso artificial, para testar chamadas simultâneas.</summary>
     public TimeSpan Atraso { get; set; } = TimeSpan.Zero;
 
     public static NominatimResposta Endereco(

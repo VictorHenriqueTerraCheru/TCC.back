@@ -4,10 +4,6 @@ namespace UrbanReports.Api.Common;
 
 public static class EndpointRouteBuilderExtensions
 {
-    /// <summary>
-    /// Registra todos os <see cref="IEndpointModule"/> sob <c>/api/v1</c>. Por padrão exige autenticação; endpoints de
-    /// visitante (🔓 em docs/API.md) chamam <c>AllowAnonymous()</c> no próprio módulo.
-    /// </summary>
     public static IEndpointRouteBuilder MapEndpoints(this IEndpointRouteBuilder app)
     {
         var api = app.MapGroup("/api/v1").RequireAuthorization(PoliticasAutorizacao.Autenticado);

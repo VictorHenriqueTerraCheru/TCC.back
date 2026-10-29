@@ -68,7 +68,6 @@ public sealed class VotosTests(ApiFactory fabrica)
             }
         }
 
-        // 5 cidadãos sem GPS, votos agora: C = 100 × 5 / (5 + 3) = 62,5.
         detalhe!.Status.Should().Be(StatusProblema.Ativa);
         detalhe.Avaliacao.Should().BeNull();
         detalhe.Confianca.Should().Be(62.5);
@@ -129,7 +128,7 @@ public sealed class VotosTests(ApiFactory fabrica)
     public async Task Perfil_do_voto_vem_do_banco_e_nao_do_token()
     {
         var (_, problema, _, _) = await ProblemaNovoAsync();
-        var votante = await fabrica.NovaPessoaAsync(); // token emitido como cidadão
+        var votante = await fabrica.NovaPessoaAsync();
         await fabrica.NoBancoAsync(db => db.Users.Where(u => u.Id == votante.Id)
             .ExecuteUpdateAsync(s => s.SetProperty(u => u.Perfil, Perfil.CidadaoVerificado)));
 
@@ -159,8 +158,6 @@ public sealed class VotosTests(ApiFactory fabrica)
         var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
         ObterDetalheProblemaResponse? detalhe = null;
 
-        // Os 5 "sim" sem GPS de ProblemaAtivoAsync também contam no ciclo de vida (R⁺ = 5).
-        // 4 "não" a ~100 m: R⁻ = 4 × 2 = 8 ≥ 5 e p = 8 / 13 ≈ 0,62 ≥ 0,6.
         for (var i = 0; i < 4; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();

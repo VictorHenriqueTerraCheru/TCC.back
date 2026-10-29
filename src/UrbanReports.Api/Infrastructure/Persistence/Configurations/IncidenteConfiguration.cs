@@ -16,6 +16,6 @@ public sealed class IncidenteConfiguration : IEntityTypeConfiguration<Incidente>
 
         b.HasIndex(i => i.AreaAproximada).HasMethod("gist");
         b.HasIndex(i => i.OcorridoEm);
-        b.HasIndex(i => new { i.AutorId, i.RegistradoEm }); // limite de 10 por 24 h
+        b.HasIndex(i => new { i.AutorId, i.RegistradoEm });
     }
 }

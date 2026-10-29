@@ -4,7 +4,6 @@ using UrbanReports.Api.Saude;
 
 namespace UrbanReports.Api.Modules;
 
-/// <summary>Health checks para o host e o monitoramento.</summary>
 public sealed class SaudeModule : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder api)

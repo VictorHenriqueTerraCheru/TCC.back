@@ -17,8 +17,6 @@ public sealed record BuscarDuplicatasResponse(
     FaixaConfianca? Faixa,
     int Confirmacoes);
 
-/// <param name="Grupos">Separados por vírgula (ex.: <c>viaPublica,eletrica</c>). Vazio = todos.</param>
-/// <param name="Status">Separados por vírgula (ex.: <c>nova,ativa</c>). Vazio = todos os não resolvidos.</param>
 public sealed record ListarProblemasNaAreaRequest(double MinLat, double MinLng, double MaxLat, double MaxLng, string? Grupos, string? Status);
 
 public sealed record ListarProblemasNaAreaResponse(
@@ -56,8 +54,6 @@ public sealed record ObterDetalheProblemaResponse(
     ValorVotoContrato? MeuVoto,
     bool SouAutor);
 
-/// <summary>Só em <c>nova</c>: quantas pessoas já votaram e quando a avaliação encerra.</summary>
 public sealed record ObterDetalheProblemaAvaliacao(int Votantes, int Necessarios, DateTimeOffset EncerraEm);
 
-/// <summary>Respostas a "Ainda está lá?", em pessoas (não pesos).</summary>
 public sealed record ObterDetalheProblemaVotos(int Sim, int Nao, int NaoUltimas24h);

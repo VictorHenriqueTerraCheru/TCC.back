@@ -62,7 +62,6 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         }
         catch (DbUpdateException e) when (e.ViolouUnicidade())
         {
-            // Rede de segurança: o lock já serializa criação e edição.
             return ErrosCategoria.NomeDuplicado;
         }
         catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
@@ -116,7 +115,6 @@ public sealed class CategoriaService(AppDbContext db) : ICategoriaService
         }
         catch (DbUpdateException e) when (e.ViolouChaveEstrangeira())
         {
-            // O grupo foi apagado entre a checagem e o salvamento.
             return ErrosCategoria.GrupoInexistente;
         }
 

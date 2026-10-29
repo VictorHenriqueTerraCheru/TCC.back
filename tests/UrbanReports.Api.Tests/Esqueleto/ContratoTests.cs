@@ -14,7 +14,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Tests.Esqueleto;
 
-/// <summary>Trava o contrato HTTP durante refatorações: OpenAPI, rotas/políticas, Location, 401 e 404.</summary>
 [Collection(ApiCollection.Nome)]
 public sealed class ContratoTests(ApiFactory fabrica)
 {
@@ -168,7 +167,6 @@ public sealed class ContratoTests(ApiFactory fabrica)
     private static string CaminhoSnapshot([CallerFilePath] string arquivo = "") =>
         Path.Combine(Path.GetDirectoryName(arquivo)!, "openapi.snapshot.json");
 
-    /// <summary>Chaves de objeto em ordem ordinal (a ordem dos paths depende da ordem de registro); arrays mantêm a ordem.</summary>
     private static string Canonico(string json) =>
         Ordenar(JsonNode.Parse(json))!.ToJsonString(new JsonSerializerOptions
         {

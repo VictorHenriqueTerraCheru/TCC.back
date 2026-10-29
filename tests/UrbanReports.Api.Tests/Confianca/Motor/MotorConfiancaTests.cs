@@ -4,7 +4,6 @@ using static UrbanReports.Api.Tests.Confianca.Motor.Cenario;
 
 namespace UrbanReports.Api.Tests.Confianca.Motor;
 
-/// <summary>Casos obrigatórios de docs/MOTOR_CONFIANCA.md (numeração da tabela).</summary>
 public sealed class MotorConfiancaTests
 {
     private const double Tolerancia = 1e-6;
@@ -12,8 +11,6 @@ public sealed class MotorConfiancaTests
 
     private static readonly ConfiguracaoConfianca A = ConfiguracaoConfianca.A;
     private static readonly ConfiguracaoConfianca B = ConfiguracaoConfianca.B;
-
-    // ---------- pesos ----------
 
     [Fact]
     public void Caso01_proximidade_ate_200m_vale_2() =>
@@ -41,8 +38,6 @@ public sealed class MotorConfiancaTests
     [Fact]
     public void Caso06_meia_vida_do_ciclo_de_vida_3_dias() =>
         MotorConfianca.FatorTemporal(TimeSpan.FromDays(3), B.MeiaVidaCicloDeVida, B).Should().BeApproximately(0.5, Tolerancia);
-
-    // ---------- índice ----------
 
     private static List<VotoFato> QuinzeSimA100m() => Repetir(15, () => Sim());
 
@@ -115,8 +110,6 @@ public sealed class MotorConfiancaTests
         r.Faixa.Should().Be(FaixaConfianca.Baixa);
     }
 
-    // ---------- ciclo de vida ----------
-
     [Fact]
     public void Caso14_nova_com_4_votantes_e_71h_continua_nova()
     {
@@ -147,7 +140,6 @@ public sealed class MotorConfiancaTests
         e.Status.Should().Be(StatusProblema.Ativa);
     }
 
-    /// <summary>Votos do caso 17: 3 "não" (R⁻ = 6) e 1 "sim" (R⁺ = 2), todos a 100 m em t0.</summary>
     private static List<VotoFato> VotosCaso17() => [.. Repetir(3, () => Nao()), Sim()];
 
     private static EstadoProblema EstadoAposCaso17() =>
@@ -196,11 +188,6 @@ public sealed class MotorConfiancaTests
         e.StatusAlteradoEm.Should().Be(agora);
     }
 
-    /// <summary>
-    /// Caso 21: dois votos do mesmo usuário não podem acontecer (a API garante a
-    /// unicidade por índice único). O Domain assume isso e NÃO deduplica pesos; este teste só
-    /// documenta o comportamento: ambos pesam no índice, mas contam como um único votante.
-    /// </summary>
     [Fact]
     public void Caso21_unicidade_de_voto_e_garantida_pela_api_nao_pelo_domain()
     {
@@ -215,11 +202,6 @@ public sealed class MotorConfiancaTests
             .Status.Should().Be(StatusProblema.Nova, "votantes conta UsuarioId distintos");
     }
 
-    /// <summary>
-    /// Caso 22: registro falso que ninguém encontra. Os "não" dados em Nova contam no índice e, depois
-    /// que o problema sai de Nova, também no ciclo de vida: ele passa a PossivelmenteResolvida e sai do
-    /// mapa em 48 h.
-    /// </summary>
     [Fact]
     public void Caso22_nova_so_com_nao_sai_do_mapa_em_48h()
     {

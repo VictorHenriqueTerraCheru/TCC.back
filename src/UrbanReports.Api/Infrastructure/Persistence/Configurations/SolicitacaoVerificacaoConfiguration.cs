@@ -18,7 +18,6 @@ public sealed class SolicitacaoVerificacaoConfiguration : IEntityTypeConfigurati
         b.HasIndex(s => new { s.UsuarioId, s.CriadaEm });
         b.HasIndex(s => new { s.Status, s.CriadaEm });
 
-        // No máximo uma solicitação pendente por usuário, garantido também no banco (status 1 = Pendente).
         b.HasIndex(s => s.UsuarioId)
             .IsUnique()
             .HasFilter($"status = {(short)StatusVerificacao.Pendente}")

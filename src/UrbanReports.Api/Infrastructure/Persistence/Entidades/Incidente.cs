@@ -2,7 +2,6 @@ using NetTopologySuite.Geometries;
 
 namespace UrbanReports.Api.Persistence;
 
-/// <summary>Incidente com ponto arredondado em 3 casas antes de gravar. O autor nunca é exposto.</summary>
 public sealed class Incidente
 {
     public Guid Id { get; set; }
@@ -11,7 +10,6 @@ public sealed class Incidente
     public Guid AutorId { get; set; }
     public Usuario Autor { get; set; } = null!;
 
-    /// <summary>geography(Point, 4326) já arredondado: X = longitude, Y = latitude.</summary>
     public required Point AreaAproximada { get; set; }
 
     public short RaioMetros { get; set; }

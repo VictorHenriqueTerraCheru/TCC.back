@@ -25,7 +25,6 @@ public sealed class CicloDeVidaTests(ApiFactory fabrica)
     {
         var (lat, lng) = ApiFactory.PontoUnico();
         var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
-        // 4 "não" a ~100 m contra os 5 "sim" sem GPS: R⁻ = 8, R⁺ = 5, p ≈ 0,62 ≥ 0,6.
         for (var i = 0; i < 4; i++)
         {
             var votante = await fabrica.NovaPessoaAsync();
@@ -65,12 +64,11 @@ public sealed class CicloDeVidaTests(ApiFactory fabrica)
     public async Task Job_aplica_o_decaimento_temporal_sem_votos_novos()
     {
         var (lat, lng) = ApiFactory.PontoUnico();
-        var problema = await fabrica.ProblemaAtivoAsync(lat, lng); // C = 62,5 com 5 votos agora
+        var problema = await fabrica.ProblemaAtivoAsync(lat, lng);
 
         fabrica.Relogio.Advance(TimeSpan.FromDays(14));
         await ProcessarAsync();
 
-        // Meia-vida de 14 dias: E⁺ = 2,5 → C = 100 × 2,5 / 5,5 ≈ 45,5.
         (await DetalheAsync(problema.Id)).Confianca.Should().Be(45.5);
     }
 
@@ -97,8 +95,6 @@ public sealed class CicloDeVidaTests(ApiFactory fabrica)
     [Fact]
     public async Task Job_conta_a_transicao_e_na_execucao_seguinte_nao_acha_mais_nada()
     {
-        // O banco e o relógio são compartilhados: sem isso, problemas de outros testes também
-        // ficariam elegíveis e a contagem exata dependeria da ordem de execução.
         await RemoverProblemasAsync();
 
         var autor = await fabrica.NovaPessoaAsync();

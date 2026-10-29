@@ -11,19 +11,16 @@ using Testcontainers.PostgreSql;
 
 namespace UrbanReports.Api.Tests.Infra;
 
-/// <summary>API real contra um PostGIS descartável (Testcontainers), com relógio controlado pelos testes.</summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public const string OrigemFront = "http://localhost:5173";
 
     private readonly PostgreSqlContainer _banco = new PostgreSqlBuilder("postgis/postgis:16-3.4").Build();
 
-    /// <summary>Começa alinhado em microssegundos (precisão do timestamptz); avance em unidades inteiras.</summary>
     public FakeTimeProvider Relogio { get; } = new(RelogioPostgres.Truncar(DateTimeOffset.UtcNow));
 
     public NominatimFalso Nominatim { get; } = new();
 
-    /// <summary>Gera coordenadas distintas na Zona Sul do Rio, para os testes não compartilharem cache.</summary>
     public static (double Lat, double Lng) PontoUnico()
     {
         var n = Interlocked.Increment(ref _sequencia);
@@ -32,10 +29,6 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private static int _sequencia;
 
-    /// <summary>
-    /// Ponto a ~5 km de qualquer outro já sorteado (região de São Paulo), para consultas de raio largo
-    /// (área de incidentes, 400 m) não enxergarem dados de outros testes.
-    /// </summary>
     public static (double Lat, double Lng) AreaIsolada()
     {
         var n = Interlocked.Increment(ref _sequenciaIsolada);
@@ -66,7 +59,6 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await escopo.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
     }
 
-    /// <summary>Executa algo direto no banco (preparar cenário ou conferir o que foi gravado).</summary>
     public async Task<T> NoBancoAsync<T>(Func<AppDbContext, Task<T>> acao)
     {
         await using var escopo = Services.CreateAsyncScope();

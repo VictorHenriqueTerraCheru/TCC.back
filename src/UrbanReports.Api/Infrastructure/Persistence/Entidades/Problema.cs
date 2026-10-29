@@ -12,13 +12,11 @@ public sealed class Problema
     public Usuario Autor { get; set; } = null!;
     public string? Descricao { get; set; }
 
-    /// <summary>geography(Point, 4326): X = longitude, Y = latitude.</summary>
     public required Point Localizacao { get; set; }
 
     public required string EnderecoAproximado { get; set; }
     public StatusProblema Status { get; set; } = StatusProblema.Nova;
 
-    /// <summary>Último índice calculado pelo motor (numeric(5,2)); nulo antes do primeiro voto.</summary>
     public decimal? Confianca { get; set; }
 
     public DateTimeOffset CriadoEm { get; set; }

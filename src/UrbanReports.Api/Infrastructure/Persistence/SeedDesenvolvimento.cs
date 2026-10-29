@@ -4,7 +4,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-/// <summary>Só em Development: aplica migrations e cria usuários de exemplo (senha de todos: <see cref="Senha"/>).</summary>
 public static class SeedDesenvolvimento
 {
     public const string Senha = "tcc12345";

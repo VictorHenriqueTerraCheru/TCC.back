@@ -6,14 +6,9 @@ namespace UrbanReports.Api.Geocodificacao;
 
 public interface INominatimClient
 {
-    /// <summary>Geocodificação reversa. Lança exceção em falha de rede/HTTP/timeout.</summary>
     Task<NominatimResposta?> ReversaAsync(double lat, double lng, CancellationToken ct);
 }
 
-/// <summary>
-/// Cliente do Nominatim (OpenStreetMap). Todas as chamadas passam por uma fila de 1 req/s.
-/// Singleton: usa <see cref="IHttpClientFactory"/> a cada chamada.
-/// </summary>
 public sealed class NominatimClient(IHttpClientFactory fabrica, IOptions<NominatimOptions> opcoes, TimeProvider relogio)
     : INominatimClient
 {

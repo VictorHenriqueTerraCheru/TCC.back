@@ -14,7 +14,6 @@ public sealed record ObterMeResponse(
     int TotalVotos,
     ObterMeVerificacaoResumo? Verificacao);
 
-/// <summary>Solicitação de verificação mais recente.</summary>
 public sealed record ObterMeVerificacaoResumo(
     StatusVerificacao Status, TipoVinculo TipoVinculo, string? MotivoRecusa, DateTimeOffset CriadaEm);
 
@@ -27,20 +26,14 @@ public enum ObterHistoricoTipoItem
     Voto = 3,
 }
 
-/// <summary>Resposta a "Ainda está lá?".</summary>
 public enum ObterHistoricoValorItem
 {
     Sim = 1,
     Nao = 2,
 }
 
-/// <param name="Filtro">tudo | registros | votos.</param>
 public sealed record ObterHistoricoRequest(string Filtro = "tudo", int Pagina = 1, int Tamanho = Paginacao.TamanhoPadrao);
 
-/// <summary>
-/// Para <c>registroIncidente</c>, <c>endereco</c> é o rótulo da área (nulo se a geocodificação falhou) e
-/// <c>ocorrenciaId</c> é nulo: o incidente não é navegável.
-/// </summary>
 public sealed record ObterHistoricoItem(
     ObterHistoricoTipoItem Tipo,
     Guid? OcorrenciaId,

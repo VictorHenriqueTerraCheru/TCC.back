@@ -17,7 +17,6 @@ public sealed class CategoriaConfiguration : IEntityTypeConfiguration<Categoria>
         b.HasIndex(c => c.Nome).IsUnique();
         b.HasOne<GrupoCategoria>().WithMany().HasForeignKey(c => c.Grupo).OnDelete(DeleteBehavior.Restrict);
 
-        // Dado inicial de docs/API.md; novas categorias nascem pelo CRUD de admin.
         b.HasData(
             new Categoria { Id = 1, Nome = "Buraco na via", Grupo = "viaPublica", Tipo = TipoOcorrencia.Problema, Icone = "buraco", Ativa = true },
             new Categoria { Id = 2, Nome = "Calçada danificada", Grupo = "viaPublica", Tipo = TipoOcorrencia.Problema, Icone = "calcada", Ativa = true },

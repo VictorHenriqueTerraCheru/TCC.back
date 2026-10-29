@@ -6,7 +6,6 @@ namespace UrbanReports.Api.Admin;
 
 public sealed class AdminService(AppDbContext db, TimeProvider relogio) : IAdminService
 {
-    /// <summary>Pendentes da mais antiga para a mais nova (fila de análise); demais, da mais nova para a mais antiga.</summary>
     public async Task<Paginado<ListarVerificacoesItem>> ListarVerificacoesAsync(ListarVerificacoesRequest request, CancellationToken ct)
     {
         var consulta = db.SolicitacoesVerificacao.AsQueryable();
@@ -48,10 +47,6 @@ public sealed class AdminService(AppDbContext db, TimeProvider relogio) : IAdmin
         return new Paginado<ListarVerificacoesItem>(itens, request.Pagina, request.Tamanho, total);
     }
 
-    /// <summary>
-    /// Perfil do solicitante → <c>cidadaoVerificado</c>. Vale para os votos SEGUINTES: os anteriores mantêm o
-    /// <c>perfil_no_momento</c> gravado.
-    /// </summary>
     public async Task<Resultado<Vazio>> AprovarAsync(Guid id, Guid adminId, CancellationToken ct)
     {
         var agora = relogio.GetUtcNow();
@@ -63,7 +58,6 @@ public sealed class AdminService(AppDbContext db, TimeProvider relogio) : IAdmin
             return erro;
         }
 
-        // Administrador não é rebaixado a verificado.
         await db.Users
             .Where(u => u.Id == conclusao.Valor && u.Perfil == Perfil.Cidadao)
             .ExecuteUpdateAsync(s => s
@@ -113,10 +107,6 @@ public sealed class AdminService(AppDbContext db, TimeProvider relogio) : IAdmin
         return new Paginado<ListarUsuariosItem>(itens, request.Pagina, request.Tamanho, total);
     }
 
-    /// <summary>
-    /// Vale para os votos SEGUINTES (o voto guarda <c>perfil_no_momento</c>). Virar verificado grava
-    /// <c>verificado_em</c> (mantém a data se já era); voltar a cidadão zera; administrador não mexe.
-    /// </summary>
     public async Task<Resultado<Vazio>> AlterarPerfilAsync(Guid id, Guid adminId, AlterarPerfilRequest request, CancellationToken ct)
     {
         if (id == adminId)
@@ -145,7 +135,6 @@ public sealed class AdminService(AppDbContext db, TimeProvider relogio) : IAdmin
         return new Vazio();
     }
 
-    /// <summary>"Carlos Menezes" → "CM"; "Ana" → "A"; "maria da silva" → "MS".</summary>
     public static string Iniciais(string nome)
     {
         var partes = nome.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -157,10 +146,6 @@ public sealed class AdminService(AppDbContext db, TimeProvider relogio) : IAdmin
         };
     }
 
-    /// <summary>
-    /// Transição única Pendente → Aprovada/Recusada. UPDATE condicional (<c>WHERE status = pendente</c>): duas análises
-    /// simultâneas da mesma solicitação não passam ambas. Retorna o id do solicitante, ou o erro adequado.
-    /// </summary>
     private async Task<Resultado<Guid>> ConcluirAsync(
         Guid id, Guid adminId, StatusVerificacao resultado, string? motivo, DateTimeOffset agora, CancellationToken ct)
     {

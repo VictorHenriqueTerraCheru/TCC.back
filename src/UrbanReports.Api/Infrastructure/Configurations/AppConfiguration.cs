@@ -9,10 +9,8 @@ using UrbanReports.Api.Persistence;
 
 namespace UrbanReports.Api.Infrastructure;
 
-/// <summary>Configurações de borda chamadas uma a uma no Program: CORS, autenticação e rate limit.</summary>
 public static class AppConfiguration
 {
-    /// <summary>CORS restrito às origens de <c>Cors:Origens</c>.</summary>
     public static IServiceCollection AddCorsConfigurado(this IServiceCollection services, IConfiguration configuracao)
     {
         var origens = configuracao.GetSection("Cors:Origens").Get<string[]>() ?? [];
@@ -25,7 +23,6 @@ public static class AppConfiguration
 
     public static IServiceCollection AddAutenticacao(this IServiceCollection services, IConfiguration configuracao)
     {
-        // Bloqueio de conta contra força bruta no login; ajustável por Lockout:MaximoFalhas e Lockout:Minutos.
         var maximoFalhas = configuracao.GetValue("Lockout:MaximoFalhas", 5);
         var minutosBloqueio = configuracao.GetValue("Lockout:Minutos", 15);
 
@@ -37,9 +34,7 @@ public static class AppConfiguration
         services.AddIdentityCore<Usuario>(o =>
             {
                 o.User.RequireUniqueEmail = true;
-                // UserName = e-mail: aceita qualquer caractere que a validação de e-mail aceite (ex.: apóstrofo, acentos).
                 o.User.AllowedUserNameCharacters = "";
-                // Contrato: só "senha ≥ 8 caracteres".
                 o.Password.RequiredLength = 8;
                 o.Password.RequireDigit = false;
                 o.Password.RequireLowercase = false;
@@ -67,7 +62,6 @@ public static class AppConfiguration
                     ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                     NameClaimType = JwtTokenService.ClaimNome,
                     RoleClaimType = JwtTokenService.ClaimPerfil,
-                    // Validade conferida pelo mesmo TimeProvider que emite o token (os testes controlam o tempo).
                     LifetimeValidator = (inicio, fim, _, parametros) =>
                     {
                         var agora = relogio.GetUtcNow().UtcDateTime;
@@ -78,7 +72,6 @@ public static class AppConfiguration
                 };
             });
 
-        // O perfil do token serve só para autorizar rotas de admin; o peso do voto lê o perfil do banco.
         services.AddAuthorizationBuilder()
             .AddPolicy(PoliticasAutorizacao.Autenticado, p => p.RequireAuthenticatedUser())
             .AddPolicy(PoliticasAutorizacao.Administrador, p => p.RequireAuthenticatedUser().RequireClaim(JwtTokenService.ClaimPerfil, "administrador"));
@@ -86,10 +79,6 @@ public static class AppConfiguration
         return services;
     }
 
-    /// <summary>
-    /// Limite por IP (docs/API.md: 30 req/min na geocodificação). Atrás de proxy reverso, habilite
-    /// <c>ASPNETCORE_FORWARDEDHEADERS_ENABLED=true</c> para o IP real do cliente chegar aqui.
-    /// </summary>
     public static IServiceCollection AddLimitesDeRequisicao(this IServiceCollection services, IConfiguration configuracao)
     {
         var porMinuto = configuracao.GetValue("LimitesDeRequisicao:GeocodificacaoPorMinuto", 30);

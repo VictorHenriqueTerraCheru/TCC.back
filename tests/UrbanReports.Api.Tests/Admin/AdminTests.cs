@@ -140,7 +140,6 @@ public sealed class AdminTests(ApiFactory fabrica)
     public void Iniciais(string nome, string esperado) =>
         AdminService.Iniciais(nome).Should().Be(esperado);
 
-    /// <summary>Aceite da Etapa 6: a aprovação vale só para os votos SEGUINTES.</summary>
     [Fact]
     public async Task Aprovado_vota_com_peso_10_so_nos_votos_seguintes()
     {
@@ -153,7 +152,7 @@ public sealed class AdminTests(ApiFactory fabrica)
 
         await votante.VotarAsync(antes.Id, "sim");
         await AprovarAsync(admin, await SolicitarAsync(votante));
-        await votante.VotarAsync(depois.Id, "sim"); // mesmo token antigo (claim "cidadao")
+        await votante.VotarAsync(depois.Id, "sim");
 
         var votos = await fabrica.NoBancoAsync(db => db.Votos.AsNoTracking()
             .Where(v => v.UsuarioId == votante.Id)
@@ -161,7 +160,6 @@ public sealed class AdminTests(ApiFactory fabrica)
         votos[antes.Id].Should().Be(Perfil.Cidadao);
         votos[depois.Id].Should().Be(Perfil.CidadaoVerificado);
 
-        // Sem GPS: cidadão → C = 100 × 1/4 = 25; verificado → C = 100 × 10/13 ≈ 76,92.
         var confiancas = await fabrica.NoBancoAsync(db => db.Problemas.AsNoTracking()
             .Where(p => p.Id == antes.Id || p.Id == depois.Id)
             .ToDictionaryAsync(p => p.Id, p => p.Confianca));

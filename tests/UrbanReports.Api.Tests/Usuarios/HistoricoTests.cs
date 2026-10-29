@@ -60,7 +60,7 @@ public sealed class HistoricoTests(ApiFactory fabrica)
         var alheio = await outro.RegistrarProblemaAsync(Cenarios.Norte(lat, 30), lng);
         fabrica.Relogio.Advance(TimeSpan.FromMinutes(1));
         await eu.VotarAsync(alheio.Id, "sim");
-        await eu.VotarAsync(alheio.Id, "nao"); // substitui o "sim"
+        await eu.VotarAsync(alheio.Id, "nao");
 
         var registros = await HistoricoAsync(eu, "?filtro=registros");
         var votos = await HistoricoAsync(eu, "?filtro=votos");
@@ -80,8 +80,6 @@ public sealed class HistoricoTests(ApiFactory fabrica)
         var (lat, lng) = ApiFactory.AreaIsolada();
         for (var i = 0; i < 5; i++)
         {
-            // Rótulo distinto por incidente (para enxergar duplicatas) e mesmo instante (relógio parado):
-            // só o desempate pela chave ordena.
             var latI = lat + i * 0.001;
             fabrica.Nominatim.Responder(latI, lng, NominatimFalso.Endereco(rua: $"Rua {i}"));
             (await eu.Cliente.PostAsJsonAsync("/api/v1/incidentes",

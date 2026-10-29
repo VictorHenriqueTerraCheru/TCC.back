@@ -5,14 +5,9 @@ using UrbanReports.Api.Confianca.Motor;
 
 namespace UrbanReports.Api.Confianca;
 
-/// <summary>
-/// Recalcula confiança e ciclo de vida de todos os problemas não resolvidos. Necessário porque o
-/// decaimento temporal (e o prazo de 72 h / 48 h) muda o resultado mesmo sem votos novos.
-/// </summary>
 public sealed class ProcessadorCicloDeVida(
     AppDbContext db, TimeProvider relogio, ConfiguracaoConfianca cfg, ILogger<ProcessadorCicloDeVida> logger)
 {
-    /// <returns>Quantidade de problemas cujo status mudou.</returns>
     public async Task<int> ProcessarAsync(CancellationToken ct)
     {
         var ids = await db.Problemas

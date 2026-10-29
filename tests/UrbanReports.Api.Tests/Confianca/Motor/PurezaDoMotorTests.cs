@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 
 namespace UrbanReports.Api.Tests.Confianca.Motor;
 
-/// <summary>O motor de confiança é puro: só BCL e os enums de Common (garantia que antes vinha do projeto Domain separado).</summary>
 public sealed class PurezaDoMotorTests
 {
     [Fact]

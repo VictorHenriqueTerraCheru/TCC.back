@@ -2,7 +2,6 @@ using System.Globalization;
 
 namespace UrbanReports.Api.Geocodificacao;
 
-/// <summary>Endereço montado conforme docs/API.md (seção Geocodificação).</summary>
 public sealed record EnderecoGeocodificado(
     bool Disponivel,
     string Endereco,
@@ -16,15 +15,9 @@ public sealed record EnderecoGeocodificado(
     public const int TamanhoMaximoEndereco = 200;
     public const int TamanhoMaximoRotulo = 120;
 
-    /// <summary>Resposta quando o Nominatim falha e não há cache: <c>"Próximo a -22.95210, -43.18680"</c>.</summary>
     public static EnderecoGeocodificado Indisponivel(double lat, double lng) =>
         new(false, TextoCoordenadas(lat, lng), null, null, null, null, null, null);
 
-    /// <summary>
-    /// <c>endereco</c> = <c>logradouro[, numero] — bairro</c> (omitindo partes ausentes);
-    /// <c>rotuloArea</c> = <c>logradouro, bairro</c> ou, sem logradouro, <c>bairro, cidade</c>.
-    /// Sem endereço utilizável na resposta, cai no texto de coordenadas.
-    /// </summary>
     public static EnderecoGeocodificado Montar(NominatimResposta? resposta, double lat, double lng)
     {
         var a = resposta?.Address;
@@ -73,7 +66,6 @@ public sealed record EnderecoGeocodificado(
         return presentes.Length == 0 ? null : string.Join(separador, presentes);
     }
 
-    /// <summary><c>"BR-RJ"</c> → <c>"RJ"</c>.</summary>
     private static string? ExtrairUf(string? iso) =>
         iso is { Length: > 3 } && iso.StartsWith("BR-", StringComparison.OrdinalIgnoreCase) ? iso[3..].ToUpperInvariant() : null;
 

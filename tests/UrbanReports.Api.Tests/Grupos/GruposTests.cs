@@ -7,7 +7,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Tests.Grupos;
 
-/// <summary>Os grupos criados aqui ficam no banco compartilhado; os rótulos são únicos por execução.</summary>
 [Collection(ApiCollection.Nome)]
 public sealed class GruposTests(ApiFactory fabrica)
 {

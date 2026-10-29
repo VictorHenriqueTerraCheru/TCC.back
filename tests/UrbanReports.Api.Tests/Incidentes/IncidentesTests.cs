@@ -169,9 +169,9 @@ public sealed class IncidentesTests(ApiFactory fabrica)
     {
         var pessoa = await fabrica.NovaPessoaAsync();
         var (lat, lng) = ApiFactory.AreaIsolada();
-        await RegistrarAsync(pessoa, lat + 0.0001, lng);              // mesma célula
-        await RegistrarAsync(pessoa, lat - 0.0002, lng + 0.0001);     // mesma célula
-        await RegistrarAsync(pessoa, lat + 0.003, lng, categoriaId: 8); // outra célula, trânsito
+        await RegistrarAsync(pessoa, lat + 0.0001, lng);
+        await RegistrarAsync(pessoa, lat - 0.0002, lng + 0.0001);
+        await RegistrarAsync(pessoa, lat + 0.003, lng, categoriaId: 8);
 
         var area = Inv($"minLat={lat - 0.01}&minLng={lng - 0.01}&maxLat={lat + 0.01}&maxLng={lng + 0.01}");
         var celulas = await (await fabrica.CreateClient().GetAsync($"/api/v1/incidentes/calor?{area}"))
@@ -200,8 +200,8 @@ public sealed class IncidentesTests(ApiFactory fabrica)
     public async Task Calor_respeita_o_retangulo_exato_em_viewport_largo()
     {
         var pessoa = await fabrica.NovaPessoaAsync();
-        await RegistrarAsync(pessoa, 70, 0);    // fora (entraria se as arestas fossem geodésicas)
-        await RegistrarAsync(pessoa, 60.5, 10); // dentro (ficaria de fora em geography)
+        await RegistrarAsync(pessoa, 70, 0);
+        await RegistrarAsync(pessoa, 60.5, 10);
 
         var celulas = await (await fabrica.CreateClient().GetAsync("/api/v1/incidentes/calor?minLat=60&minLng=-60&maxLat=61&maxLng=60"))
             .LerAsync<List<ObterCalorIncidentesResponse>>();

@@ -2,10 +2,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-/// <summary>
-/// Resposta a "Ainda está lá?", uma por usuário e problema. O voto guarda fatos, não pesos. A posição
-/// do votante NUNCA é persistida: só a distância calculada no PostGIS (nula = sem localização).
-/// </summary>
 public sealed class Voto
 {
     public Guid Id { get; set; }

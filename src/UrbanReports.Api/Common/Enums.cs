@@ -7,7 +7,6 @@ public enum Perfil
     Administrador = 3,
 }
 
-/// <summary>Resposta a "Ainda está lá?": Positivo = Sim, Negativo = Não (foi resolvido ou não foi encontrado).</summary>
 public enum ValorVoto
 {
     Positivo = 1,
@@ -35,7 +34,6 @@ public enum TipoOcorrencia
     Incidente = 2,
 }
 
-/// <summary>Cor de um grupo de categorias: slot da paleta do front (tokens CSS por slot, claro e escuro).</summary>
 public enum CorGrupo
 {
     Laranja = 1,
@@ -65,7 +63,6 @@ public enum StatusVerificacao
     Recusada = 3,
 }
 
-/// <summary>Concentração de incidentes numa área (total de 7 dias): &lt; 5 baixa, 5–14 média, ≥ 15 alta.</summary>
 public enum NivelConcentracao
 {
     Baixa = 1,

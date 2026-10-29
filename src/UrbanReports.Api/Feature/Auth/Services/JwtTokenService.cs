@@ -7,7 +7,6 @@ using UrbanReports.Api.Persistence;
 
 namespace UrbanReports.Api.Auth;
 
-/// <summary>JWT HS256 com as claims <c>sub</c>, <c>email</c>, <c>nome</c> e <c>perfil</c>. Sem refresh token.</summary>
 public sealed class JwtTokenService(IOptions<JwtOptions> opcoes, TimeProvider relogio)
 {
     public const string ClaimNome = "nome";

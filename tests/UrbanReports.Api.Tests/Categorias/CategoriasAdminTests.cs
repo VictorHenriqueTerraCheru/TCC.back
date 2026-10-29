@@ -8,10 +8,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Tests.Categorias;
 
-/// <summary>
-/// As categorias criadas aqui são desativadas no fim: a coleção compartilha o banco e outros testes
-/// esperam as categorias do seed (ex.: contagens da área de incidentes).
-/// </summary>
 [Collection(ApiCollection.Nome)]
 public sealed class CategoriasAdminTests(ApiFactory fabrica)
 {

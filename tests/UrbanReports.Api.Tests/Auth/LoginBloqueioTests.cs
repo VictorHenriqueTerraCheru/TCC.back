@@ -22,7 +22,6 @@ public sealed class LoginBloqueioTests(ApiFactory fabrica)
         }
     }
 
-    /// <summary>Corpo do problema sem o <c>traceId</c>, que muda a cada requisição.</summary>
     private static async Task<string> SemTraceId(HttpResponseMessage resposta) =>
         string.Join(";", (await resposta.LerJsonAsync()).EnumerateObject()
             .Where(p => p.Name != "traceId")
@@ -45,7 +44,6 @@ public sealed class LoginBloqueioTests(ApiFactory fabrica)
         var email = ClienteApi.EmailUnico();
         await _cliente.CadastrarAsync(email);
 
-        // Tentativas em paralelo não podem se atropelar: cada falha tem que contar.
         var respostas = await Task.WhenAll(Enumerable.Range(0, MaximoFalhas).Select(_ => Login(email, "senha-errada")));
         respostas.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Unauthorized);
 
@@ -61,7 +59,6 @@ public sealed class LoginBloqueioTests(ApiFactory fabrica)
         await Falhar(email, MaximoFalhas - 1);
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Contador zerado: mais N-1 falhas não bloqueiam.
         await Falhar(email, MaximoFalhas - 1);
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -102,7 +99,6 @@ public sealed class LoginBloqueioTests(ApiFactory fabrica)
         await Falhar(email, MaximoFalhas);
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        // O Identity confere o fim do bloqueio com o relógio do sistema; vence o bloqueio direto no banco.
         await fabrica.NoBancoAsync(db => db.Database.ExecuteSqlAsync(
             $"UPDATE usuarios SET lockout_end = now() - interval '1 minute' WHERE normalized_email = {email.ToUpperInvariant()}"));
 

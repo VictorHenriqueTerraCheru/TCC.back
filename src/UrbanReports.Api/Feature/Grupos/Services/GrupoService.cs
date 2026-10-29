@@ -39,7 +39,6 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         }
         catch (DbUpdateException e) when (e.ViolouUnicidade())
         {
-            // Rede de segurança: o lock já serializa criação, edição e exclusão.
             return ErrosGrupo.RotuloDuplicado;
         }
 
@@ -105,9 +104,7 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         }
         catch (Exception e) when (e is DbUpdateException || e is PostgresException)
         {
-            // ExecuteDelete não passa pelo SaveChanges: a violação sai como PostgresException.
             if (!e.ViolouChaveEstrangeira()) throw;
-            // Rede de segurança: com o lock não há categoria nova entrando, mas a FK (Restrict) continua valendo.
             return ErrosGrupo.EmUso;
         }
     }
@@ -131,7 +128,6 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         return chave;
     }
 
-    /// <summary>"Água e esgoto" → <c>aguaEEsgoto</c>: sem acento, camelCase, até 30 caracteres, começando por letra.</summary>
     public static string ChaveDe(string rotulo)
     {
         var semAcento = new StringBuilder();
@@ -154,7 +150,6 @@ public sealed class GrupoService(AppDbContext db) : IGrupoService
         }
 
         var texto = chave.ToString();
-        // O prefixo entra antes de cortar: a chave nunca passa de 30 caracteres.
         if (texto.Length == 0 || !char.IsAsciiLetter(texto[0]))
         {
             texto = "grupo" + texto;

@@ -4,7 +4,6 @@ using static UrbanReports.Api.Tests.Confianca.Motor.Cenario;
 
 namespace UrbanReports.Api.Tests.Confianca.Motor;
 
-/// <summary>Propriedades simples do motor, verificadas sobre votos aleatórios com semente fixa.</summary>
 public sealed class PropriedadesTests
 {
     private const int Amostras = 500;

@@ -4,7 +4,6 @@ namespace UrbanReports.Api.Categorias;
 
 public interface ICategoriaService
 {
-    /// <summary>Só as ativas (visão pública).</summary>
     Task<List<ListarCategoriasResponse>> ListarAsync(CancellationToken ct);
 
     Task<List<CategoriaAdminResponse>> ListarTodasAsync(CancellationToken ct);

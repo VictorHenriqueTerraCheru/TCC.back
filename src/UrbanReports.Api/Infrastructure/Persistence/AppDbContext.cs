@@ -5,9 +5,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-/// <summary>
-/// Herda de <see cref="IdentityUserContext{TUser, TKey}"/> (sem tabelas de roles): o perfil é coluna de <c>usuarios</c>.
-/// </summary>
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUserContext<Usuario, Guid>(options)
 {
     public DbSet<SolicitacaoVerificacao> SolicitacoesVerificacao => Set<SolicitacaoVerificacao>();
@@ -32,10 +29,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         RenomearChavesEstrangeirasParaUsuarios(builder);
     }
 
-    /// <summary>
-    /// O nome das FKs para <c>usuarios</c> é calculado pela convenção antes do <c>ToTable</c> do Identity ser
-    /// sobrescrito ("asp_net_users"/"users"); aqui ele é recalculado com o nome final da tabela.
-    /// </summary>
     private static void RenomearChavesEstrangeirasParaUsuarios(ModelBuilder builder)
     {
         var usuario = builder.Model.FindEntityType(typeof(Usuario))!;
@@ -52,7 +45,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
 
     protected override void ConfigureConventions(ModelConfigurationBuilder builder)
     {
-        // Enums gravados como smallint (docs/diagramas/03_modelo_dados.puml).
         builder.Properties<Perfil>().HaveConversion<short>();
         builder.Properties<TipoOcorrencia>().HaveConversion<short>();
         builder.Properties<CorGrupo>().HaveConversion<short>();

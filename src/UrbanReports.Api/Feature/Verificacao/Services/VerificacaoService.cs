@@ -42,7 +42,6 @@ public sealed class VerificacaoService(AppDbContext db, TimeProvider relogio) : 
         }
         catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            // Corrida entre a checagem e o INSERT: o índice único parcial barra a segunda pendente.
             return ErrosVerificacao.VerificacaoPendenteExistente;
         }
 

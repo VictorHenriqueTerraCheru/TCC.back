@@ -3,7 +3,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-/// <summary>Usuário do Identity. O perfil é coluna (não usamos roles do Identity).</summary>
 public sealed class Usuario : IdentityUser<Guid>
 {
     public required string Nome { get; set; }

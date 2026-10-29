@@ -4,10 +4,6 @@ using UrbanReports.Api.Tests.Infra;
 
 namespace UrbanReports.Api.Tests.Esqueleto;
 
-/// <summary>
-/// Trava a forma do contrato sem os nomes: operações, parâmetros, corpos, status, segurança e schemas.
-/// O refactor para o inglês regrava o snapshot de nomes, mas nunca esta forma.
-/// </summary>
 [Collection(ApiCollection.Nome)]
 public sealed class FormaOpenapiTests(ApiFactory fabrica)
 {

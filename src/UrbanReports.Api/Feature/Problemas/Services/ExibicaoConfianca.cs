@@ -5,10 +5,6 @@ namespace UrbanReports.Api.Problemas;
 
 public static class ExibicaoConfianca
 {
-    /// <summary>
-    /// Confiança arredondada em 1 casa (só na exibição) e a faixa correspondente. Em <c>nova</c> não é exibida:
-    /// ambos vêm nulos, embora o valor seja calculado e gravado.
-    /// </summary>
     public static (double? Confianca, FaixaConfianca? Faixa) Calcular(StatusProblema status, decimal? confianca, ConfiguracaoConfianca cfg)
     {
         if (status == StatusProblema.Nova || confianca is not { } valor)

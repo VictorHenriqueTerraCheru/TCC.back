@@ -19,7 +19,6 @@ using UrbanReports.Api.Confianca.Motor;
 
 namespace UrbanReports.Api.Infrastructure;
 
-/// <summary>Tudo que é interno da aplicação; configurações de borda ficam em <see cref="AppConfiguration"/>.</summary>
 public static class DependencyInjection
 {
     public static IServiceCollection AddAplicacao(this IServiceCollection services, IConfiguration configuracao) =>
@@ -60,7 +59,6 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>Interno (não privado): os testes do NominatimClient montam só esta parte do container.</summary>
     internal static IServiceCollection AddGeocodificacao(this IServiceCollection services)
     {
         services.AddOptions<NominatimOptions>()
@@ -76,7 +74,6 @@ public static class DependencyInjection
                 http.DefaultRequestHeaders.UserAgent.ParseAdd(opcoes.UserAgent);
                 http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("pt-BR");
             })
-            // O log padrão do HttpClient grava a URL com lat/lon: desligado (LGPD, RNF03).
             .RemoveAllLoggers();
 
         services.AddSingleton<INominatimClient, NominatimClient>();
@@ -85,10 +82,6 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>
-    /// Configuração ativa do motor. Da configuração vem só o nome (<c>Confianca:Configuracao</c>, padrão "B");
-    /// os valores vêm do Domain.
-    /// </summary>
     private static IServiceCollection AddConfianca(this IServiceCollection services, IConfiguration configuracao)
     {
         var nome = configuracao.GetValue("Confianca:Configuracao", ConfiguracaoConfianca.B.Nome)!;
@@ -101,7 +94,6 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>Services das features, um por área.</summary>
     private static IServiceCollection AddServicos(this IServiceCollection services)
     {
         services.AddScoped<ICategoriaService, CategoriaService>();

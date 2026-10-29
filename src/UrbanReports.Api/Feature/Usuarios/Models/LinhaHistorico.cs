@@ -2,10 +2,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace UrbanReports.Api.Usuarios;
 
-/// <summary>Linha crua da união (registros de problema, de incidente e votos).</summary>
 public sealed class LinhaHistorico
 {
-    /// <summary>Id da linha de origem (problema, incidente ou voto): desempate único da paginação, não exposto.</summary>
     [Column("chave")] public Guid Chave { get; init; }
     [Column("tipo")] public int Tipo { get; init; }
     [Column("ocorrencia_id")] public Guid? OcorrenciaId { get; init; }

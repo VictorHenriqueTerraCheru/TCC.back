@@ -7,10 +7,6 @@ namespace UrbanReports.Api.Incidentes;
 
 public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geocodificacao, TimeProvider relogio) : IIncidenteService
 {
-    /// <summary>
-    /// Arredonda o ponto em 3 casas ANTES de gravar e guarda o rótulo da geocodificação do ponto arredondado.
-    /// Responde com o resumo da área do ponto arredondado. O autor nunca é exposto.
-    /// </summary>
     public async Task<Resultado<IncidenteRegistrado>> RegistrarAsync(RegistrarIncidenteRequest request, Guid autorId, CancellationToken ct)
     {
         var categoria = await db.Categorias.FindAsync([request.CategoriaId], ct);
@@ -32,7 +28,6 @@ public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geo
 
         var desde = agora - LimitesIncidente.Janela;
 
-        // Pré-checagem sem bloqueio: evita gastar uma consulta ao Nominatim com quem já atingiu o limite.
         if (await ContarRecentesAsync(autorId, desde, ct) >= LimitesIncidente.MaximoPor24h)
         {
             return ErrosIncidente.LimiteDiarioIncidentes;
@@ -44,7 +39,6 @@ public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geo
 
         await using var transacao = await db.Database.BeginTransactionAsync(ct);
 
-        // Serializa os registros da mesma conta: sem isso, requisições simultâneas furariam o limite de 10.
         await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({ChaveBloqueio(autorId)})", ct);
 
         if (await ContarRecentesAsync(autorId, desde, ct) >= LimitesIncidente.MaximoPor24h)
@@ -69,11 +63,6 @@ public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geo
         return new IncidenteRegistrado(lat, lng, await ConsultarAreaAsync(lat, lng, agora, ct));
     }
 
-    /// <summary>
-    /// Agrupa por ponto arredondado os incidentes da janela (<c>ocorrido_em</c>) dentro do retângulo. O recorte
-    /// é planar (<c>::geometry &amp;&amp;</c>, índice ix_incidentes_area_aproximada_geometry): em geography as
-    /// arestas seriam geodésicas e o retângulo, inexato em viewport largo.
-    /// </summary>
     public async Task<List<ObterCalorIncidentesResponse>> ObterCalorAsync(ObterCalorIncidentesRequest request, CancellationToken ct)
     {
         var agora = relogio.GetUtcNow();
@@ -108,10 +97,6 @@ public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geo
     public static double Arredondar(double coordenada) =>
         Math.Round(coordenada, LimitesIncidente.CasasDecimais, MidpointRounding.AwayFromZero);
 
-    /// <summary>
-    /// Contagens de 7 e 30 dias (por <c>ocorrido_em</c>) num raio fixo de 400 m, para todas as categorias de
-    /// incidente (inclusive as zeradas). O nível usa o total de 7 dias.
-    /// </summary>
     private async Task<ObterAreaIncidentesResponse> ConsultarAreaAsync(double lat, double lng, DateTimeOffset agora, CancellationToken ct)
     {
         var ponto = Geo.Ponto(lat, lng);
@@ -142,7 +127,6 @@ public sealed class IncidenteService(AppDbContext db, IServicoGeocodificacao geo
     private Task<int> ContarRecentesAsync(Guid autorId, DateTimeOffset desde, CancellationToken ct) =>
         db.Incidentes.CountAsync(i => i.AutorId == autorId && i.RegistradoEm > desde, ct);
 
-    /// <summary>Chave de 64 bits do advisory lock, derivada do id do usuário.</summary>
     private static long ChaveBloqueio(Guid usuarioId)
     {
         Span<byte> bytes = stackalloc byte[16];

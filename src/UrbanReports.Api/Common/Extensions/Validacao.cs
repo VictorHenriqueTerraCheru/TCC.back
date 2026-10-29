@@ -6,17 +6,14 @@ namespace UrbanReports.Api.Common;
 
 public static class Validacao
 {
-    /// <summary>Mensagens em português e nomes de campo em camelCase, como no JSON.</summary>
     public static void ConfigurarGlobal()
     {
         ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("pt-BR");
-        // Para no primeiro erro de cada regra: nada roda depois de um NotEmpty que falhou (ex.: Trim em null).
         ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
         ValidatorOptions.Global.PropertyNameResolver = (_, membro, _) =>
             membro is null ? null : JsonNamingPolicy.CamelCase.ConvertName(membro.Name);
     }
 
-    /// <summary>Valida o argumento <typeparamref name="T"/> com FluentValidation; falha → 400 ValidationProblem.</summary>
     public static RouteHandlerBuilder Validar<T>(this RouteHandlerBuilder builder) =>
         builder.AddEndpointFilter<FiltroValidacao<T>>().ProducesValidationProblem();
 

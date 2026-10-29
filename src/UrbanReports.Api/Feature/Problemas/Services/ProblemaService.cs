@@ -11,7 +11,6 @@ namespace UrbanReports.Api.Problemas;
 public sealed class ProblemaService(
     AppDbContext db, IServicoGeocodificacao geocodificacao, TimeProvider relogio, ConfiguracaoConfianca cfg) : IProblemaService
 {
-    /// <summary>O endereço vem da geocodificação reversa no servidor (nunca do cliente) e nunca impede o registro.</summary>
     public async Task<Resultado<ObterDetalheProblemaResponse>> RegistrarAsync(RegistrarProblemaRequest request, Guid autorId, CancellationToken ct)
     {
         var categoria = await db.Categorias.FindAsync([request.CategoriaId], ct);
@@ -57,7 +56,6 @@ public sealed class ProblemaService(
         return detalhe;
     }
 
-    /// <param name="usuarioId">Nulo para visitante: <c>meuVoto</c> = null e <c>souAutor</c> = false.</param>
     public async Task<ObterDetalheProblemaResponse?> ConsultarDetalheAsync(Guid id, Guid? usuarioId, DateTimeOffset agora, CancellationToken ct)
     {
         var limite24h = agora.AddHours(-24);
@@ -113,7 +111,6 @@ public sealed class ProblemaService(
             usuarioId is not null && linha.AutorId == usuarioId);
     }
 
-    /// <summary>Mesma categoria, não resolvidos, a até 50 m (<c>ST_DWithin</c>), do mais próximo ao mais distante.</summary>
     public async Task<List<BuscarDuplicatasResponse>> BuscarDuplicatasAsync(BuscarDuplicatasRequest request, CancellationToken ct)
     {
         var ponto = Geo.Ponto(request.Lat, request.Lng);
@@ -150,7 +147,6 @@ public sealed class ProblemaService(
             .ToList();
     }
 
-    /// <summary>Marcadores da área visível. Nunca retorna <c>resolvida</c>; até 500, os de maior confiança primeiro.</summary>
     public async Task<List<ListarProblemasNaAreaResponse>> ListarNaAreaAsync(ListarProblemasNaAreaRequest request, CancellationToken ct)
     {
         var grupos = Listas.Separar(request.Grupos);
@@ -160,12 +156,9 @@ public sealed class ProblemaService(
             : pedidos.Where(s => s != StatusProblema.Resolvida).Distinct().ToArray();
         if (status.Length == 0)
         {
-            return []; // só "resolvida" foi pedido, e o mapa nunca mostra resolvidos
+            return [];
         }
 
-        // Recorte planar em lat/lng (geometry), não geodésico: em geography as arestas do retângulo seriam
-        // geodésicas e, em viewport largo, incluiriam pontos de fora e excluiriam pontos de dentro.
-        // Usa o índice GIST de expressão ix_problemas_localizacao_geometry.
         var consulta = db.Problemas
             .FromSql($"""
                 SELECT * FROM problemas
@@ -195,7 +188,6 @@ public sealed class ProblemaService(
             .ToList();
     }
 
-    /// <summary>Problemas não resolvidos no raio, mais recentes primeiro.</summary>
     public async Task<Paginado<ListarProblemasRecentesItem>> ListarRecentesAsync(ListarProblemasRecentesRequest request, CancellationToken ct)
     {
         var ponto = Geo.Ponto(request.Lat, request.Lng);

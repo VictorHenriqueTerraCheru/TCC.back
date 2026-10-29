@@ -7,7 +7,6 @@ namespace UrbanReports.Api.Usuarios;
 
 public sealed class UsuarioService(AppDbContext db) : IUsuarioService
 {
-    /// <summary>Usuário do token que não existe mais → <see cref="ErroAplicacao.NaoAutorizado"/>.</summary>
     public async Task<Resultado<ObterMeResponse>> ObterMeAsync(Guid usuarioId, CancellationToken ct)
     {
         var resposta = await ConsultarMeAsync(usuarioId, ct);
@@ -19,7 +18,6 @@ public sealed class UsuarioService(AppDbContext db) : IUsuarioService
         return resposta;
     }
 
-    /// <summary>Responde com o mesmo corpo de <c>GET /me</c>.</summary>
     public async Task<Resultado<ObterMeResponse>> AtualizarMeAsync(Guid usuarioId, AtualizarMeRequest request, CancellationToken ct)
     {
         var alterados = await db.Users
@@ -34,7 +32,6 @@ public sealed class UsuarioService(AppDbContext db) : IUsuarioService
         return (await ConsultarMeAsync(usuarioId, ct))!;
     }
 
-    /// <summary>Itens em ordem decrescente de data.</summary>
     public async Task<Paginado<ObterHistoricoItem>> ObterHistoricoAsync(Guid usuarioId, ObterHistoricoRequest request, CancellationToken ct)
     {
         var registros = request.Filtro is "tudo" or "registros";
@@ -68,7 +65,6 @@ public sealed class UsuarioService(AppDbContext db) : IUsuarioService
         return new Paginado<ObterHistoricoItem>(linhas.Select(Mapear).ToList(), request.Pagina, request.Tamanho, total);
     }
 
-    /// <summary>Nulo se o usuário do token não existe mais.</summary>
     private Task<ObterMeResponse?> ConsultarMeAsync(Guid usuarioId, CancellationToken ct) =>
         db.Users
             .Where(u => u.Id == usuarioId)

@@ -4,7 +4,6 @@ using static UrbanReports.Api.Tests.Confianca.Motor.Cenario;
 
 namespace UrbanReports.Api.Tests.Confianca.Motor;
 
-/// <summary>Regras de docs/MOTOR_CONFIANCA.md que não estão na tabela de casos, mas estão no texto.</summary>
 public sealed class RegrasComplementaresTests
 {
     private static readonly ConfiguracaoConfianca B = ConfiguracaoConfianca.B;
@@ -84,7 +83,6 @@ public sealed class RegrasComplementaresTests
     [Fact]
     public void Mesmo_voto_envelhece_devagar_no_indice_e_rapido_no_ciclo_de_vida()
     {
-        // 3 dias depois: no índice ainda pesa 2 × 2^(−3/14); no ciclo de vida, 2 × 0,5.
         var voto = Sim(em: T0);
         var agora = T0.AddDays(3);
 
@@ -96,7 +94,6 @@ public sealed class RegrasComplementaresTests
     [Fact]
     public void Ativa_exige_peso_minimo_de_resolvido_para_entrar()
     {
-        // 2 "não" a 100 m: R⁻ = 4 < 5, mesmo com p = 1.
         var votos = Repetir(2, () => Nao());
 
         MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), votos, T0, B)
@@ -111,7 +108,6 @@ public sealed class RegrasComplementaresTests
     [Fact]
     public void Proporcao_exatamente_no_limiar_entra_em_possivelmente_resolvida()
     {
-        // R⁻ = 6, R⁺ = 4 → p = 0,6.
         List<VotoFato> votos = [.. Repetir(3, () => Nao()), .. Repetir(2, () => Sim())];
 
         MotorConfianca.AvaliarCicloDeVida(Estado(StatusProblema.Ativa), votos, T0, B)

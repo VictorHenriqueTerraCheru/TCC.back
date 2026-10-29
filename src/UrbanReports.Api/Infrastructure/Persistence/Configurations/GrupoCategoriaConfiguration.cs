@@ -14,7 +14,6 @@ public sealed class GrupoCategoriaConfiguration : IEntityTypeConfiguration<Grupo
         b.Property(g => g.Rotulo).HasMaxLength(40);
         b.HasIndex(g => g.Rotulo).IsUnique();
 
-        // Dado inicial de docs/API.md; novos grupos nascem pelo CRUD de admin.
         b.HasData(
             new GrupoCategoria { Chave = "viaPublica", Rotulo = "Via pública", Tipo = TipoOcorrencia.Problema, Cor = CorGrupo.Laranja, Ordem = 1 },
             new GrupoCategoria { Chave = "eletrica", Rotulo = "Elétrica", Tipo = TipoOcorrencia.Problema, Cor = CorGrupo.Ocre, Ordem = 2 },

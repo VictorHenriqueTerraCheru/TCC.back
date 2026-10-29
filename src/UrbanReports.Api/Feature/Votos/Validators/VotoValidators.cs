@@ -14,7 +14,6 @@ public sealed class VotarValidator : AbstractValidator<VotarRequest>
 
 internal static class RegrasPosicaoVoto
 {
-    /// <summary>Posição opcional do votante: os dois campos juntos, ou nenhum.</summary>
     public static void Aplicar<T>(AbstractValidator<T> validador, Func<T, double?> lat, Func<T, double?> lng)
     {
         validador.RuleFor(r => lat(r)).Latitude().OverridePropertyName("lat");

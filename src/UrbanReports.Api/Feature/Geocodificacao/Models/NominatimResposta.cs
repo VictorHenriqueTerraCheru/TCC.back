@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace UrbanReports.Api.Geocodificacao;
 
-/// <summary>Subconjunto da resposta de <c>/reverse?format=jsonv2&amp;addressdetails=1</c>.</summary>
 public sealed record NominatimResposta(
     [property: JsonPropertyName("address")] NominatimResposta.Endereco? Address,
     [property: JsonPropertyName("error")] string? Error)

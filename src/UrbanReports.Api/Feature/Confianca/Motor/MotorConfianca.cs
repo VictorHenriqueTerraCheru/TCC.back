@@ -2,10 +2,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Confianca.Motor;
 
-/// <summary>
-/// Motor de confiança (TCC, Seção 5.2). Funções puras: o instante atual e a configuração entram
-/// como parâmetros. A API e o Simulator chamam exatamente estas funções.
-/// </summary>
 public static class MotorConfianca
 {
     public static double PesoPerfil(Perfil perfil, ConfiguracaoConfianca cfg) => perfil switch
@@ -16,7 +12,6 @@ public static class MotorConfianca
         _ => throw new ArgumentOutOfRangeException(nameof(perfil), perfil, "Perfil desconhecido."),
     };
 
-    /// <summary>Bônus por proximidade; nunca menor que 1 (penalizar distância só faria o atacante desligar o GPS).</summary>
     public static double PesoProximidade(double? distanciaMetros, ConfiguracaoConfianca cfg)
     {
         if (!cfg.UsarProximidade || distanciaMetros is not { } d)
@@ -38,11 +33,6 @@ public static class MotorConfianca
         return 1;
     }
 
-    /// <summary>
-    /// <c>2^(−idade / meiaVida)</c>, com idade negativa tratada como zero. A meia-vida depende do uso:
-    /// <see cref="ConfiguracaoConfianca.MeiaVidaConfianca"/> no índice, <see cref="ConfiguracaoConfianca.MeiaVidaCicloDeVida"/>
-    /// no ciclo de vida.
-    /// </summary>
     public static double FatorTemporal(TimeSpan idade, TimeSpan meiaVida, ConfiguracaoConfianca cfg)
     {
         if (!cfg.UsarDecaimento)
@@ -64,7 +54,6 @@ public static class MotorConfianca
         : indice >= cfg.LimiarMedia ? FaixaConfianca.Media
         : FaixaConfianca.Baixa;
 
-    /// <summary>Índice de confiança <c>C = 100 × E⁺ / (E⁺ + E⁻ + K)</c>, com a meia-vida da confiança.</summary>
     public static ResultadoConfianca CalcularConfianca(
         IReadOnlyCollection<VotoFato> votos, DateTimeOffset agora, ConfiguracaoConfianca cfg)
     {
@@ -76,7 +65,6 @@ public static class MotorConfianca
         return new ResultadoConfianca(indice, ClassificarFaixa(indice, cfg), positivo, negativo);
     }
 
-    /// <summary>Avalia no máximo uma transição de status por chamada (o job roda a cada 15 min).</summary>
     public static EstadoProblema AvaliarCicloDeVida(
         EstadoProblema estado, IReadOnlyCollection<VotoFato> votos, DateTimeOffset agora, ConfiguracaoConfianca cfg)
     {
@@ -111,7 +99,6 @@ public static class MotorConfianca
 
             case StatusProblema.PossivelmenteResolvida:
             {
-                // Para permanecer basta a proporção: sem votos novos, R⁺ e R⁻ decaem juntos e p não muda.
                 var (continua, resolvido) = SomarPesos(votos, cfg.MeiaVidaCicloDeVida, agora, cfg);
 
                 if (ProporcaoResolvido(continua, resolvido) < cfg.ProporcaoResolvido)
@@ -159,7 +146,6 @@ public static class MotorConfianca
         return (positivo, negativo);
     }
 
-    /// <summary><c>p = R⁻ / (R⁺ + R⁻)</c>; 0 quando não há votos.</summary>
     private static double ProporcaoResolvido(double continua, double resolvido)
     {
         var total = continua + resolvido;

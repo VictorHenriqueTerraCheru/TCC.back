@@ -15,7 +15,6 @@ public sealed class GeocodificacaoModule : IEndpointModule
             .WithTags("Geocodificação");
     }
 
-    /// <summary>Sempre 200: com o Nominatim fora do ar e sem cache, vem <c>disponivel: false</c>.</summary>
     private static async Task<ReversaResponse> Reversa(
         [AsParameters] ReversaRequest request, IServicoGeocodificacao geocodificacao, CancellationToken ct)
     {

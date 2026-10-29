@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace UrbanReports.Api.Common;
 
-/// <summary>Tradução de <see cref="ErroAplicacao"/> para os mesmos resultados HTTP que os handlers devolviam antes.</summary>
 public static class ErroAplicacaoExtensions
 {
     public static ProblemHttpResult ParaProblema(this ErroAplicacao erro) =>

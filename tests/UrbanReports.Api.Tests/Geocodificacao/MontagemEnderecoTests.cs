@@ -106,7 +106,6 @@ public sealed class MontagemEnderecoTests
     [Fact]
     public void Resposta_real_do_nominatim_em_botafogo()
     {
-        // Capturada de /reverse?format=jsonv2&lat=-22.9519&lon=-43.1866&zoom=18&addressdetails=1 (2026-10-16).
         const string json = """
             {"place_id":10515445,"name":"Santander","address":{"amenity":"Santander","road":"Rua Voluntários da Pátria",
              "quarter":"Santa Marta","suburb":"Botafogo","city":"Rio de Janeiro","state":"Rio de Janeiro",

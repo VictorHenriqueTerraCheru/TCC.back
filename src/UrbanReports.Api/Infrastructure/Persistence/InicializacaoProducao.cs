@@ -4,10 +4,6 @@ using UrbanReports.Api.Common;
 
 namespace UrbanReports.Api.Persistence;
 
-/// <summary>
-/// Só em Production: aplica as migrations pendentes e garante um administrador. Sem tela de promoção a admin,
-/// o primeiro vem de <c>AdminInicial__Email</c> e <c>AdminInicial__Senha</c> (variáveis do host, fora do código).
-/// </summary>
 public static class InicializacaoProducao
 {
     public static async Task InicializarBancoProducaoAsync(this WebApplication app)
@@ -31,7 +27,6 @@ public static class InicializacaoProducao
 
         var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
 
-        // Já cadastrado pela tela (como cidadão): só promove, sem trocar a senha.
         var existente = await usuarios.FindByEmailAsync(email);
         if (existente is not null)
         {
