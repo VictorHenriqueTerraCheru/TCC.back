@@ -4,20 +4,20 @@ autonumber
 actor "Cidadão" as U
 participant "App React\n(navegador)" as APP
 participant "API .NET" as API
-participant "Motor de\nconfiança (Domain)" as MC
+participant "Motor de confiança\n(TrustEngine)" as MC
 database "PostgreSQL\n+ PostGIS" as DB
 U -> APP : "Ainda está lá?" → "Sim, está lá"
 APP -> APP : lê a posição pela\nGeolocation API (se permitido)
-APP -> API : PUT /problemas/{id}/voto\n{valor, lat?, lng?}
+APP -> API : PUT /issues/{id}/vote\n{value, lat?, lng?}
 API -> DB : carrega problema e perfil do usuário;\nST_Distance(posição, problema)
 DB --> API : problema, perfil, distância
 API -> DB : UPSERT voto (problema, usuário,\nperfil no momento, distância)
 API -> DB : votos do problema
 DB --> API : votos
-API -> MC : CalcularConfianca(votos, agora, configB)\n(pesos de perfil, proximidade e tempo)
+API -> MC : CalculateTrust(votes, now, B)\n(pesos de perfil, proximidade e tempo)
 MC --> API : confiança e faixa
-API -> MC : AvaliarCicloDeVida(problema, votos, agora)
-MC --> API : novo status (ex.: Nova -> Ativa)
+API -> MC : EvaluateLifecycle(issue, votes, now)
+MC --> API : novo status (ex.: New -> Active)
 API -> DB : UPDATE problema (confiança, status)
 API --> APP : detalhe atualizado
 APP --> U : barra de confiança e contadores

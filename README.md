@@ -12,7 +12,7 @@ Backend (.NET 10, Minimal APIs, PostgreSQL + PostGIS) do TCC "Sistema colaborati
 ```bash
 dotnet tool restore                         # dotnet-ef (manifesto local)
 docker compose up -d db                     # PostGIS na porta 5432
-dotnet run --project src/Ocorrencias.Api    # Scalar em http://localhost:5080/scalar
+dotnet run --project src/UrbanReports.Api   # Scalar em http://localhost:5080/scalar
 dotnet test                                 # testes de integração sobem um PostGIS via Testcontainers (requer Docker)
 ```
 
@@ -20,10 +20,10 @@ A geocodificação usa o Nominatim (OpenStreetMap), identificado por `User-Agent
 
 Em `Development`, a API aplica as migrations e cria usuários de exemplo na primeira execução (senha de todos: `tcc12345`):
 
-| e-mail | perfil |
+| e-mail | perfil (`role`) |
 |---|---|
-| `admin@tcc.local` | administrador |
-| `verificado@tcc.local` | cidadaoVerificado |
-| `cidadao1@tcc.local`, `cidadao2@tcc.local`, `cidadao3@tcc.local` | cidadao |
+| `admin@tcc.local` | administrator |
+| `verificado@tcc.local` | verifiedCitizen |
+| `cidadao1@tcc.local`, `cidadao2@tcc.local`, `cidadao3@tcc.local` | citizen |
 
-Em produção (`Production`), esses usuários não existem: a API aplica as migrations e cria um único administrador com `AdminInicial__Email` e `AdminInicial__Senha`. Imagem para deploy: `docker build -t ocorrencias-api .` (porta 8080).
+Em produção (`Production`), esses usuários não existem: a API aplica as migrations e cria um único administrador com `InitialAdmin__Email` e `InitialAdmin__Password`. Imagem para deploy: `docker build -t urbanreports-api .` (porta 8080).

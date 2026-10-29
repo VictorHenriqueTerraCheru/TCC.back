@@ -1,16 +1,16 @@
 @startuml
 !include _style.iuml
 hide empty description
-[*] --> Nova : registro
-Nova : marcador com selo "Nova"
-Nova : confiança não exibida
-Nova : "Ainda está lá?" já aceita votos
-Ativa : destaque pela faixa de confiança
-PossivelmenteResolvida : marcador tracejado
-Resolvida : fora do mapa, só no histórico
-Nova --> Ativa : 5 votantes distintos\nou 72 h desde o registro\n(os "não" já contam a partir daqui)
-Ativa --> PossivelmenteResolvida : R⁻ ≥ 5 e\nR⁻ / (R⁺ + R⁻) ≥ 0,6
-PossivelmenteResolvida --> Ativa : R⁻ / (R⁺ + R⁻) < 0,6
-PossivelmenteResolvida --> Resolvida : R⁻ / (R⁺ + R⁻) ≥ 0,6\nmantida por 48 h
-Resolvida --> [*]
+[*] --> New : registro
+New : marcador com selo "Nova"
+New : confiança não exibida
+New : "Ainda está lá?" já aceita votos
+Active : destaque pela faixa de confiança
+PossiblyResolved : marcador tracejado
+Resolved : fora do mapa, só no histórico
+New --> Active : 5 votantes distintos\nou 72 h desde o registro\n(os "não" já contam a partir daqui)
+Active --> PossiblyResolved : R⁻ ≥ 5 e\nR⁻ / (R⁺ + R⁻) ≥ 0,6
+PossiblyResolved --> Active : R⁻ / (R⁺ + R⁻) < 0,6
+PossiblyResolved --> Resolved : R⁻ / (R⁺ + R⁻) ≥ 0,6\nmantida por 48 h
+Resolved --> [*]
 @enduml

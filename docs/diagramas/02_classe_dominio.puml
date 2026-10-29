@@ -1,102 +1,102 @@
 @startuml
 !include _style.iuml
 hide empty methods
-class Usuario {
-  nome
+class User {
+  name
   email
-  perfil : Perfil
-  criadoEm
-  verificadoEm
+  role : Role
+  createdAt
+  verifiedAt
 }
-class SolicitacaoVerificacao {
-  tipoVinculo
-  justificativa
-  status : StatusVerificacao
-  motivoRecusa
-  criadaEm
-  analisadaEm
+class VerificationRequest {
+  affiliationType
+  justification
+  status : VerificationStatus
+  rejectionReason
+  createdAt
+  reviewedAt
 }
-class Categoria {
-  nome
-  tipo : TipoOcorrencia
-  icone
-  ativa
+class Category {
+  name
+  type : ReportType
+  icon
+  active
 }
-class GrupoCategoria {
-  chave
-  rotulo
-  tipo : TipoOcorrencia
-  cor : CorGrupo
-  ordem
+class CategoryGroup {
+  key
+  label
+  type : ReportType
+  color : GroupColor
+  sortOrder
 }
-class Problema {
-  descricao
-  localizacao
-  enderecoAproximado
-  status : StatusProblema
-  confianca
-  criadoEm
-  statusAlteradoEm
+class Issue {
+  description
+  location
+  approximateAddress
+  status : IssueStatus
+  trustScore
+  createdAt
+  statusChangedAt
 }
-class Voto {
-  valor : ValorVoto
-  perfilNoMomento : Perfil
-  distanciaMetros
-  registradoEm
+class Vote {
+  value : VoteValue
+  roleAtVote : Role
+  distanceMeters
+  registeredAt
 }
-class Incidente {
-  areaAproximada
-  raioMetros
-  rotuloArea
-  ocorridoEm
-  registradoEm
+class Incident {
+  approximateArea
+  radiusMeters
+  areaLabel
+  occurredAt
+  registeredAt
 }
-Usuario "1" -- "0..*" SolicitacaoVerificacao : solicita
-Usuario "0..1" -- "0..*" SolicitacaoVerificacao : analisa
-Usuario "1" -- "0..*" Problema : registra
-Usuario "1" -- "0..*" Incidente : relata
-Usuario "1" -- "0..*" Voto : emite
-Problema "1" -- "0..*" Voto : recebe
-GrupoCategoria "1" -- "0..*" Categoria
-Categoria "1" -- "0..*" Problema
-Categoria "1" -- "0..*" Incidente
+User "1" -- "0..*" VerificationRequest : solicita
+User "0..1" -- "0..*" VerificationRequest : analisa
+User "1" -- "0..*" Issue : registra
+User "1" -- "0..*" Incident : relata
+User "1" -- "0..*" Vote : emite
+Issue "1" -- "0..*" Vote : recebe
+CategoryGroup "1" -- "0..*" Category
+Category "1" -- "0..*" Issue
+Category "1" -- "0..*" Incident
 package "Enumerações" {
-enum Perfil {
-  Cidadao
-  CidadaoVerificado
-  Administrador
+enum Role {
+  Citizen
+  VerifiedCitizen
+  Administrator
 }
-enum TipoOcorrencia {
-  Problema
-  Incidente
+enum ReportType {
+  Issue
+  Incident
 }
-enum CorGrupo {
-  Laranja
-  Ocre
-  Marrom
-  Vermelho
-  Terracota
-  Azul
-  VerdeAgua
-  Roxo
-  Rosa
-  Cinza
+enum GroupColor {
+  Orange
+  Ochre
+  Brown
+  Red
+  Terracotta
+  Blue
+  Teal
+  Purple
+  Pink
+  Gray
 }
-enum StatusProblema {
-  Nova
-  Ativa
-  PossivelmenteResolvida
-  Resolvida
+enum IssueStatus {
+  New
+  Active
+  PossiblyResolved
+  Resolved
 }
-enum ValorVoto {
-  Positivo (sim)
-  Negativo (não)
+enum VoteValue {
+  Positive (yes)
+  Negative (no)
 }
-enum StatusVerificacao {
-  Pendente
-  Aprovada
-  Recusada
+enum VerificationStatus {
+  Pending
+  Approved
+  Rejected
 }
 }
-Voto -[hidden]down- Perfil
+Vote -[hidden]down- Role
 @enduml
