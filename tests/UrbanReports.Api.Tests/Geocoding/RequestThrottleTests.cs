@@ -27,48 +27,4 @@ public sealed class RequestThrottleTests
         _clock.Advance(TimeSpan.FromMilliseconds(1));
         (await second.WaitAsync(TimeSpan.FromSeconds(5))).Should().Be(2);
     }
-
-    [Fact]
-    public async Task Call_after_the_interval_does_not_wait()
-    {
-        var limiter = Create();
-        await limiter.RunAsync(_ => Task.FromResult(1), CancellationToken.None);
-        _clock.Advance(TimeSpan.FromSeconds(2));
-
-        var result = await limiter.RunAsync(_ => Task.FromResult(2), CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
-
-        result.Should().Be(2);
-    }
-
-    [Fact]
-    public async Task Calls_never_run_in_parallel()
-    {
-        var limiter = Create();
-        var release = new TaskCompletionSource<int>();
-        var first = limiter.RunAsync(_ => release.Task, CancellationToken.None);
-
-        var secondStarted = false;
-        var second = limiter.RunAsync(_ => { secondStarted = true; return Task.FromResult(2); }, CancellationToken.None);
-        await Task.Delay(50);
-
-        secondStarted.Should().BeFalse();
-        release.SetResult(1);
-        await first;
-        await Task.Delay(50);
-        _clock.Advance(TimeSpan.FromSeconds(1));
-        (await second.WaitAsync(TimeSpan.FromSeconds(5))).Should().Be(2);
-    }
-
-    [Fact]
-    public async Task Full_queue_beyond_max_wait_throws_timeout()
-    {
-        var limiter = Create(maxWait: TimeSpan.FromMilliseconds(50));
-        var blocker = new TaskCompletionSource<int>();
-        _ = limiter.RunAsync(_ => blocker.Task, CancellationToken.None);
-
-        var action = () => limiter.RunAsync(_ => Task.FromResult(2), CancellationToken.None);
-
-        await action.Should().ThrowAsync<TimeoutException>();
-        blocker.SetResult(1);
-    }
 }

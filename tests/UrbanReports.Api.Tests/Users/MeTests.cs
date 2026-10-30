@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Http.Json;
 using UrbanReports.Api.Users;
@@ -25,6 +26,19 @@ public sealed class MeTests(ApiFactory factory)
         var response = await client.GetAsync("/api/v1/me");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Removed_user_token_gets_401()
+    {
+        var author = await factory.NewPersonAsync();
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await author.CreateIssueAsync(lat, lng);
+        var removed = await factory.NewPersonAsync();
+        await factory.InDatabaseAsync(db => db.Users.Where(u => u.Id == removed.Id).ExecuteDeleteAsync());
+
+        (await removed.Client.GetAsync("/api/v1/me")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await removed.VoteAsync(issue.Id, "yes")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]

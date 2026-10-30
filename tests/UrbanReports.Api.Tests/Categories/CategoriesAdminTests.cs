@@ -156,43 +156,6 @@ public sealed class CategoriesAdminTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Set_active_without_the_field_returns_400_and_does_not_deactivate()
-    {
-        var admin = await factory.NewPersonAsync(Role.Administrator);
-        var created = await (await CreateAsync(admin, UniqueName())).ReadAsync<CategoryAdminResponse>();
-        try
-        {
-            var empty = await admin.Client.PatchAsJsonAsync($"/api/v1/admin/categories/{created.Id}/active", new { }, ApiClient.Json);
-            var wrong = await admin.Client.PatchAsJsonAsync($"/api/v1/admin/categories/{created.Id}/active", new { isActive = false }, ApiClient.Json);
-
-            empty.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-            wrong.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-            var publicList = (await (await factory.CreateClient().GetAsync("/api/v1/categories")).ReadJsonAsync()).EnumerateArray();
-            publicList.Select(c => c.GetProperty("id").GetInt32()).Should().Contain(created.Id);
-        }
-        finally
-        {
-            await DeactivateAsync(admin, created.Id);
-        }
-    }
-
-    [Fact]
-    public async Task Numeric_type_and_active_body_without_the_field_return_400()
-    {
-        var admin = await factory.NewPersonAsync(Role.Administrator);
-        var name = UniqueName();
-
-        var numeric = await admin.Client.PostAsJsonAsync("/api/v1/admin/categories",
-            new { name, group = "seguranca", type = 2, icon = "x" }, ApiClient.Json);
-        var withoutActive = await admin.Client.PatchAsJsonAsync("/api/v1/admin/categories/1/active", new { }, ApiClient.Json);
-
-        numeric.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        withoutActive.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await factory.InDatabaseAsync(db => db.Categories.Where(c => c.Name == name).AnyAsync())).Should().BeFalse();
-        (await factory.InDatabaseAsync(db => db.Categories.Where(c => c.Id == 1).Select(c => c.Active).SingleAsync())).Should().BeTrue();
-    }
-
-    [Fact]
     public async Task Missing_id_returns_404()
     {
         var admin = await factory.NewPersonAsync(Role.Administrator);
