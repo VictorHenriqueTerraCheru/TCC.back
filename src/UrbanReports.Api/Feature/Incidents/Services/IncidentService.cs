@@ -37,15 +37,6 @@ public sealed class IncidentService(AppDbContext db, IGeocodingService geocoding
         var lng = Round(request.Lng);
         var address = await geocoding.ReverseAsync(lat, lng, ct);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({LockKey(authorId)})", ct);
-
-        if (await CountRecentAsync(authorId, since, ct) >= IncidentLimits.MaxPer24h)
-        {
-            return IncidentErrors.DailyIncidentLimit;
-        }
-
         db.Incidents.Add(new Incident
         {
             Id = Guid.CreateVersion7(),
@@ -58,7 +49,6 @@ public sealed class IncidentService(AppDbContext db, IGeocodingService geocoding
             RegisteredAt = now,
         });
         await db.SaveChangesAsync(ct);
-        await transaction.CommitAsync(ct);
 
         return new CreatedIncident(lat, lng, await QueryAreaAsync(lat, lng, now, ct));
     }
@@ -126,11 +116,4 @@ public sealed class IncidentService(AppDbContext db, IGeocodingService geocoding
 
     private Task<int> CountRecentAsync(Guid authorId, DateTimeOffset since, CancellationToken ct) =>
         db.Incidents.CountAsync(i => i.AuthorId == authorId && i.RegisteredAt > since, ct);
-
-    private static long LockKey(Guid userId)
-    {
-        Span<byte> bytes = stackalloc byte[16];
-        userId.TryWriteBytes(bytes);
-        return BitConverter.ToInt64(bytes[..8]) ^ BitConverter.ToInt64(bytes[8..]);
-    }
 }
