@@ -7,9 +7,6 @@ public static class CategoryErrors
     public static readonly ApplicationError DuplicateName = ApplicationError.Rule(
         StatusCodes.Status409Conflict, "duplicate-name", "Já existe uma categoria com este nome.");
 
-    public static readonly ApplicationError CategoryLimitReached = ApplicationError.Rule(
-        StatusCodes.Status409Conflict, "category-limit-reached", "Não cabem mais categorias.");
-
     public static readonly ApplicationError MissingGroup = ApplicationError.FromField("group", "Grupo inexistente.");
 
     public static readonly ApplicationError GroupTypeMismatch = ApplicationError.Rule(

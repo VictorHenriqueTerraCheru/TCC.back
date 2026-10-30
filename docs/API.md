@@ -313,7 +313,6 @@ Para o host e o monitoramento; o front não precisa chamar.
 | `verification-already-pending` | 409 | já existe solicitação pendente |
 | `already-verified` | 422 | usuário já verificado |
 | `duplicate-name` | 409 | POST/PUT /admin/categories com nome já usado |
-| `category-limit-reached` | 409 | POST /admin/categories quando o id (smallint) esgotou |
 | `group-type-mismatch` | 422 | categoria em grupo de outro tipo |
 | `duplicate-group-label` | 409 | POST/PUT /admin/groups com rótulo já usado |
 | `group-in-use` | 409 | DELETE /admin/groups de grupo que tem categorias |
