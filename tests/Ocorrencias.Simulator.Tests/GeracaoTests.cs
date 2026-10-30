@@ -1,4 +1,4 @@
-using Ocorrencias.Api.Common;
+using UrbanReports.Api.Common;
 using Ocorrencias.Simulator.Modelo;
 
 namespace Ocorrencias.Simulator.Tests;
@@ -35,7 +35,7 @@ public sealed class GeracaoTests
 
         // Falso e verdadeiro já resolvido recebem "não"; verdadeiro ativo, "sim" (só o ruído de 5% inverte).
         var esperados = mundo.Problemas.SelectMany((problema, p) => mundo.Intencoes[p].Select(i =>
-                !problema.Verdadeiro || problema.ResolucaoRealHora is { } r && i.Hora >= r ? ValorVoto.Negativo : ValorVoto.Positivo)
+                !problema.Verdadeiro || problema.ResolucaoRealHora is { } r && i.Hora >= r ? VoteValue.Negative : VoteValue.Positive)
             .Zip(mundo.Intencoes[p], (esperado, i) => esperado == i.Valor))
             .ToList();
         esperados.Should().NotBeEmpty();
@@ -64,19 +64,19 @@ public sealed class GeracaoTests
 
         intencoes.Should().HaveCount(k);
         intencoes.Should().OnlyContain(i => i.Hora >= Ataque.Inicio(C, alvo) && i.Hora <= Ataque.Fim(C, alvo));
-        intencoes.Should().OnlyContain(i => i.Valor == ValorVoto.Positivo);
+        intencoes.Should().OnlyContain(i => i.Valor == VoteValue.Positive);
         intencoes.Select(i => i.UsuarioId).Distinct().Should().HaveCount(k);
 
         switch (variante)
         {
             case Variante.S1:
-                intencoes.Should().OnlyContain(i => i.DistanciaMetros == null && i.Perfil == Perfil.Cidadao);
+                intencoes.Should().OnlyContain(i => i.DistanciaMetros == null && i.Perfil == Role.Citizen);
                 break;
             case Variante.S2:
-                intencoes.Should().OnlyContain(i => i.DistanciaMetros >= 0 && i.DistanciaMetros <= 50 && i.Perfil == Perfil.Cidadao);
+                intencoes.Should().OnlyContain(i => i.DistanciaMetros >= 0 && i.DistanciaMetros <= 50 && i.Perfil == Role.Citizen);
                 break;
             case Variante.S3:
-                intencoes.Select(i => (i.UsuarioId, i.Perfil)).Distinct().Count(x => x.Perfil == Perfil.CidadaoVerificado).Should().Be(1);
+                intencoes.Select(i => (i.UsuarioId, i.Perfil)).Distinct().Count(x => x.Perfil == Role.VerifiedCitizen).Should().Be(1);
                 intencoes.Should().OnlyContain(i => i.DistanciaMetros >= 0 && i.DistanciaMetros <= 50);
                 break;
         }

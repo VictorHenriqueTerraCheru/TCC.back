@@ -1,5 +1,5 @@
-using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Confianca.Motor;
+using UrbanReports.Api.Common;
+using UrbanReports.Api.Trust.Engine;
 using Ocorrencias.Simulator.Modelo;
 
 namespace Ocorrencias.Simulator.Experimento;
@@ -18,7 +18,7 @@ public static class Executor
 {
     public static ResultadoExperimento Executar(
         Cenario cenario,
-        IReadOnlyList<ConfiguracaoConfianca> configuracoes,
+        IReadOnlyList<TrustConfiguration> configuracoes,
         IReadOnlyList<Variante> variantes,
         IReadOnlyList<int> sementes,
         int? paralelismo = null)
@@ -33,7 +33,7 @@ public static class Executor
             i => porSemente[i] = ExecutarSemente(cenario, configuracoes, variantes, sementes[i]));
 
         // Ordem final: configuração → semente → (dia | problema | variante → k), na ordem pedida.
-        var ordemConfig = configuracoes.Select((c, i) => (c.Nome, i)).ToDictionary(x => x.Nome, x => x.i);
+        var ordemConfig = configuracoes.Select((c, i) => (c.Name, i)).ToDictionary(x => x.Name, x => x.i);
         return new ResultadoExperimento(
             porSemente.SelectMany(r => r.Diario).OrderBy(l => ordemConfig[l.Configuracao]).ThenBy(l => l.Semente).ThenBy(l => l.Dia).ToList(),
             porSemente.SelectMany(r => r.Resolucoes).OrderBy(l => ordemConfig[l.Configuracao]).ThenBy(l => l.Semente).ThenBy(l => l.Problema).ToList(),
@@ -43,7 +43,7 @@ public static class Executor
     }
 
     private static ResultadoExperimento ExecutarSemente(
-        Cenario c, IReadOnlyList<ConfiguracaoConfianca> configuracoes, IReadOnlyList<Variante> variantes, int semente)
+        Cenario c, IReadOnlyList<TrustConfiguration> configuracoes, IReadOnlyList<Variante> variantes, int semente)
     {
         var mundo = Mundo.Gerar(c, semente);
         var diario = new List<LinhaDiaria>();
@@ -94,7 +94,7 @@ public static class Executor
     /// resolvidos de fato e fora de Nova (Ativa ou PossivelmenteResolvida), a fração com faixa Baixa.
     /// Medido no fim de cada dia.
     /// </summary>
-    private static IEnumerable<LinhaDiaria> MedirDiario(Cenario c, ConfiguracaoConfianca cfg, int semente, Mundo mundo, LinhaDoTempo[] linhas)
+    private static IEnumerable<LinhaDiaria> MedirDiario(Cenario c, TrustConfiguration cfg, int semente, Mundo mundo, LinhaDoTempo[] linhas)
     {
         for (var dia = 1; dia <= c.Dias; dia++)
         {
@@ -114,8 +114,8 @@ public static class Executor
                 if (!problema.Verdadeiro)
                 {
                     falsos++;
-                    falsosAlta += faixa == FaixaConfianca.Alta ? 1 : 0;
-                    falsosResolvidos += linhas[p].Status[h] == StatusProblema.Resolvida ? 1 : 0;
+                    falsosAlta += faixa == TrustBand.High ? 1 : 0;
+                    falsosResolvidos += linhas[p].Status[h] == IssueStatus.Resolved ? 1 : 0;
                     continue;
                 }
 
@@ -125,22 +125,22 @@ public static class Executor
                     continue;
                 }
 
-                if (linhas[p].Status[h] == StatusProblema.Resolvida)
+                if (linhas[p].Status[h] == IssueStatus.Resolved)
                 {
                     indevidos++;
                 }
                 else if (faixa is not null)
                 {
                     verdadeiros++;
-                    verdadeirosBaixa += faixa == FaixaConfianca.Baixa ? 1 : 0;
+                    verdadeirosBaixa += faixa == TrustBand.Low ? 1 : 0;
                 }
             }
 
-            yield return new LinhaDiaria(cfg.Nome, semente, dia, falsos, falsosAlta, falsosResolvidos, verdadeiros, verdadeirosBaixa, indevidos);
+            yield return new LinhaDiaria(cfg.Name, semente, dia, falsos, falsosAlta, falsosResolvidos, verdadeiros, verdadeirosBaixa, indevidos);
         }
     }
 
-    private static IEnumerable<LinhaResolucao> MedirResolucoes(Cenario c, ConfiguracaoConfianca cfg, int semente, Mundo mundo, LinhaDoTempo[] linhas)
+    private static IEnumerable<LinhaResolucao> MedirResolucoes(Cenario c, TrustConfiguration cfg, int semente, Mundo mundo, LinhaDoTempo[] linhas)
     {
         for (var p = 0; p < linhas.Length; p++)
         {
@@ -149,10 +149,10 @@ public static class Executor
                 continue;
             }
 
-            var h = Array.IndexOf(linhas[p].Status, StatusProblema.Resolvida);
+            var h = Array.IndexOf(linhas[p].Status, IssueStatus.Resolved);
             double? resolvida = h >= 0 ? h + 1.0 : null;
             yield return new LinhaResolucao(
-                cfg.Nome, semente, p, real, resolvida, (resolvida ?? c.Horas) - real, Censurado: resolvida is null);
+                cfg.Name, semente, p, real, resolvida, (resolvida ?? c.Horas) - real, Censurado: resolvida is null);
         }
     }
 
@@ -162,12 +162,12 @@ public static class Executor
     /// receber mais votos, então o índice para de cair), censurado no horizonte.
     /// </summary>
     private static LinhaAtaque MedirAtaque(
-        Cenario c, ConfiguracaoConfianca cfg, Variante variante, int k, int semente, ProblemaSimulado alvo, LinhaDoTempo linha)
+        Cenario c, TrustConfiguration cfg, Variante variante, int k, int semente, ProblemaSimulado alvo, LinhaDoTempo linha)
     {
         double? primeiraAlta = null;
         for (var h = 0; h < c.Horas && primeiraAlta is null; h++)
         {
-            if (linha.FaixaExibida(h, cfg) == FaixaConfianca.Alta)
+            if (linha.FaixaExibida(h, cfg) == TrustBand.High)
             {
                 primeiraAlta = h + 1.0;
             }
@@ -178,15 +178,15 @@ public static class Executor
         double? recuperacao = null;
         for (var h = hFim; h < c.Horas && recuperacao is null; h++)
         {
-            if (MotorConfianca.ClassificarFaixa(linha.Indice[h], cfg) == FaixaConfianca.Baixa
-                || linha.Status[h] == StatusProblema.Resolvida)
+            if (TrustEngine.ClassifyBand(linha.Indice[h], cfg) == TrustBand.Low
+                || linha.Status[h] == IssueStatus.Resolved)
             {
                 recuperacao = Math.Max(0, h + 1.0 - fim);
             }
         }
 
         return new LinhaAtaque(
-            cfg.Nome,
+            cfg.Name,
             variante.ToString(),
             k,
             semente,

@@ -3,81 +3,81 @@
 hide circle
 hide empty methods
 skinparam linetype ortho
-entity "usuarios" as u {
+entity "users" as u {
   * id : uuid <<PK>>
   --
-  * nome : varchar(120)
+  * name : varchar(120)
   * email : varchar(256) <<UK>>
-  * senha_hash : text
-  * perfil : smallint
-  * criado_em : timestamptz
-  verificado_em : timestamptz
+  * password_hash : text
+  * role : smallint
+  * created_at : timestamptz
+  verified_at : timestamptz
 }
-entity "solicitacoes_verificacao" as s {
+entity "verification_requests" as s {
   * id : uuid <<PK>>
   --
-  * usuario_id : uuid <<FK>>
-  * tipo_vinculo : smallint
-  * justificativa : varchar(500)
+  * user_id : uuid <<FK>>
+  * affiliation_type : smallint
+  * justification : varchar(500)
   * status : smallint
-  motivo_recusa : varchar(500)
-  analisada_por_id : uuid <<FK>>
-  * criada_em : timestamptz
-  analisada_em : timestamptz
+  rejection_reason : varchar(500)
+  reviewed_by_id : uuid <<FK>>
+  * created_at : timestamptz
+  reviewed_at : timestamptz
 }
-entity "grupos_categoria" as g {
-  * chave : varchar(30) <<PK>>
+entity "category_groups" as g {
+  * key : varchar(30) <<PK>>
   --
-  * rotulo : varchar(40) <<UK>>
-  * tipo : smallint
-  * cor : smallint
-  * ordem : integer
+  * label : varchar(40) <<UK>>
+  * type : smallint
+  * color : smallint
+  * sort_order : integer
 }
-entity "categorias" as c {
+entity "categories" as c {
   * id : smallint <<PK>>
   --
-  * nome : varchar(60)
-  * grupo : varchar(30) <<FK>>
-  * tipo : smallint
-  * icone : varchar(40)
-  * ativa : boolean
+  * name : varchar(60)
+  * group : varchar(30) <<FK>>
+  * type : smallint
+  * icon : varchar(40)
+  * active : boolean
 }
-entity "problemas" as p {
+entity "issues" as p {
   * id : uuid <<PK>>
   --
-  * categoria_id : smallint <<FK>>
-  * autor_id : uuid <<FK>>
-  descricao : varchar(280)
-  * localizacao : geography(Point,4326)
-  * endereco_aproximado : varchar(200)
+  * category_id : smallint <<FK>>
+  * author_id : uuid <<FK>>
+  description : varchar(280)
+  * location : geography(Point,4326)
+  * approximate_address : varchar(200)
   * status : smallint
-  confianca : numeric(5,2)
-  * criado_em : timestamptz
-  * status_alterado_em : timestamptz
-  condicao_resolucao_desde : timestamptz
+  trust_score : numeric(5,2)
+  * created_at : timestamptz
+  * status_changed_at : timestamptz
+  resolution_condition_since : timestamptz
 }
-entity "votos" as v {
+entity "votes" as v {
   * id : uuid <<PK>>
   --
-  * problema_id : uuid <<FK>>
-  * usuario_id : uuid <<FK>>
-  * valor : smallint
-  * perfil_no_momento : smallint
-  distancia_metros : integer
-  * registrado_em : timestamptz
+  * issue_id : uuid <<FK>>
+  * user_id : uuid <<FK>>
+  * value : smallint
+  * role_at_vote : smallint
+  distance_meters : integer
+  * registered_at : timestamptz
   ..
-  UK (problema_id, usuario_id)
+  UK (issue_id, user_id)
 }
-entity "incidentes" as i {
+entity "incidents" as i {
   * id : uuid <<PK>>
   --
-  * categoria_id : smallint <<FK>>
-  * autor_id : uuid <<FK>>
-  * area_aproximada : geography(Point,4326)
-  * raio_metros : smallint
-  rotulo_area : varchar(120)
-  * ocorrido_em : timestamptz
-  * registrado_em : timestamptz
+  * category_id : smallint <<FK>>
+  * author_id : uuid <<FK>>
+  * approximate_area : geography(Point,4326)
+  * radius_meters : smallint
+  area_label : varchar(120)
+  * occurred_at : timestamptz
+  * registered_at : timestamptz
 }
 u ||--o{ s
 u ||--o{ p

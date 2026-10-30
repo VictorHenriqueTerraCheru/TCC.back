@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Ocorrencias.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 using Ocorrencias.Simulator.Modelo;
 
 namespace Ocorrencias.Simulator;
@@ -10,7 +10,7 @@ namespace Ocorrencias.Simulator;
 /// <c>--config A,B,B-v3,B-v5 --variantes S1,S2,S3 --sementes 30 --saida resultados/ --cenario cenarios/base.json</c>.
 /// </summary>
 public sealed record Opcoes(
-    IReadOnlyList<ConfiguracaoConfianca> Configuracoes,
+    IReadOnlyList<TrustConfiguration> Configuracoes,
     IReadOnlyList<Variante> Variantes,
     IReadOnlyList<int> Sementes,
     string Saida,
@@ -55,7 +55,7 @@ public sealed record Opcoes(
         }
 
         var configuracoes = Separar(valores.GetValueOrDefault("config", "A,B,B-v3,B-v5"))
-            .Select(ConfiguracaoConfianca.PorNome)
+            .Select(TrustConfiguration.ByName)
             .ToList();
 
         var variantes = Separar(valores.GetValueOrDefault("variantes", "S1,S2,S3"))
@@ -72,7 +72,7 @@ public sealed record Opcoes(
             ? JsonSerializer.Deserialize<Cenario>(File.ReadAllText(caminho), Json) ?? throw new ArgumentException("Cenário vazio.")
             : new Cenario();
 
-        if (configuracoes.Select(c => c.Nome).Distinct().Count() != configuracoes.Count)
+        if (configuracoes.Select(c => c.Name).Distinct().Count() != configuracoes.Count)
         {
             throw new ArgumentException("Configurações repetidas em --config.");
         }

@@ -1,29 +1,29 @@
-using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Confianca.Motor;
+using UrbanReports.Api.Common;
+using UrbanReports.Api.Trust.Engine;
 using Ocorrencias.Simulator.Modelo;
 
 namespace Ocorrencias.Simulator.Tests;
 
 public sealed class AvaliadorTests
 {
-    private static readonly ConfiguracaoConfianca B = ConfiguracaoConfianca.B;
+    private static readonly TrustConfiguration B = TrustConfiguration.B;
     private static readonly Guid Autor = Mundo.IdUsuario(9_000);
     private static readonly ProblemaSimulado Problema = new(0, true, new Ponto(0, 0), CriadoHora: 10, ResolucaoRealHora: null, Autor);
 
-    private static Intencao Voto(double hora, int usuario, ValorVoto valor, double? distancia = null, Perfil perfil = Perfil.Cidadao) =>
+    private static Intencao Voto(double hora, int usuario, VoteValue valor, double? distancia = null, Role perfil = Role.Citizen) =>
         new(hora, Mundo.IdUsuario(usuario), valor, perfil, distancia);
 
-    private static Intencao Sim(double hora, int usuario, double? distancia = null) => Voto(hora, usuario, ValorVoto.Positivo, distancia);
+    private static Intencao Sim(double hora, int usuario, double? distancia = null) => Voto(hora, usuario, VoteValue.Positive, distancia);
 
-    private static Intencao Nao(double hora, int usuario, double? distancia = null) => Voto(hora, usuario, ValorVoto.Negativo, distancia);
+    private static Intencao Nao(double hora, int usuario, double? distancia = null) => Voto(hora, usuario, VoteValue.Negative, distancia);
 
     [Fact]
     public void Antes_de_existir_o_status_e_zero()
     {
         var linha = Avaliador.Avaliar(Problema, [], B, horas: 24);
 
-        linha.Status[8].Should().Be((StatusProblema)0);
-        linha.Status[9].Should().Be(StatusProblema.Nova); // fim da hora 9 = instante 10 (criação)
+        linha.Status[8].Should().Be((IssueStatus)0);
+        linha.Status[9].Should().Be(IssueStatus.New); // fim da hora 9 = instante 10 (criação)
     }
 
     [Fact]
@@ -33,11 +33,11 @@ public sealed class AvaliadorTests
 
         var linha = Avaliador.Avaliar(Problema, intencoes, B, horas: 24);
 
-        linha.Status[10].Should().Be(StatusProblema.Ativa);
+        linha.Status[10].Should().Be(IssueStatus.Active);
         // 5 cidadãos a 100 m (peso 2), meia hora antes do fim da hora 10.
-        var esperado = MotorConfianca.CalcularConfianca(
-            intencoes.Select(i => new VotoFato(i.UsuarioId, i.Valor, i.Perfil, 100, Avaliador.Instante(10.5))).ToList(),
-            Avaliador.Instante(11), B).Indice;
+        var esperado = TrustEngine.CalculateTrust(
+            intencoes.Select(i => new VoteFact(i.UsuarioId, i.Valor, i.Perfil, 100, Avaliador.Instante(10.5))).ToList(),
+            Avaliador.Instante(11), B).Score;
         linha.Indice[10].Should().Be(Avaliador.ComoGravadoNaApi(esperado));
     }
 
@@ -49,15 +49,15 @@ public sealed class AvaliadorTests
         var linha = Avaliador.Avaliar(Problema, intencoes, B, horas: 100);
 
         // O 5º voto tira de Nova; o job do fim da hora 10 (instante 11) já vê R⁻ ≥ 5 e p = 1.
-        linha.Status[10].Should().Be(StatusProblema.PossivelmenteResolvida);
-        linha.Status[57].Should().Be(StatusProblema.PossivelmenteResolvida);
-        linha.Status[58].Should().Be(StatusProblema.Resolvida, "48 h depois do instante 11");
+        linha.Status[10].Should().Be(IssueStatus.PossiblyResolved);
+        linha.Status[57].Should().Be(IssueStatus.PossiblyResolved);
+        linha.Status[58].Should().Be(IssueStatus.Resolved, "48 h depois do instante 11");
     }
 
     [Fact]
     public void Autor_nao_vota()
     {
-        var intencoes = new List<Intencao> { new(10.5, Autor, ValorVoto.Positivo, Perfil.Cidadao, 10) };
+        var intencoes = new List<Intencao> { new(10.5, Autor, VoteValue.Positive, Role.Citizen, 10) };
 
         var linha = Avaliador.Avaliar(Problema, intencoes, B, horas: 24);
 
@@ -89,28 +89,28 @@ public sealed class AvaliadorTests
 
         var linha = Avaliador.Avaliar(Problema, votos, B, horas: 80);
 
-        linha.Status[11].Should().Be(StatusProblema.PossivelmenteResolvida);
-        linha.Status[60].Should().Be(StatusProblema.Resolvida);
+        linha.Status[11].Should().Be(IssueStatus.PossiblyResolved);
+        linha.Status[60].Should().Be(IssueStatus.Resolved);
         linha.Indice[71].Should().BeLessThan(linha.Indice[69], "os 10 \"sim\" tardios foram recusados e o índice só decai");
     }
 
     [Fact]
     public void Faixa_exibida_so_fora_de_nova()
     {
-        var umVerificado = new List<Intencao> { Voto(10.5, 1, ValorVoto.Positivo, 10, Perfil.CidadaoVerificado) };
+        var umVerificado = new List<Intencao> { Voto(10.5, 1, VoteValue.Positive, 10, Role.VerifiedCitizen) };
 
         var linha = Avaliador.Avaliar(Problema, umVerificado, B, horas: 90);
 
-        MotorConfianca.ClassificarFaixa(linha.Indice[10], B).Should().Be(FaixaConfianca.Alta);
+        TrustEngine.ClassifyBand(linha.Indice[10], B).Should().Be(TrustBand.High);
         linha.FaixaExibida(10, B).Should().BeNull("ainda está em Nova");
-        linha.FaixaExibida(82, B).Should().Be(FaixaConfianca.Alta, "após 72 h sai de Nova");
+        linha.FaixaExibida(82, B).Should().Be(TrustBand.High, "após 72 h sai de Nova");
     }
 
     [Theory]
-    [InlineData(69.995, FaixaConfianca.Alta)]
-    [InlineData(69.994, FaixaConfianca.Media)]
-    [InlineData(39.995, FaixaConfianca.Media)]
-    [InlineData(39.994, FaixaConfianca.Baixa)]
-    public void Faixa_e_classificada_sobre_o_indice_arredondado_como_na_api(double bruto, FaixaConfianca esperada) =>
-        MotorConfianca.ClassificarFaixa(Avaliador.ComoGravadoNaApi(bruto), B).Should().Be(esperada);
+    [InlineData(69.995, TrustBand.High)]
+    [InlineData(69.994, TrustBand.Medium)]
+    [InlineData(39.995, TrustBand.Medium)]
+    [InlineData(39.994, TrustBand.Low)]
+    public void Faixa_e_classificada_sobre_o_indice_arredondado_como_na_api(double bruto, TrustBand esperada) =>
+        TrustEngine.ClassifyBand(Avaliador.ComoGravadoNaApi(bruto), B).Should().Be(esperada);
 }

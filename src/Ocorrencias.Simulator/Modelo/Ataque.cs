@@ -1,4 +1,4 @@
-using Ocorrencias.Api.Common;
+using UrbanReports.Api.Common;
 
 namespace Ocorrencias.Simulator.Modelo;
 
@@ -22,9 +22,9 @@ public static class Ataque
         for (var i = 0; i < k; i++)
         {
             var id = Mundo.IdAtacante(i);
-            var perfil = variante == Variante.S3 && i == 0 ? Perfil.CidadaoVerificado : Perfil.Cidadao;
+            var perfil = variante == Variante.S3 && i == 0 ? Role.VerifiedCitizen : Role.Citizen;
             double? distancia = variante == Variante.S1 ? null : rnd.Uniforme(0, c.DistanciaMaximaGpsFalsoMetros);
-            intencoes.Add(new Intencao(rnd.Uniforme(inicio, fim), id, ValorVoto.Positivo, perfil, distancia));
+            intencoes.Add(new Intencao(rnd.Uniforme(inicio, fim), id, VoteValue.Positive, perfil, distancia));
         }
 
         return intencoes;

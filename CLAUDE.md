@@ -18,76 +18,79 @@ Se uma tarefa exigir mudar a regra ou o contrato, **pare e pergunte** — essas 
 - .NET 10 (LTS), C# 14, ASP.NET Core **Minimal APIs**
 - EF Core 10 + `Npgsql.EntityFrameworkCore.PostgreSQL` + `.NetTopologySuite`; `EFCore.NamingConventions` (snake_case)
 - PostgreSQL 16+ com PostGIS — **PostgreSQL + PostGIS no Railway em produção**, `postgis/postgis` em Docker para dev e testes
-- ASP.NET Core Identity (`IdentityUser<Guid>` customizado → tabela `usuarios`) + JWT Bearer
+- ASP.NET Core Identity (`IdentityUser<Guid>` customizado → tabela `users`) + JWT Bearer
 - FluentValidation, OpenAPI nativo (`Microsoft.AspNetCore.OpenApi`) + Scalar em `/scalar`
 - xUnit + AwesomeAssertions (fork Apache-2.0 do FluentAssertions); Testcontainers (PostGIS) para testes de integração
 
 ## Arquitetura: vertical slice por feature (padrão MedComite.Core)
 
 ```
-Ocorrencias.slnx
+UrbanReports.slnx
 src/
-  Ocorrencias.Api/
-    Program.cs                 # AddAplicacao() + configurações de borda + pipeline + MapEndpoints()
+  UrbanReports.Api/
+    Program.cs                 # AddApplication() + configurações de borda + pipeline + MapEndpoints()
     Modules/                   # um IEndpointModule por área (descobertos por reflexão): só HTTP
-      AuthModule.cs, UsuarioModule.cs, CategoriaModule.cs, GeocodificacaoModule.cs, ProblemaModule.cs,
-      VotoModule.cs, IncidenteModule.cs, VerificacaoModule.cs, AdminModule.cs,
-      SaudeModule.cs           # /api/v1/saude e /saude/banco (health checks, anônimos)
-    Feature/<Area>/            # namespace Ocorrencias.Api.<Area>
+      AuthModule.cs, UserModule.cs, CategoryModule.cs, GroupModule.cs, GeocodingModule.cs, IssueModule.cs,
+      VoteModule.cs, IncidentModule.cs, VerificationModule.cs, AdminModule.cs,
+      HealthModule.cs          # /api/v1/health e /health/database (health checks, anônimos)
+    Feature/<Area>/            # namespace UrbanReports.Api.<Area>
       Abstractions/I<Area>Service.cs
-      Services/<Area>Service.cs        # regra + EF direto; devolve Resultado<T>
+      Services/<Area>Service.cs        # regra + EF direto; devolve Result<T>
       Models/<Area>Dtos.cs             # requests/responses (nome = nome do schema no OpenAPI)
       Validators/<Area>Validators.cs   # FluentValidation
-      Errors/Erros<Area>.cs            # ErroAplicacao com o type de docs/API.md
-    Feature/Geocodificacao/Services/   # NominatimClient, ServicoGeocodificacao (cache + 1 req/s)
-    Feature/Confianca/                 # RecalculoProblema, ProcessadorCicloDeVida, Jobs/CicloDeVidaJob (15 min)
-      Motor/                           # MotorConfianca, ConfiguracaoConfianca, VotoFato...: puro, só BCL + enums (PurezaDoMotorTests)
+      Errors/<Area>Errors.cs           # ApplicationError com o type de docs/API.md
+    Feature/Geocoding/Services/        # NominatimClient, GeocodingService (cache + 1 req/s), RequestThrottle
+    Feature/Trust/
+      Engine/                          # TrustEngine, TrustConfiguration, VoteFact...: puro, só BCL + enums (EnginePurityTests)
+      Services/                        # IssueRecalculation, LifecycleProcessor
+      Jobs/LifecycleJob.cs             # a cada 15 min
     Infrastructure/
-      DependencyInjections/DependencyInjection.cs   # AddAplicacao: tudo que é interno
+      DependencyInjections/DependencyInjection.cs   # AddApplication: tudo que é interno
       Configurations/AppConfiguration.cs            # CORS, autenticação/policies, rate limit
       Configurations/OpenApiConfig.cs
-      Persistence/AppDbContext.cs, Entidades/, Configurations/, Migrations/, SeedDesenvolvimento.cs
-    Common/                    # Enums, Resultado<T>, ErroAplicacao, IEndpointModule, Validar<T>(), Paginado, Geo, RelogioPostgres, Statics
-  Ocorrencias.Simulator/       # console: cenários sintéticos A vs B (referencia a Api só para chamar o motor)
+      Persistence/AppDbContext.cs, Entities/, Configurations/, Migrations/, DevelopmentSeed.cs, ProductionStartup.cs
+    Common/                    # Enums, Result<T>, ApplicationError, IEndpointModule, Validate<T>(), Paged, Geo, PostgresClock, Statics
+  Ocorrencias.Simulator/       # console: cenários sintéticos A vs B (referencia a Api só para chamar o motor; não foi traduzido)
 tests/
-  Ocorrencias.Api.Tests/       # Esqueleto/ContratoTests + openapi.snapshot.json travam o contrato; Confianca/Motor/ testa o motor
+  UrbanReports.Api.Tests/      # Skeleton/ContractTests + openapi.snapshot.json travam o contrato; Skeleton/OpenapiShapeTests + openapi.shape.txt travam a forma; Trust/Engine/ testa o motor
   Ocorrencias.Simulator.Tests/ # Referencia/*.csv trava a saída do Simulator (Csv_igual_a_referencia)
 cenarios/base.json
 docs/
 ```
 
-Fluxo: **Module** (valida com `.Validar<T>()`, lê o usuário do token, monta `Location`) → **Service** (EF + motor, recebe `Guid usuarioId`, devolve `Resultado<T>` com `ErroAplicacao`) → **Module** traduz para o `Results<...>` tipado (o OpenAPI deriva dessa assinatura). Sem MediatR e sem repositório: o service usa o `AppDbContext` direto (o EF já é repositório/unidade de trabalho).
+Fluxo: **Module** (valida com `.Validate<T>()`, lê o usuário do token, monta `Location`) → **Service** (EF + motor, recebe `Guid userId`, devolve `Result<T>` com `ApplicationError`) → **Module** traduz para o `Results<...>` tipado (o OpenAPI deriva dessa assinatura). Sem MediatR e sem repositório: o service usa o `AppDbContext` direto (o EF já é repositório/unidade de trabalho).
 
 ## Regras inegociáveis
 
-1. **O motor de confiança mora em `Feature/Confianca/Motor/`, é puro (só BCL e os enums de `Common`, garantido por `PurezaDoMotorTests`) e testado.** A API nunca reimplementa fórmula; chama `MotorConfianca`. O Simulator chama as mesmas funções.
-2. **O voto guarda fatos, não pesos**: `perfil_no_momento` e `distancia_metros` (nulo = sem GPS). A distância é calculada com `ST_Distance` (geography) e o `lat/lng` do votante é **descartado** — nunca persista nem logue a posição do votante (LGPD, RNF03).
-3. **Incidente**: arredonde `lat/lng` para 3 casas **antes** de persistir; nunca exponha `autor_id` em resposta alguma.
-4. A configuração ativa da API é a **B** (`ConfiguracaoConfianca.B`), via `IOptions` só para o nome; os valores vêm do motor.
+1. **O motor de confiança mora em `Feature/Trust/Engine/`, é puro (só BCL e os enums de `Common`, garantido por `EnginePurityTests`) e testado.** A API nunca reimplementa fórmula; chama `TrustEngine`. O Simulator chama as mesmas funções.
+2. **O voto guarda fatos, não pesos**: `role_at_vote` e `distance_meters` (nulo = sem GPS). A distância é calculada com `ST_Distance` (geography) e o `lat/lng` do votante é **descartado** — nunca persista nem logue a posição do votante (LGPD, RNF03).
+3. **Incidente**: arredonde `lat/lng` para 3 casas **antes** de persistir; nunca exponha `author_id` em resposta alguma.
+4. A configuração ativa da API é a **B** (`TrustConfiguration.B`), via `IOptions` só para o nome; os valores vêm do motor.
 5. Use `IClock`/`TimeProvider` injetado — nunca `DateTime.Now` no código de negócio (os testes controlam o tempo).
-6. Unicidade de voto: índice único `(problema_id, usuario_id)` (voto único "Ainda está lá?", sem coluna `tipo`); votar de novo faz UPSERT (substitui valor, perfil, distância e `registrado_em`).
-7. Toda mudança de voto recalcula `confianca` e avalia o ciclo de vida **na mesma transação**.
+6. Unicidade de voto: índice único `(issue_id, user_id)` (voto único "Ainda está lá?", sem coluna `tipo`); votar de novo faz UPSERT (substitui valor, perfil, distância e `registered_at`).
+7. Toda mudança de voto recalcula `trust_score` e avalia o ciclo de vida **na mesma transação**.
 8. Enums trafegam como string camelCase (`JsonStringEnumConverter(JsonNamingPolicy.CamelCase)`).
-9. **Geocodificação só pela API** (`IServicoGeocodificacao`): Nominatim com `User-Agent` próprio (`OcorrenciasUrbanasTCC/1.0 (+<url do projeto>[; <email>])` — sem User-Agent a resposta é 403; e-mail opcional via `Nominatim__Email`), `accept-language=pt-BR`, no máximo **1 requisição/s** (um `SemaphoreSlim` + intervalo mínimo, ou `System.Threading.RateLimiting`), cache por coordenada em 4 casas por 7 dias. O endereço de problemas e o rótulo de incidentes são calculados **no servidor**, nunca aceitos do cliente. Falha do Nominatim nunca derruba um registro (ver `API.md`).
-10. **CORS** restrito às origens de `Cors:Origens` (dev: `http://localhost:5173`; prod: o domínio do front). O front roda em HTTPS, porque o navegador só libera a localização em contexto seguro.
+9. **Geocodificação só pela API** (`IGeocodingService`): Nominatim com `User-Agent` próprio (`OcorrenciasUrbanasTCC/1.0 (+<url do projeto>[; <email>])` — sem User-Agent a resposta é 403; e-mail opcional via `Nominatim__Email`), `accept-language=pt-BR`, no máximo **1 requisição/s** (um `SemaphoreSlim` + intervalo mínimo, ou `System.Threading.RateLimiting`), cache por coordenada em 4 casas por 7 dias. O endereço de problemas e o rótulo de incidentes são calculados **no servidor**, nunca aceitos do cliente. Falha do Nominatim nunca derruba um registro (ver `API.md`).
+10. **CORS** restrito às origens de `Cors:Origins` (em `Production`, a API não sobe com a lista vazia) (dev: `http://localhost:5173`; prod: o domínio do front). O front roda em HTTPS, porque o navegador só libera a localização em contexto seguro.
 
 ## Convenções
 
-- Código e identificadores em **português** sem acento (`Problema`, `RegistrarProblema`), como no domínio do TCC. Mensagens de erro para o usuário em português.
+- Código, identificadores, banco e contrato em **inglês** (glossário em `docs/superpowers/specs/2026-10-29-ingles-e-simplificacao-design.md` §4; correspondência com o TCC no topo de `docs/MOTOR_CONFIANCA.md`). Texto para o usuário (mensagens de erro, seed) em português. Dados também (chaves de grupo como `viaPublica`, ícones).
+- **Sem comentários** no código: o nome explica. Exceções: `Migrations/` (gerado) e o Simulator, que não foi traduzido.
 - `record` para DTOs; `sealed` por padrão; nullable habilitado; `TreatWarningsAsErrors` na Api.
-- Um service por área (`I<Area>Service`, scoped, registrado em `DependencyInjection.AddServicos`), um module por área. Endpoint novo nasce exigindo autenticação (grupo `/api/v1`); visitante só com `AllowAnonymous()` explícito.
-- DTOs de contrato são `record`s de topo com o nome do schema no OpenAPI (`ObterDetalheProblemaResponse`). Mudou o OpenAPI? `ContratoTests.Openapi_igual_ao_snapshot` falha; regrave com `ATUALIZAR_SNAPSHOT_OPENAPI=1 dotnet test --filter Openapi_igual_ao_snapshot` **só** se a mudança de contrato foi aprovada (e replique em `docs/API.md` e no front).
+- Um service por área (`I<Area>Service`, scoped, registrado em `DependencyInjection.AddServices`), um module por área. Endpoint novo nasce exigindo autenticação (grupo `/api/v1`); visitante só com `AllowAnonymous()` explícito.
+- DTOs de contrato são `record`s de topo com o nome do schema no OpenAPI (`GetIssueDetailResponse`). Mudou o OpenAPI? `ContractTests.Openapi_equals_snapshot` falha; regrave com `UPDATE_OPENAPI_SNAPSHOT=1 dotnet test --filter Openapi_equals_snapshot` **só** se a mudança de contrato foi aprovada (e replique em `docs/API.md` e no front).
 - Commits em Conventional Commits, em português (`feat(votos): ...`). Uma branch `etapa-N` + PR por etapa do `PLAN.md`.
 - Versões de pacotes centralizadas em `Directory.Packages.props`; SDK fixado em `global.json`.
-- Nada de segredos no repo: `appsettings.Development.json` usa Docker local; produção via variáveis de ambiente (`ConnectionStrings__Default`, `Jwt__Chave`, `Cors__Origens__0`, `Nominatim__Email` opcional).
+- Nada de segredos no repo: `appsettings.Development.json` usa Docker local; produção via variáveis de ambiente (`ConnectionStrings__Default`, `Jwt__Key`, `Cors__Origins__0`, `Nominatim__Email` opcional).
 
 ## Comandos
 
 ```bash
 docker compose up -d db                       # PostGIS local na porta 5432
-dotnet ef migrations add <Nome> -p src/Ocorrencias.Api -o Infrastructure/Persistence/Migrations
-dotnet ef database update -p src/Ocorrencias.Api
-dotnet run --project src/Ocorrencias.Api      # Scalar em http://localhost:5080/scalar
+dotnet ef migrations add <Nome> -p src/UrbanReports.Api -o Infrastructure/Persistence/Migrations
+dotnet ef database update -p src/UrbanReports.Api
+dotnet run --project src/UrbanReports.Api     # Scalar em http://localhost:5080/scalar
 dotnet test
 dotnet run -c Release --project src/Ocorrencias.Simulator -- --config A,B,B-v3,B-v5 --variantes S1,S2,S3 --sementes 30 --saida resultados/ --cenario cenarios/base.json
 ```
@@ -98,7 +101,7 @@ Projeto no Railway, região US East, três serviços: `postgres`, `api` (repo `T
 
 - `postgres`: imagem `postgis/postgis:16-3.4` (a mesma do `docker-compose.yml`; o Postgres padrão do Railway não tem PostGIS e a migration `Inicial` roda `CREATE EXTENSION postgis`). Volume em `/var/lib/postgresql/data` e variáveis `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` e `PGDATA=/var/lib/postgresql/data/pgdata` (o volume vem com `lost+found` e o `initdb` recusa pasta não vazia). Sem domínio público nem TCP Proxy: só a rede privada. A senha só vale na primeira inicialização; depois fica gravada no volume, então não troque a variável sem trocar no banco.
 - A API lê `ConnectionStrings__Default` no formato chave=valor do Npgsql (não aceita URL `postgresql://`), montada com referências ao serviço `postgres`: `Host=${{postgres.RAILWAY_PRIVATE_DOMAIN}};Port=5432;Database=${{postgres.POSTGRES_DB}};Username=${{postgres.POSTGRES_USER}};Password=${{postgres.POSTGRES_PASSWORD}};GSS Encryption Mode=Disable`. O `GSS Encryption Mode=Disable` evita o erro inofensivo `libgssapi_krb5.so.2` no log (a imagem não tem Kerberos).
-- `Cors__Origens__0` e o `VITE_API_URL` do front usam o endereço escrito (`https://ocorrenciasurbanas.up.railway.app` e `https://api-production-efc57.up.railway.app/api/v1`): a referência `${{api.RAILWAY_PUBLIC_DOMAIN}}` chegou vazia no build do front. Mudou o domínio do front → atualize o CORS da API; mudou o da API → atualize o `VITE_API_URL` e faça novo deploy do front.
-- Inicialização (`Persistence/InicializacaoProducao.cs`, só em `Production`): ao subir, a API aplica as migrations pendentes e, se não houver nenhum administrador, cria um com `AdminInicial__Email` e `AdminInicial__Senha` (opcional `AdminInicial__Nome`); se o e-mail já tiver conta, só promove. Os usuários de exemplo (`tcc12345`) **nunca** vão para produção.
-- API em container: `Dockerfile` na raiz (escuta na porta 8080). Variáveis: `ConnectionStrings__Default`, `Jwt__Chave` (≥ 32 caracteres, aleatória), `Cors__Origens__0` (domínio do front), `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` (IP real do cliente para o rate limit), `AdminInicial__Email`, `AdminInicial__Senha` e, opcional, `Nominatim__Email`.
+- `Cors__Origins__0` e o `VITE_API_URL` do front usam o endereço escrito (`https://ocorrenciasurbanas.up.railway.app` e `https://api-production-efc57.up.railway.app/api/v1`): a referência `${{api.RAILWAY_PUBLIC_DOMAIN}}` chegou vazia no build do front. Mudou o domínio do front → atualize o CORS da API; mudou o da API → atualize o `VITE_API_URL` e faça novo deploy do front.
+- Inicialização (`Persistence/ProductionStartup.cs`, só em `Production`): ao subir, a API aplica as migrations pendentes e, se não houver nenhum administrador, cria um com `InitialAdmin__Email` e `InitialAdmin__Password` (opcional `InitialAdmin__Name`); se o e-mail já tiver conta, só promove. Os usuários de exemplo (`tcc12345`) **nunca** vão para produção.
+- API em container: `Dockerfile` na raiz (escuta na porta 8080). Variáveis: `ConnectionStrings__Default`, `Jwt__Key` (≥ 32 caracteres, aleatória), `Cors__Origins__0` (domínio do front), `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` (IP real do cliente para o rate limit), `InitialAdmin__Email`, `InitialAdmin__Password` e, opcional, `Nominatim__Email`.
 - É um PostgreSQL comum: nada de recurso específico de provedor.

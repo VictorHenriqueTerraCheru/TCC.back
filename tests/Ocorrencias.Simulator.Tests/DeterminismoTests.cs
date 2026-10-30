@@ -1,4 +1,4 @@
-using Ocorrencias.Api.Confianca.Motor;
+using UrbanReports.Api.Trust.Engine;
 using Ocorrencias.Simulator.Experimento;
 using Ocorrencias.Simulator.Modelo;
 using Ocorrencias.Simulator.Saida;
@@ -7,7 +7,7 @@ namespace Ocorrencias.Simulator.Tests;
 
 public sealed class DeterminismoTests
 {
-    private static readonly ConfiguracaoConfianca[] Configs = [ConfiguracaoConfianca.A, ConfiguracaoConfianca.B];
+    private static readonly TrustConfiguration[] Configs = [TrustConfiguration.A, TrustConfiguration.B];
     private static readonly Variante[] Variantes = [Variante.S1, Variante.S2, Variante.S3];
 
     private static ResultadoExperimento Executar(int? paralelismo = null) =>
@@ -61,7 +61,7 @@ public sealed class DeterminismoTests
     {
         var referencias = typeof(Executor).Assembly.GetReferencedAssemblies().Select(a => a.Name!).ToList();
 
-        referencias.Where(n => n.StartsWith("Ocorrencias", StringComparison.Ordinal)).Should().Equal("Ocorrencias.Api");
-        referencias.Should().OnlyContain(n => n == "Ocorrencias.Api" || n.StartsWith("System", StringComparison.Ordinal) || n == "netstandard");
+        referencias.Where(n => n.StartsWith("Ocorrencias", StringComparison.Ordinal) || n.StartsWith("UrbanReports", StringComparison.Ordinal)).Should().Equal("UrbanReports.Api");
+        referencias.Should().OnlyContain(n => n == "UrbanReports.Api" || n.StartsWith("System", StringComparison.Ordinal) || n == "netstandard");
     }
 }

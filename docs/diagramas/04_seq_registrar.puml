@@ -7,26 +7,26 @@ participant "API .NET" as API
 participant "Nominatim\n(OSM)" as NOM
 database "PostgreSQL\n+ PostGIS" as DB
 U -> APP : escolhe categoria e ajusta o local
-APP -> API : GET /geocodificacao/reversa?lat&lng
+APP -> API : GET /geocoding/reverse?lat&lng
 API -> API : consulta o cache
 opt endereço fora do cache
   API -> NOM : reverse (lat, lng)
   NOM --> API : endereço
 end
 API --> APP : endereço aproximado
-APP -> API : GET /problemas/duplicatas?categoria&lat&lng
+APP -> API : GET /issues/duplicates?categoryId&lat&lng
 API -> DB : mesma categoria, não resolvidos,\nST_DWithin(50 m)
 DB --> API : candidatos
 API --> APP : lista de candidatos
 alt existe candidato e o cidadão diz "é o mesmo"
   U -> APP : "Sim, confirmar esse"
-  APP -> API : PUT /problemas/{id}/voto\n{valor: "sim", lat?, lng?}
+  APP -> API : PUT /issues/{id}/vote\n{value: "yes", lat?, lng?}
   API --> APP : detalhe atualizado
 else nenhum candidato ou "Não, é outro"
   U -> APP : descrição (opcional) e "Enviar registro"
-  APP -> API : POST /problemas
+  APP -> API : POST /issues
   API -> API : valida dados e obtém o endereço\n(cache da geocodificação)
-  API -> DB : INSERT problema (status = Nova)
+  API -> DB : INSERT issue (status = New)
   DB --> API : id
   API --> APP : 201 Created
   APP --> U : "Registro enviado" (selo Nova)

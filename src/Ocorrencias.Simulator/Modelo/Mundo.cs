@@ -1,4 +1,4 @@
-using Ocorrencias.Api.Common;
+using UrbanReports.Api.Common;
 
 namespace Ocorrencias.Simulator.Modelo;
 
@@ -47,7 +47,7 @@ public sealed class Mundo
         Enumerable.Range(0, c.Usuarios)
             .Select(i => new Usuario(
                 IdUsuario(i),
-                rnd.Chance(c.FracaoVerificados) ? Perfil.CidadaoVerificado : Perfil.Cidadao,
+                rnd.Chance(c.FracaoVerificados) ? Role.VerifiedCitizen : Role.Citizen,
                 PontoNaArea(c, rnd)))
             .ToList();
 
@@ -121,9 +121,9 @@ public sealed class Mundo
                 }
 
                 var resolvidoDeFato = p.ResolucaoRealHora is { } r && hora >= r;
-                var (probabilidade, valor) = !p.Verdadeiro ? (c.ProbNaoFalso, ValorVoto.Negativo)
-                    : resolvidoDeFato ? (c.ProbNaoResolvido, ValorVoto.Negativo)
-                    : (c.ProbSim, ValorVoto.Positivo);
+                var (probabilidade, valor) = !p.Verdadeiro ? (c.ProbNaoFalso, VoteValue.Negative)
+                    : resolvidoDeFato ? (c.ProbNaoResolvido, VoteValue.Negative)
+                    : (c.ProbSim, VoteValue.Positive);
 
                 if (rnd.Chance(probabilidade))
                 {
@@ -137,11 +137,11 @@ public sealed class Mundo
         return intencoes.OrderBy(i => i.Hora).ToList();
     }
 
-    private static Intencao Votar(Cenario c, Random rnd, double hora, Usuario u, ValorVoto valor, double distancia)
+    private static Intencao Votar(Cenario c, Random rnd, double hora, Usuario u, VoteValue valor, double distancia)
     {
         if (rnd.Chance(c.ProbRuido))
         {
-            valor = valor == ValorVoto.Positivo ? ValorVoto.Negativo : ValorVoto.Positivo;
+            valor = valor == VoteValue.Positive ? VoteValue.Negative : VoteValue.Positive;
         }
 
         return new Intencao(hora, u.Id, valor, u.Perfil, distancia);

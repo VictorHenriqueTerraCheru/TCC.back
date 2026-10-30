@@ -1,18 +1,18 @@
-using Ocorrencias.Api.Common;
-using Ocorrencias.Api.Confianca.Motor;
+using UrbanReports.Api.Common;
+using UrbanReports.Api.Trust.Engine;
 
 namespace Ocorrencias.Simulator.Modelo;
 
 /// <summary>Estado ao fim de cada hora <c>h</c> (instante h + 1). <see cref="Status"/> 0 = problema ainda não existe.</summary>
 public sealed class LinhaDoTempo(int horas)
 {
-    public StatusProblema[] Status { get; } = new StatusProblema[horas];
+    public IssueStatus[] Status { get; } = new IssueStatus[horas];
     public double[] Indice { get; } = new double[horas];
 
     /// <summary>Faixa visível ao público: em Nova (e antes de existir, ou já resolvido) não há faixa exibida.</summary>
-    public FaixaConfianca? FaixaExibida(int hora, ConfiguracaoConfianca cfg) =>
-        Status[hora] is StatusProblema.Ativa or StatusProblema.PossivelmenteResolvida
-            ? MotorConfianca.ClassificarFaixa(Indice[hora], cfg)
+    public TrustBand? FaixaExibida(int hora, TrustConfiguration cfg) =>
+        Status[hora] is IssueStatus.Active or IssueStatus.PossiblyResolved
+            ? TrustEngine.ClassifyBand(Indice[hora], cfg)
             : null;
 }
 
@@ -27,12 +27,12 @@ public static class Avaliador
     public static DateTimeOffset Instante(double hora) => T0 + TimeSpan.FromHours(hora);
 
     /// <param name="intencoes">Ordenadas por hora.</param>
-    public static LinhaDoTempo Avaliar(ProblemaSimulado problema, IReadOnlyList<Intencao> intencoes, ConfiguracaoConfianca cfg, int horas)
+    public static LinhaDoTempo Avaliar(ProblemaSimulado problema, IReadOnlyList<Intencao> intencoes, TrustConfiguration cfg, int horas)
     {
         var linha = new LinhaDoTempo(horas);
-        var votos = new Dictionary<Guid, VotoFato>();
+        var votos = new Dictionary<Guid, VoteFact>();
         var criado = Instante(problema.CriadoHora);
-        var estado = new EstadoProblema(StatusProblema.Nova, criado, criado, null);
+        var estado = new IssueState(IssueStatus.New, criado, criado, null);
         var proxima = 0;
 
         for (var h = 0; h < horas; h++)
@@ -54,18 +54,18 @@ public static class Avaliador
 
                 // UPSERT por usuário, com perfil e distância (em metros inteiros, como a API grava).
                 var instante = Instante(intencao.Hora);
-                votos[intencao.UsuarioId] = new VotoFato(
+                votos[intencao.UsuarioId] = new VoteFact(
                     intencao.UsuarioId, intencao.Valor, intencao.Perfil,
                     intencao.DistanciaMetros is { } d ? Math.Round(d, MidpointRounding.AwayFromZero) : null,
                     instante);
-                estado = MotorConfianca.AvaliarCicloDeVida(estado, votos.Values, instante, cfg);
+                estado = TrustEngine.EvaluateLifecycle(estado, votos.Values, instante, cfg);
             }
 
             // Job de ciclo de vida (na API roda a cada 15 min; aqui, ao fim de cada passo de 1 h).
             var agora = Instante(fimDaHora);
-            estado = MotorConfianca.AvaliarCicloDeVida(estado, votos.Values, agora, cfg);
+            estado = TrustEngine.EvaluateLifecycle(estado, votos.Values, agora, cfg);
             linha.Status[h] = estado.Status;
-            linha.Indice[h] = ComoGravadoNaApi(MotorConfianca.CalcularConfianca(votos.Values, agora, cfg).Indice);
+            linha.Indice[h] = ComoGravadoNaApi(TrustEngine.CalculateTrust(votos.Values, agora, cfg).Score);
         }
 
         return linha;
@@ -80,6 +80,6 @@ public static class Avaliador
     public static double ComoGravadoNaApi(double indice) => (double)Math.Round((decimal)indice, 2, MidpointRounding.AwayFromZero);
 
     /// <summary>Mesmas recusas da API: problema resolvido e autor votando no próprio problema.</summary>
-    private static bool Aceita(Intencao intencao, ProblemaSimulado problema, EstadoProblema estado) =>
-        estado.Status != StatusProblema.Resolvida && intencao.UsuarioId != problema.AutorId;
+    private static bool Aceita(Intencao intencao, ProblemaSimulado problema, IssueState estado) =>
+        estado.Status != IssueStatus.Resolved && intencao.UsuarioId != problema.AutorId;
 }

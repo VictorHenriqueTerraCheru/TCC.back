@@ -10,7 +10,7 @@ public sealed class OpcoesTests
     {
         var o = Opcoes.Ler([]);
 
-        o.Configuracoes.Select(c => c.Nome).Should().Equal("A", "B", "B-v3", "B-v5");
+        o.Configuracoes.Select(c => c.Name).Should().Equal("A", "B", "B-v3", "B-v5");
         o.Variantes.Should().Equal(Variante.S1, Variante.S2, Variante.S3);
         o.Sementes.Should().Equal(Enumerable.Range(1, 30));
         o.Saida.Should().Be("resultados/");
@@ -22,7 +22,7 @@ public sealed class OpcoesTests
     {
         var o = Opcoes.Ler(["--config", "A,B-v3", "--variantes", "S2", "--sementes", "5", "--saida", "saida/"]);
 
-        o.Configuracoes.Select(c => c.Nome).Should().Equal("A", "B-v3");
+        o.Configuracoes.Select(c => c.Name).Should().Equal("A", "B-v3");
         o.Variantes.Should().Equal(Variante.S2);
         o.Sementes.Should().Equal(1, 2, 3, 4, 5);
         o.Saida.Should().Be("saida/");
@@ -85,7 +85,7 @@ public sealed class OpcoesTests
     {
         var cenario = CenarioPequeno.Valor with { FracaoVerdadeiros = 1 };
 
-        var resultado = Executor.Executar(cenario, [Ocorrencias.Api.Confianca.Motor.ConfiguracaoConfianca.B], [Variante.S1], [1, 2]);
+        var resultado = Executor.Executar(cenario, [UrbanReports.Api.Trust.Engine.TrustConfiguration.B], [Variante.S1], [1, 2]);
 
         Resumo.PorConfiguracao(resultado).Single().FpMedio.Should().BeNull();
     }
@@ -118,7 +118,7 @@ public sealed class OpcoesTests
     private static string RaizDoRepositorio()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Ocorrencias.slnx")))
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "UrbanReports.slnx")))
         {
             dir = dir.Parent;
         }

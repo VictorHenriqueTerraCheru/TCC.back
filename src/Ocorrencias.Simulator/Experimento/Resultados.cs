@@ -1,4 +1,4 @@
-using Ocorrencias.Api.Common;
+using UrbanReports.Api.Common;
 
 namespace Ocorrencias.Simulator.Experimento;
 
@@ -30,7 +30,7 @@ public sealed record LinhaAtaque(
     int Semente,
     bool AtingiuAlta,
     double? PrimeiraAltaHora,
-    StatusProblema StatusFimAtaque,
+    IssueStatus StatusFimAtaque,
     double IndiceFimAtaque,
     double TempoRecuperacaoHoras,
     bool Censurado);

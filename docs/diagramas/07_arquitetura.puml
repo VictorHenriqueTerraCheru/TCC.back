@@ -12,7 +12,7 @@ cloud "OpenStreetMap" {
 node "Railway" {
   node "Servidor da API (container)" {
     component "API .NET 10\n(Minimal API, fatias verticais)" as API
-    component "Domain\n(motor de confiança)" as DOM
+    component "Motor de confiança\n(Feature/Trust/Engine)" as DOM
     component "Job de ciclo de vida\n(BackgroundService)" as JOB
   }
   database "PostgreSQL + PostGIS" as DB
@@ -29,5 +29,5 @@ API --> DOM
 JOB --> DOM
 API --> DB : EF Core + Npgsql\n(NetTopologySuite)
 JOB --> DB
-SIM --> DOM : mesma biblioteca
+SIM --> DOM : mesmas funções\n(referencia a API)
 @enduml

@@ -1,0 +1,88 @@
+op delete segments=5 params=[path:string:required] body=[-] responses=[204,404] bearer
+op get segments=3 params=[] body=[-] responses=[200:application/json:array items<ref>] anonymous
+op get segments=3 params=[] body=[-] responses=[200:application/json:array items<ref>] anonymous
+op get segments=3 params=[] body=[-] responses=[200:application/json:ref] anonymous
+op get segments=3 params=[] body=[-] responses=[200:application/json:ref] bearer
+op get segments=3 params=[query:number double:required,query:number double:required,query:number double:required,query:number double:required,query:string:optional,query:string:optional] body=[-] responses=[200:application/json:array items<ref>,400:application/problem+json:ref] anonymous
+op get segments=4 params=[] body=[-] responses=[200:application/json:array items<ref>] bearer
+op get segments=4 params=[] body=[-] responses=[200:application/json:ref,503:application/problem+json:ref] anonymous
+op get segments=4 params=[path:string uuid:required] body=[-] responses=[200:application/json:ref,404] anonymous
+op get segments=4 params=[query:integer int16:required,query:number double:required,query:number double:required] body=[-] responses=[200:application/json:array items<ref>,400:application/problem+json:ref] bearer
+op get segments=4 params=[query:integer int32:optional,query:integer int32:optional,query:number double:optional,query:number double:required,query:number double:required,query:string:optional] body=[-] responses=[200:application/json:ref,400:application/problem+json:ref] anonymous
+op get segments=4 params=[query:integer int32:optional,query:integer int32:optional,query:string:optional,query:string:optional] body=[-] responses=[200:application/json:ref,400:application/problem+json:ref] bearer
+op get segments=4 params=[query:integer int32:optional,query:integer int32:optional,query:string:optional] body=[-] responses=[200:application/json:ref,400:application/problem+json:ref] bearer
+op get segments=4 params=[query:integer int32:optional,query:integer int32:optional,query:string:optional] body=[-] responses=[200:application/json:ref,400:application/problem+json:ref] bearer
+op get segments=4 params=[query:integer int32:optional,query:number double:required,query:number double:required,query:number double:required,query:number double:required,query:string:optional] body=[-] responses=[200:application/json:array items<ref>,400:application/problem+json:ref] anonymous
+op get segments=4 params=[query:number double:required,query:number double:required] body=[-] responses=[200:application/json:ref,400:application/problem+json:ref,429:application/problem+json:ref] anonymous
+op get segments=4 params=[query:number double:required,query:number double:required] body=[-] responses=[200:application/json:ref,400:application/problem+json:ref] anonymous
+op patch segments=3 params=[] body=[application/json:ref] responses=[200:application/json:ref,400:application/problem+json:ref] bearer
+op patch segments=6 params=[path:integer int32:required] body=[application/json:ref] responses=[204,404] bearer
+op patch segments=6 params=[path:string uuid:required] body=[application/json:ref] responses=[204,400:application/problem+json:ref,404] bearer
+op post segments=3 params=[] body=[application/json:ref] responses=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post segments=3 params=[] body=[application/json:ref] responses=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post segments=3 params=[] body=[application/json:ref] responses=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post segments=4 params=[] body=[application/json:ref] responses=[200:application/json:ref,400:application/problem+json:ref] anonymous
+op post segments=4 params=[] body=[application/json:ref] responses=[201:application/json:ref,400:application/problem+json:ref] anonymous
+op post segments=4 params=[] body=[application/json:ref] responses=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post segments=4 params=[] body=[application/json:ref] responses=[201:application/json:ref,400:application/problem+json:ref] bearer
+op post segments=6 params=[path:string uuid:required] body=[-] responses=[204,404] bearer
+op post segments=6 params=[path:string uuid:required] body=[application/json:ref] responses=[204,400:application/problem+json:ref,404] bearer
+op put segments=5 params=[path:integer int32:required] body=[application/json:ref] responses=[200:application/json:ref,400:application/problem+json:ref,404] bearer
+op put segments=5 params=[path:string uuid:required] body=[application/json:ref] responses=[200:application/json:ref,400:application/problem+json:ref,404] bearer
+op put segments=5 params=[path:string:required] body=[application/json:ref] responses=[200:application/json:ref,400:application/problem+json:ref,404] bearer
+schema enum10
+schema enum2
+schema enum2
+schema enum2
+schema enum3
+schema enum3
+schema enum3
+schema enum3
+schema enum3
+schema enum4
+schema enum4
+schema object props<array items<ref>,date-time,integer int32,ref> required=4
+schema object props<array items<ref>,integer int32,integer int32,integer int32> required=4
+schema object props<array items<ref>,integer int32,integer int32,integer int32> required=4
+schema object props<array items<ref>,integer int32,integer int32,integer int32> required=4
+schema object props<array items<ref>,integer int32,integer int32,integer int32> required=4
+schema object props<boolean,date-time,null|number double,null|string,number double,number double,oneOf<null,ref>,oneOf<null,ref>,oneOf<null,ref>,ref,ref,ref,string,string uuid> required=14
+schema object props<boolean,integer int16,ref,string,string,string> required=6
+schema object props<boolean,null|string,null|string,null|string,null|string,null|string,null|string,string> required=8
+schema object props<boolean,string,string,string> required=4
+schema object props<boolean> required=1
+schema object props<date-time,date-time,integer int32,integer int32,oneOf<null,ref>,ref,string,string,string uuid> required=9
+schema object props<date-time,date-time,ref,string,string,string uuid> required=6
+schema object props<date-time,integer int16,number double,number double> required=4
+schema object props<date-time,integer int32,integer int32,oneOf<null,ref>,ref,string,string uuid> required=7
+schema object props<date-time,integer int32,integer int32> required=3
+schema object props<date-time,null|string,null|string uuid,oneOf<null,ref>,oneOf<null,ref>,ref,ref> required=7
+schema object props<date-time,null|string,ref,ref,ref,string,string uuid> required=7
+schema object props<date-time,null|string,ref,ref> required=4
+schema object props<date-time,oneOf<null,ref>,ref,ref,string,string uuid> required=6
+schema object props<date-time,ref,ref,string,string uuid> required=5
+schema object props<date-time,ref,string> required=3
+schema object props<integer int16,integer int32,integer int32,string> required=4
+schema object props<integer int16,null|number double,number double,number double,oneOf<null,ref>,ref,string uuid> required=7
+schema object props<integer int16,null|string,number double,number double> required=4
+schema object props<integer int16,ref,string,string,string> required=5
+schema object props<integer int16,string,string,string> required=4
+schema object props<integer int32,integer int32,integer int32> required=3
+schema object props<integer int32,number double,number double> required=3
+schema object props<integer int32,ref,ref,string,string> required=5
+schema object props<integer int32,ref,string> required=3
+schema object props<integer|null int32,null|string,null|string,null|string,null|string,object> required=0
+schema object props<integer|null int32,null|string,null|string,null|string,null|string> required=0
+schema object props<null|number double,null|number double,ref> required=3
+schema object props<ref,ref,string> required=3
+schema object props<ref,string,string,string uuid> required=4
+schema object props<ref,string,string,string> required=4
+schema object props<ref,string> required=2
+schema object props<ref> required=1
+schema object props<string,string,string uuid> required=3
+schema object props<string,string,string> required=3
+schema object props<string,string> required=2
+schema object props<string> required=1
+schema object props<string> required=1
+schema object props<string> required=1
+tags 10

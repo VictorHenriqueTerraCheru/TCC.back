@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Ocorrencias.Simulator.Experimento;
+using UrbanReports.Api.Common;
 
 namespace Ocorrencias.Simulator.Saida;
 
@@ -27,7 +28,7 @@ public static class Csv
             ["ataque.csv"] = Tabela(
                 "configuracao,variante,k,semente,atingiu_alta,primeira_alta_h,status_fim_ataque,indice_fim_ataque,recuperacao_h,censurado",
                 r.Ataques.Select(l => Linha(l.Configuracao, l.Variante, l.K, l.Semente, Bool(l.AtingiuAlta), Horas(l.PrimeiraAltaHora),
-                    Camel(l.StatusFimAtaque.ToString()), Indice(l.IndiceFimAtaque), Horas(l.TempoRecuperacaoHoras), Bool(l.Censurado)))),
+                    Status(l.StatusFimAtaque), Indice(l.IndiceFimAtaque), Horas(l.TempoRecuperacaoHoras), Bool(l.Censurado)))),
             ["resumo_configuracoes.csv"] = Tabela(
                 "configuracao,sementes,fp_medio,fn_medio,resolvidos_indevidamente_medio,falsos_resolvidos_fim,resolucao_mediana_h,resolucao_censurados",
                 Resumo.PorConfiguracao(r).Select(l => Linha(l.Configuracao, l.Sementes, Fracao(l.FpMedio), Fracao(l.FnMedio),
@@ -71,5 +72,16 @@ public static class Csv
 
     private static string Bool(bool v) => v ? "1" : "0";
 
-    private static string Camel(string s) => char.ToLowerInvariant(s[0]) + s[1..];
+    /// <summary>
+    /// Status no texto em português de antes do refactor da API para o inglês: mantém os CSVs (e os resultados da
+    /// monografia) idênticos byte a byte.
+    /// </summary>
+    private static string Status(IssueStatus status) => status switch
+    {
+        IssueStatus.New => "nova",
+        IssueStatus.Active => "ativa",
+        IssueStatus.PossiblyResolved => "possivelmenteResolvida",
+        IssueStatus.Resolved => "resolvida",
+        _ => throw new ArgumentOutOfRangeException(nameof(status)),
+    };
 }
