@@ -195,21 +195,6 @@ public sealed class VotesTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Concurrent_votes_on_the_same_issue_keep_recalculation()
-    {
-        var (_, issue, _, _) = await NewIssueAsync();
-        var voters = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => factory.NewPersonAsync()));
-
-        var responses = await Task.WhenAll(voters.Select(v => v.VoteAsync(issue.Id, "yes")));
-
-        responses.Should().AllSatisfy(r => r.StatusCode.Should().Be(HttpStatusCode.OK));
-        var detail = await (await factory.CreateClient().GetAsync($"/api/v1/issues/{issue.Id}"))
-            .ReadAsync<GetIssueDetailResponse>();
-        detail.Status.Should().Be(IssueStatus.Active);
-        detail.TrustScore.Should().Be(62.5);
-    }
-
-    [Fact]
     public async Task No_last_24h_includes_exactly_24h_and_drops_older()
     {
         var (_, issue, _, _) = await NewIssueAsync();

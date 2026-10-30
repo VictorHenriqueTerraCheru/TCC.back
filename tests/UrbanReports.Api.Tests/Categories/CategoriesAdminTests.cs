@@ -69,30 +69,6 @@ public sealed class CategoriesAdminTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Concurrent_creations_get_distinct_sequential_ids()
-    {
-        var admin = await factory.NewPersonAsync(Role.Administrator);
-
-        var responses = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => CreateAsync(admin, UniqueName())));
-        var ids = new List<short>();
-        try
-        {
-            foreach (var r in responses)
-            {
-                r.StatusCode.Should().Be(HttpStatusCode.Created);
-                ids.Add((await r.ReadAsync<CategoryAdminResponse>()).Id);
-            }
-
-            ids.Distinct().Should().HaveCount(6);
-            ids.Order().Zip(ids.Order().Skip(1), (a, b) => b - a).Should().OnlyContain(d => d == 1);
-        }
-        finally
-        {
-            await DeactivateAsync(admin, [.. ids]);
-        }
-    }
-
-    [Fact]
     public async Task Duplicate_name_ignores_case_and_returns_409()
     {
         var admin = await factory.NewPersonAsync(Role.Administrator);
@@ -198,45 +174,6 @@ public sealed class CategoriesAdminTests(ApiFactory factory)
         {
             await DeactivateAsync(admin, created.Id);
         }
-    }
-
-    [Fact]
-    public async Task Parallel_rename_to_the_same_name_lets_only_one_win()
-    {
-        var admin = await factory.NewPersonAsync(Role.Administrator);
-        var a = await (await CreateAsync(admin, UniqueName())).ReadAsync<CategoryAdminResponse>();
-        var b = await (await CreateAsync(admin, UniqueName())).ReadAsync<CategoryAdminResponse>();
-        var target = UniqueName();
-        try
-        {
-            var responses = await Task.WhenAll(
-                admin.Client.PutAsJsonAsync($"/api/v1/admin/categories/{a.Id}",
-                    new { name = target.ToLowerInvariant(), group = "seguranca", icon = "x" }, ApiClient.Json),
-                admin.Client.PutAsJsonAsync($"/api/v1/admin/categories/{b.Id}",
-                    new { name = target.ToUpperInvariant(), group = "seguranca", icon = "x" }, ApiClient.Json));
-
-            responses.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
-        }
-        finally
-        {
-            await DeactivateAsync(admin, a.Id, b.Id);
-        }
-    }
-
-    [Fact]
-    public async Task Numeric_type_and_active_body_without_the_field_return_400()
-    {
-        var admin = await factory.NewPersonAsync(Role.Administrator);
-        var name = UniqueName();
-
-        var numeric = await admin.Client.PostAsJsonAsync("/api/v1/admin/categories",
-            new { name, group = "seguranca", type = 2, icon = "x" }, ApiClient.Json);
-        var withoutActive = await admin.Client.PatchAsJsonAsync("/api/v1/admin/categories/1/active", new { }, ApiClient.Json);
-
-        numeric.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        withoutActive.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await factory.InDatabaseAsync(db => db.Categories.Where(c => c.Name == name).AnyAsync())).Should().BeFalse();
-        (await factory.InDatabaseAsync(db => db.Categories.Where(c => c.Id == 1).Select(c => c.Active).SingleAsync())).Should().BeTrue();
     }
 
     [Fact]

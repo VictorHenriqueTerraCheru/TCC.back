@@ -19,8 +19,6 @@ public sealed class GeocodingService(
     private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = options.Value.CacheEntryLimit });
     private readonly ConcurrentDictionary<string, Lazy<Task<GeocodedAddress?>>> _inFlight = new();
 
-    internal int CacheEntries => _cache.Count;
-
     public void Dispose() => _cache.Dispose();
 
     public async Task<GeocodedAddress> ReverseAsync(double lat, double lng, CancellationToken ct)
