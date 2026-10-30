@@ -33,6 +33,21 @@ public sealed class ReverseTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Too_many_requests_per_ip_returns_429_rate_limited()
+    {
+        await using var limited = factory.WithWebHostBuilder(b => b.UseSetting("RateLimits:GeocodingPerMinute", "2"));
+        var client = limited.CreateClient();
+        var (lat, lng) = ApiFactory.UniquePoint();
+
+        (await client.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
+        var third = await client.GetAsync(Url(lat, lng));
+
+        third.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await third.ReadJsonAsync()).GetProperty("type").GetString().Should().Be("rate-limited");
+    }
+
+    [Fact]
     public async Task Nominatim_offline_returns_200_with_available_false()
     {
         var (lat, lng) = ApiFactory.UniquePoint();

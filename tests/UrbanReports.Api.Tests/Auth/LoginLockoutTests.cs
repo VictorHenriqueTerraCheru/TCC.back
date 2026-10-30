@@ -28,6 +28,21 @@ public sealed class LoginLockoutTests(ApiFactory factory)
             .Select(p => $"{p.Name}={p.Value}"));
 
     [Fact]
+    public async Task Locked_account_response_equals_invalid_credentials_response()
+    {
+        var email = ApiClient.UniqueEmail();
+        await _client.RegisterAsync(email);
+        var invalid = await Login(email, "senha-errada");
+        await Fail(email, MaxFailures);
+
+        var locked = await Login(email, "senha-forte");
+
+        locked.StatusCode.Should().Be(invalid.StatusCode);
+        (await WithoutTraceId(locked)).Should().Be(await WithoutTraceId(invalid));
+        locked.Headers.Contains("Retry-After").Should().BeFalse();
+    }
+
+    [Fact]
     public async Task After_N_failures_the_account_locks_even_with_the_right_password()
     {
         var email = ApiClient.UniqueEmail();
