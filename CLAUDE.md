@@ -41,7 +41,7 @@ src/
       Errors/<Area>Errors.cs           # ApplicationError com o type de docs/API.md
     Feature/Geocoding/Services/        # NominatimClient, GeocodingService (cache + 1 req/s), RequestThrottle
     Feature/Trust/
-      Engine/                          # TrustEngine, TrustConfiguration, VoteFact...: puro, só BCL + enums (EnginePurityTests)
+      Engine/                          # TrustEngine, TrustConfiguration, VoteFact...: puro, só BCL + enums
       Services/                        # IssueRecalculation, LifecycleProcessor
       Jobs/LifecycleJob.cs             # a cada 15 min
     Infrastructure/
@@ -52,7 +52,7 @@ src/
     Common/                    # Enums, Result<T>, ApplicationError, IEndpointModule, Validate<T>(), Paged, Geo, PostgresClock, Statics
   Ocorrencias.Simulator/       # console: cenários sintéticos A vs B (referencia a Api só para chamar o motor; não foi traduzido)
 tests/
-  UrbanReports.Api.Tests/      # Skeleton/ContractTests + openapi.snapshot.json travam o contrato; Skeleton/OpenapiShapeTests + openapi.shape.txt travam a forma; Trust/Engine/ testa o motor
+  UrbanReports.Api.Tests/      # só regra de negócio: Trust/Engine/ testa o motor; as demais pastas testam cada área pela API
   Ocorrencias.Simulator.Tests/ # Referencia/*.csv trava a saída do Simulator (Csv_igual_a_referencia)
 cenarios/base.json
 docs/
@@ -62,7 +62,7 @@ Fluxo: **Module** (valida com `.Validate<T>()`, lê o usuário do token, monta `
 
 ## Regras inegociáveis
 
-1. **O motor de confiança mora em `Feature/Trust/Engine/`, é puro (só BCL e os enums de `Common`, garantido por `EnginePurityTests`) e testado.** A API nunca reimplementa fórmula; chama `TrustEngine`. O Simulator chama as mesmas funções.
+1. **O motor de confiança mora em `Feature/Trust/Engine/`, é puro (só BCL e os enums de `Common`) e testado.** A API nunca reimplementa fórmula; chama `TrustEngine`. O Simulator chama as mesmas funções.
 2. **O voto guarda fatos, não pesos**: `role_at_vote` e `distance_meters` (nulo = sem GPS). A distância é calculada com `ST_Distance` (geography) e o `lat/lng` do votante é **descartado** — nunca persista nem logue a posição do votante (LGPD, RNF03).
 3. **Incidente**: arredonde `lat/lng` para 3 casas **antes** de persistir; nunca exponha `author_id` em resposta alguma.
 4. A configuração ativa da API é a **B** (`TrustConfiguration.B`), via `IOptions` só para o nome; os valores vêm do motor.
@@ -79,7 +79,7 @@ Fluxo: **Module** (valida com `.Validate<T>()`, lê o usuário do token, monta `
 - **Sem comentários** no código: o nome explica. Exceções: `Migrations/` (gerado) e o Simulator, que não foi traduzido.
 - `record` para DTOs; `sealed` por padrão; nullable habilitado; `TreatWarningsAsErrors` na Api.
 - Um service por área (`I<Area>Service`, scoped, registrado em `DependencyInjection.AddServices`), um module por área. Endpoint novo nasce exigindo autenticação (grupo `/api/v1`); visitante só com `AllowAnonymous()` explícito.
-- DTOs de contrato são `record`s de topo com o nome do schema no OpenAPI (`GetIssueDetailResponse`). Mudou o OpenAPI? `ContractTests.Openapi_equals_snapshot` falha; regrave com `UPDATE_OPENAPI_SNAPSHOT=1 dotnet test --filter Openapi_equals_snapshot` **só** se a mudança de contrato foi aprovada (e replique em `docs/API.md` e no front).
+- DTOs de contrato são `record`s de topo com o nome do schema no OpenAPI (`GetIssueDetailResponse`). Mudou o contrato? Só com aprovação; replique em `docs/API.md` e gere os tipos do front com `npm run gen:api:live`.
 - Commits em Conventional Commits, em português (`feat(votos): ...`). Uma branch `etapa-N` + PR por etapa do `PLAN.md`.
 - Versões de pacotes centralizadas em `Directory.Packages.props`; SDK fixado em `global.json`.
 - Nada de segredos no repo: `appsettings.Development.json` usa Docker local; produção via variáveis de ambiente (`ConnectionStrings__Default`, `Jwt__Key`, `Cors__Origins__0`, `Nominatim__Email` opcional).

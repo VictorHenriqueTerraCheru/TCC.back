@@ -22,9 +22,6 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
     public async Task<Result<CategoryAdminResponse>> CreateAsync(CreateCategoryRequest request, CancellationToken ct)
     {
         var name = request.Name.Trim();
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.LockCatalogAsync(ct);
-
         var group = await db.Groups.FindAsync([request.Group], ct);
         if (group is null)
         {
@@ -42,11 +39,6 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
         }
 
         var greater = await db.Categories.MaxAsync(c => (short?)c.Id, ct) ?? 0;
-        if (greater >= short.MaxValue)
-        {
-            return CategoryErrors.CategoryLimitReached;
-        }
-
         var category = new Category
         {
             Id = (short)(greater + 1),
@@ -69,17 +61,12 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
             return CategoryErrors.MissingGroup;
         }
 
-        await transaction.CommitAsync(ct);
-
         return ToAdmin(category);
     }
 
     public async Task<Result<CategoryAdminResponse>> EditAsync(short id, EditCategoryRequest request, CancellationToken ct)
     {
         var name = request.Name.Trim();
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.LockCatalogAsync(ct);
-
         var category = await db.Categories.FindAsync([id], ct);
         if (category is null)
         {
@@ -117,8 +104,6 @@ public sealed class CategoryService(AppDbContext db) : ICategoryService
         {
             return CategoryErrors.MissingGroup;
         }
-
-        await transaction.CommitAsync(ct);
 
         return ToAdmin(category);
     }

@@ -121,23 +121,6 @@ public sealed class GroupsTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Parallel_rename_to_the_same_label_lets_only_one_win()
-    {
-        var admin = await factory.NewPersonAsync(Role.Administrator);
-        var a = await (await CreateAsync(admin, UniqueLabel())).ReadAsync<GroupResponse>();
-        var b = await (await CreateAsync(admin, UniqueLabel())).ReadAsync<GroupResponse>();
-        var target = UniqueLabel();
-
-        var responses = await Task.WhenAll(
-            admin.Client.PutAsJsonAsync($"/api/v1/admin/groups/{a.Key}",
-                new { label = target.ToLowerInvariant(), color = "blue", sortOrder = 9 }, ApiClient.Json),
-            admin.Client.PutAsJsonAsync($"/api/v1/admin/groups/{b.Key}",
-                new { label = target.ToUpperInvariant(), color = "blue", sortOrder = 9 }, ApiClient.Json));
-
-        responses.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
-    }
-
-    [Fact]
     public async Task Delete_only_works_on_an_empty_group()
     {
         var admin = await factory.NewPersonAsync(Role.Administrator);

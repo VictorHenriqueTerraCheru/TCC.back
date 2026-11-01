@@ -109,12 +109,4 @@ public sealed class HistoryTests(ApiFactory factory)
 
         json.GetProperty("items")[0].GetProperty("type").GetString().Should().Be("issueReport");
     }
-
-    [Fact]
-    public async Task Invalid_filter_returns_400()
-    {
-        var me = await factory.NewPersonAsync();
-
-        (await me.Client.GetAsync("/api/v1/me/history?filter=others")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
 }

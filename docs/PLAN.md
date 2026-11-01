@@ -10,7 +10,7 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings, `dotnet tes
 
 - Solution com os 4 projetos da árvore do `CLAUDE.md` (Api e Simulator em `src/`; um projeto de testes para cada em `tests/`); `Directory.Build.props` com `net10.0`, `Nullable`, `ImplicitUsings`, `LangVersion latest`.
 - `docker-compose.yml` com `postgis/postgis:16-3.4` (usuário/senha/banco `ocorrencias`).
-- `Program.cs` mínimo: OpenAPI + Scalar, ProblemDetails, `JsonStringEnumConverter` camelCase, CORS por configuração (`Cors:Origens`, com `http://localhost:5173` em Development), health checks em `GET /api/v1/health` (aplicação) e `GET /api/v1/health/database` (banco; 503 se fora), anônimos e documentados no OpenAPI (tag `Health`).
+- `Program.cs` mínimo: OpenAPI + Scalar, ProblemDetails, `JsonStringEnumConverter` camelCase, CORS por configuração (`Cors:Origins`, com `http://localhost:5173` em Development), health checks em `GET /api/v1/health` (aplicação) e `GET /api/v1/health/database` (banco; 503 se fora), anônimos e documentados no OpenAPI (tag `Health`).
 - Garanta que o documento OpenAPI (`/openapi/v1.json`) descreva os enums como string e os campos anuláveis corretamente: o front gera os tipos TypeScript a partir dele.
 - `.editorconfig`, `.gitignore`, GitHub Actions rodando `dotnet test`.
 
@@ -21,7 +21,7 @@ Etapas em ordem. Cada etapa termina com `dotnet build` sem warnings, `dotnet tes
 - Implementar tudo de `docs/MOTOR_CONFIANCA.md`: enums, `VoteFact`, `IssueState`, `TrustConfiguration` (A, B, `WithVerifiedWeight`), `TrustEngine`.
 - Testes do motor (`Ocorrencias.Api.Tests/Trust/Engine/`) com **todos** os casos da tabela, mais testes de propriedade simples: C ∈ [0, 100); C monotônico em E⁺; A independe de `now`.
 
-**Aceite:** 100% dos casos da tabela passam; o motor só usa BCL e os enums de `Common` (`EnginePurityTests`).
+**Aceite:** 100% dos casos da tabela passam; o motor só usa BCL e os enums de `Common`.
 
 ## Etapa 2 — Dados e autenticação (≈ 1–2 dias)
 

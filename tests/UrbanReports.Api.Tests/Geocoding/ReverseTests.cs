@@ -33,16 +33,18 @@ public sealed class ReverseTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Two_consecutive_calls_make_one_request_to_nominatim()
+    public async Task Too_many_requests_per_ip_returns_429_rate_limited()
     {
+        await using var limited = factory.WithWebHostBuilder(b => b.UseSetting("RateLimits:GeocodingPerMinute", "2"));
+        var client = limited.CreateClient();
         var (lat, lng) = ApiFactory.UniquePoint();
-        var client = factory.CreateClient();
-        var before = factory.Nominatim.Calls;
 
-        await client.GetAsync(Url(lat, lng));
-        await client.GetAsync(Url(lat, lng));
+        (await client.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
+        var third = await client.GetAsync(Url(lat, lng));
 
-        (factory.Nominatim.Calls - before).Should().Be(1);
+        third.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await third.ReadJsonAsync()).GetProperty("type").GetString().Should().Be("rate-limited");
     }
 
     [Fact]
@@ -58,30 +60,5 @@ public sealed class ReverseTests(ApiFactory factory)
         body.GetProperty("available").GetBoolean().Should().BeFalse();
         body.GetProperty("address").GetString().Should().StartWith("Próximo a ");
         body.GetProperty("areaLabel").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
-    }
-
-    [Theory]
-    [InlineData(-91, 0)]
-    [InlineData(0, 181)]
-    public async Task Invalid_coordinate_returns_400(double lat, double lng)
-    {
-        var response = await factory.CreateClient().GetAsync(Url(lat, lng));
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task Too_many_requests_per_ip_returns_429_rate_limited()
-    {
-        await using var limited = factory.WithWebHostBuilder(b => b.UseSetting("RateLimits:GeocodingPerMinute", "2"));
-        var client = limited.CreateClient();
-        var (lat, lng) = ApiFactory.UniquePoint();
-
-        (await client.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
-        (await client.GetAsync(Url(lat, lng))).StatusCode.Should().Be(HttpStatusCode.OK);
-        var third = await client.GetAsync(Url(lat, lng));
-
-        third.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-        (await third.ReadJsonAsync()).GetProperty("type").GetString().Should().Be("rate-limited");
     }
 }

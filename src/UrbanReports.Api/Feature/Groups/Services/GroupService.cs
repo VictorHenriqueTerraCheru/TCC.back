@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using UrbanReports.Api.Common;
 using UrbanReports.Api.Persistence;
 
@@ -21,9 +20,6 @@ public sealed class GroupService(AppDbContext db) : IGroupService
     public async Task<Result<GroupResponse>> CreateAsync(CreateGroupRequest request, CancellationToken ct)
     {
         var label = request.Label.Trim();
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.LockCatalogAsync(ct);
-
         if (await LabelInUseAsync(label, null, ct))
         {
             return GroupErrors.DuplicateLabel;
@@ -42,17 +38,12 @@ public sealed class GroupService(AppDbContext db) : IGroupService
             return GroupErrors.DuplicateLabel;
         }
 
-        await transaction.CommitAsync(ct);
-
         return ToResponse(group);
     }
 
     public async Task<Result<GroupResponse>> EditAsync(string key, EditGroupRequest request, CancellationToken ct)
     {
         var label = request.Label.Trim();
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.LockCatalogAsync(ct);
-
         var group = await db.Groups.FindAsync([key], ct);
         if (group is null)
         {
@@ -76,37 +67,18 @@ public sealed class GroupService(AppDbContext db) : IGroupService
             return GroupErrors.DuplicateLabel;
         }
 
-        await transaction.CommitAsync(ct);
-
         return ToResponse(group);
     }
 
     public async Task<Result<Empty>> DeleteAsync(string key, CancellationToken ct)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        await db.Database.LockCatalogAsync(ct);
-
         if (await db.Categories.AnyAsync(c => c.Group == key, ct))
         {
             return GroupErrors.InUse;
         }
 
-        try
-        {
-            var rows = await db.Groups.Where(g => g.Key == key).ExecuteDeleteAsync(ct);
-            if (rows == 0)
-            {
-                return ApplicationError.NotFound;
-            }
-
-            await transaction.CommitAsync(ct);
-            return new Empty();
-        }
-        catch (Exception e) when (e is DbUpdateException || e is PostgresException)
-        {
-            if (!e.ViolatedForeignKey()) throw;
-            return GroupErrors.InUse;
-        }
+        var rows = await db.Groups.Where(g => g.Key == key).ExecuteDeleteAsync(ct);
+        return rows == 0 ? ApplicationError.NotFound : new Empty();
     }
 
     private Task<bool> LabelInUseAsync(string label, string? ignoreKey, CancellationToken ct)

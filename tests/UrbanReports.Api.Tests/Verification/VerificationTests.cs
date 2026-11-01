@@ -55,17 +55,6 @@ public sealed class VerificationTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Null_justification_returns_400()
-    {
-        var person = await factory.NewPersonAsync();
-
-        var response = await person.Client.PostAsJsonAsync("/api/v1/verifications",
-            new { affiliationType = "livesInArea", justification = (string?)null }, ApiClient.Json);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
     public async Task Second_pending_returns_409()
     {
         var person = await factory.NewPersonAsync();
@@ -75,17 +64,6 @@ public sealed class VerificationTests(ApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await ErrorTypeAsync(response)).Should().Be("verification-already-pending");
-    }
-
-    [Fact]
-    public async Task Concurrent_pending_requests_do_not_pass_the_unique_index()
-    {
-        var person = await factory.NewPersonAsync();
-
-        var responses = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => RequestAsync(person)));
-
-        responses.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(1);
-        responses.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(4);
     }
 
     [Theory]

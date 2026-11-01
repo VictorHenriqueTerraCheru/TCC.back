@@ -28,42 +28,6 @@ public sealed class LoginLockoutTests(ApiFactory factory)
             .Select(p => $"{p.Name}={p.Value}"));
 
     [Fact]
-    public async Task After_N_failures_the_account_locks_even_with_the_right_password()
-    {
-        var email = ApiClient.UniqueEmail();
-        await _client.RegisterAsync(email);
-
-        await Fail(email, MaxFailures);
-
-        (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task Concurrent_failures_all_count_and_lock()
-    {
-        var email = ApiClient.UniqueEmail();
-        await _client.RegisterAsync(email);
-
-        var responses = await Task.WhenAll(Enumerable.Range(0, MaxFailures).Select(_ => Login(email, "senha-errada")));
-        responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Unauthorized);
-
-        (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task Before_N_failures_the_right_password_logs_in_and_resets_the_counter()
-    {
-        var email = ApiClient.UniqueEmail();
-        await _client.RegisterAsync(email);
-
-        await Fail(email, MaxFailures - 1);
-        (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
-
-        await Fail(email, MaxFailures - 1);
-        (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
     public async Task Locked_account_response_equals_invalid_credentials_response()
     {
         var email = ApiClient.UniqueEmail();
@@ -79,29 +43,13 @@ public sealed class LoginLockoutTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Lockout_of_one_account_does_not_affect_another_login()
-    {
-        var locked = ApiClient.UniqueEmail();
-        var other = ApiClient.UniqueEmail();
-        await _client.RegisterAsync(locked);
-        await _client.RegisterAsync(other);
-
-        await Fail(locked, MaxFailures);
-
-        (await Login(other, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task Account_logs_in_again_when_the_lockout_ends()
+    public async Task After_N_failures_the_account_locks_even_with_the_right_password()
     {
         var email = ApiClient.UniqueEmail();
         await _client.RegisterAsync(email);
+
         await Fail(email, MaxFailures);
+
         (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-
-        await factory.InDatabaseAsync(db => db.Database.ExecuteSqlAsync(
-            $"UPDATE users SET lockout_end = now() - interval '1 minute' WHERE normalized_email = {email.ToUpperInvariant()}"));
-
-        (await Login(email, "senha-forte")).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

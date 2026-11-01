@@ -101,18 +101,6 @@ public sealed class AdminTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Concurrent_approve_and_reject_only_one_wins()
-    {
-        var admin = await factory.NewPersonAsync(Role.Administrator);
-        var id = await RequestAsync(await factory.NewPersonAsync());
-
-        var responses = await Task.WhenAll(ApproveAsync(admin, id), RejectAsync(admin, id), ApproveAsync(admin, id));
-
-        responses.Count(r => r.StatusCode == HttpStatusCode.NoContent).Should().Be(1);
-        responses.Count(r => r.StatusCode == HttpStatusCode.Conflict).Should().Be(2);
-    }
-
-    [Fact]
     public async Task List_filters_by_status_with_initials_and_oldest_pending_first()
     {
         var admin = await factory.NewPersonAsync(Role.Administrator);

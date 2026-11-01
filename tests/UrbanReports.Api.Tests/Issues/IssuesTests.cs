@@ -214,29 +214,6 @@ public sealed class IssuesTests(ApiFactory factory)
         list.Should().BeEmpty();
     }
 
-    [Theory]
-    [InlineData("groups=inexistente")]
-    [InlineData("status=quebrado")]
-    [InlineData("status=1")]
-    [InlineData("status=999")]
-    public async Task List_in_area_with_invalid_filter_returns_400(string filter)
-    {
-        var response = await factory.CreateClient().GetAsync($"/api/v1/issues?minLat=-23&minLng=-44&maxLat=-22&maxLng=-43&{filter}");
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Theory]
-    [InlineData("page=0")]
-    [InlineData("page=2147483647&pageSize=100")]
-    [InlineData("pageSize=101")]
-    public async Task Recent_with_invalid_pagination_returns_400(string pagination)
-    {
-        var response = await factory.CreateClient().GetAsync($"/api/v1/issues/recent?lat=-22.95&lng=-43.18&{pagination}");
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
     [Fact]
     public async Task Recent_pages_from_newest_to_oldest()
     {

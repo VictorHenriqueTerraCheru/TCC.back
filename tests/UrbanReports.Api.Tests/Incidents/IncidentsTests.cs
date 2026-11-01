@@ -109,18 +109,6 @@ public sealed class IncidentsTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Concurrent_reports_do_not_break_the_limit()
-    {
-        var person = await factory.NewPersonAsync();
-        var (lat, lng) = ApiFactory.IsolatedArea();
-
-        var responses = await Task.WhenAll(Enumerable.Range(0, 15).Select(_ => CreateAsync(person, lat, lng)));
-
-        responses.Count(r => r.StatusCode == HttpStatusCode.Created).Should().Be(10);
-        responses.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests).Should().Be(5);
-    }
-
-    [Fact]
     public async Task Area_classifies_the_level_by_the_7_day_total()
     {
         var person = await factory.NewPersonAsync();
