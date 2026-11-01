@@ -29,6 +29,7 @@ public sealed record TrustConfiguration
     public double MinResolvedWeight { get; init; } = 5;
     public double ResolvedRatio { get; init; } = 0.6;
     public TimeSpan ResolvedConfirmationTime { get; init; } = TimeSpan.FromHours(48);
+    public TimeSpan InactivityTimeout { get; init; } = TimeSpan.FromDays(14);
 
     public static TrustConfiguration B { get; } = new() { Name = "B" };
 

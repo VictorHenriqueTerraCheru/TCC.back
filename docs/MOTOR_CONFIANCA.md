@@ -73,6 +73,7 @@ public sealed record TrustConfiguration
     public double MinResolvedWeight { get; init; } = 5;
     public double ResolvedRatio { get; init; } = 0.6;
     public TimeSpan ResolvedConfirmationTime { get; init; } = TimeSpan.FromHours(48);
+    public TimeSpan InactivityTimeout { get; init; } = TimeSpan.FromDays(14);
 
     public static TrustConfiguration B { get; } = new() { Name = "B" };
     public static TrustConfiguration A { get; } = new()
@@ -113,11 +114,14 @@ Faixa: `C < 40 → Low`, `40 ≤ C < 70 → Medium`, `C ≥ 70 → High`.
 
 | De | Para | Condição |
 |---|---|---|
+| New, Active ou PossiblyResolved | Resolved | `now − última atividade ≥ 14 dias` (avaliada antes das demais) |
 | New | Active | `voters ≥ 5` **ou** `now − CreatedAt ≥ 72 h` |
 | Active | PossiblyResolved | `R⁻ ≥ 5` e `p ≥ 0,6` → grava `ResolutionConditionSince = now` |
 | PossiblyResolved | Active | `p < 0,6` → `ResolutionConditionSince = null` |
 | PossiblyResolved | Resolved | `p ≥ 0,6` e `now − ResolutionConditionSince ≥ 48 h` |
 | Resolved | — | estado final |
+
+**Inatividade.** Última atividade = o `RegisteredAt` mais recente entre os votos, ou `CreatedAt` se não há votos. Qualquer voto (sim ou não, inclusive o que substitui um voto anterior) reinicia o prazo. Sem nenhuma atividade por 14 dias, o problema vai direto para Resolved, em qualquer status aberto; essa verificação vem antes das transições da tabela. Vale nas configurações A e B.
 
 Votos chegam também em Nova (contam no índice e em `voters`). Ao sair de Nova, os "Não" já dados contam no ciclo de vida: um registro falso que quem passa não encontra segue Ativa → PossivelmenteResolvida → Resolvida e sai do mapa.
 
@@ -168,5 +172,9 @@ Tolerância `1e-6` salvo indicação. `t0 = 2026-10-01T12:00:00Z`.
 | 20 | PossiblyResolved, chegam 3 "sim" a 100 m (p < 0,6) | Active, `ResolutionConditionSince = null` |
 | 21 | Mesmo usuário com 2 votos na lista | **não pode acontecer** — a API garante unicidade; o motor pode assumir isso, mas o teste documenta |
 | 22 | New com 5 "não" de cidadãos a 100 m | Low; Active → PossiblyResolved na avaliação seguinte → Resolved 48 h depois |
+| 23 | New, Active ou PossiblyResolved sem votos, `now = CreatedAt + 14 dias` | Resolved |
+| 24 | Active sem votos, `now = CreatedAt + 14 dias − 1 min` | continua Active |
+| 25 | Active com 1 voto (sim ou não) em `t0 + 10 dias`: `now = t0 + 23 dias` / `t0 + 24 dias` | Active / Resolved |
+| 26 | Configuração A, Active com 1 "sim" em `t0`, `now = t0 + 14 dias` | Resolved |
 
 Se algum caso parecer contraintuitivo, **não altere a regra para fazer o teste passar**: registre e discuta com os autores, porque a regra está no texto do TCC.

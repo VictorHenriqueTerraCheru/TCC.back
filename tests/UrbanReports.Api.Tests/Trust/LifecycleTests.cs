@@ -66,10 +66,25 @@ public sealed class LifecycleTests(ApiFactory factory)
         var (lat, lng) = ApiFactory.UniquePoint();
         var issue = await factory.ActiveIssueAsync(lat, lng);
 
-        factory.Clock.Advance(TimeSpan.FromDays(14));
+        factory.Clock.Advance(TimeSpan.FromDays(13));
         await ProcessAsync();
 
-        (await DetailAsync(issue.Id)).TrustScore.Should().Be(45.5);
+        (await DetailAsync(issue.Id)).TrustScore.Should().Be(46.7);
+    }
+
+    [Fact]
+    public async Task Job_resolves_issue_without_votes_for_14_days()
+    {
+        var (lat, lng) = ApiFactory.UniquePoint();
+        var issue = await factory.ActiveIssueAsync(lat, lng);
+
+        factory.Clock.Advance(TimeSpan.FromDays(14).Subtract(TimeSpan.FromMinutes(1)));
+        await ProcessAsync();
+        (await DetailAsync(issue.Id)).Status.Should().Be(IssueStatus.Active);
+
+        factory.Clock.Advance(TimeSpan.FromMinutes(1));
+        await ProcessAsync();
+        (await DetailAsync(issue.Id)).Status.Should().Be(IssueStatus.Resolved);
     }
 
     [Fact]

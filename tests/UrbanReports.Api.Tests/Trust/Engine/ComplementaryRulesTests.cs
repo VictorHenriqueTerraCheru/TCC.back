@@ -102,8 +102,42 @@ public sealed class ComplementaryRulesTests
 
     [Fact]
     public void Active_with_only_yes_stays_active() =>
-        TrustEngine.EvaluateLifecycle(State(IssueStatus.Active), [Yes()], T0.AddDays(30), B)
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.Active), [Yes()], T0.AddDays(13), B)
             .Status.Should().Be(IssueStatus.Active);
+
+    [Theory]
+    [InlineData(IssueStatus.New)]
+    [InlineData(IssueStatus.Active)]
+    [InlineData(IssueStatus.PossiblyResolved)]
+    public void Fourteen_days_without_votes_resolves_from_any_open_status(IssueStatus status)
+    {
+        var state = State(status, resolutionConditionSince: status == IssueStatus.PossiblyResolved ? T0 : null);
+
+        TrustEngine.EvaluateLifecycle(state, [], T0.AddDays(14), B)
+            .Should().Be(state with { Status = IssueStatus.Resolved, StatusChangedAt = T0.AddDays(14) });
+    }
+
+    [Fact]
+    public void Just_before_fourteen_days_without_votes_does_not_resolve() =>
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.Active), [], T0.AddDays(14).AddMinutes(-1), B)
+            .Status.Should().Be(IssueStatus.Active);
+
+    [Theory]
+    [InlineData(VoteValue.Positive)]
+    [InlineData(VoteValue.Negative)]
+    public void Any_vote_restarts_the_fourteen_days(VoteValue value)
+    {
+        var state = State(IssueStatus.Active);
+        List<VoteFact> votes = [Vote(value, at: T0.AddDays(10))];
+
+        TrustEngine.EvaluateLifecycle(state, votes, T0.AddDays(23), B).Status.Should().Be(IssueStatus.Active);
+        TrustEngine.EvaluateLifecycle(state, votes, T0.AddDays(24), B).Status.Should().Be(IssueStatus.Resolved);
+    }
+
+    [Fact]
+    public void Inactivity_also_applies_to_config_A() =>
+        TrustEngine.EvaluateLifecycle(State(IssueStatus.Active), [Yes()], T0.AddDays(14), TrustConfiguration.A)
+            .Status.Should().Be(IssueStatus.Resolved);
 
     [Fact]
     public void Ratio_exactly_at_threshold_becomes_possibly_resolved()

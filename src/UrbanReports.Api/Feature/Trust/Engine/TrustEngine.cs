@@ -68,6 +68,11 @@ public static class TrustEngine
     public static IssueState EvaluateLifecycle(
         IssueState state, IReadOnlyCollection<VoteFact> votes, DateTimeOffset now, TrustConfiguration cfg)
     {
+        if (state.Status != IssueStatus.Resolved && now - LastActivity(state, votes) >= cfg.InactivityTimeout)
+        {
+            return state with { Status = IssueStatus.Resolved, StatusChangedAt = now };
+        }
+
         switch (state.Status)
         {
             case IssueStatus.New:
@@ -144,6 +149,20 @@ public static class TrustEngine
         }
 
         return (positive, negative);
+    }
+
+    private static DateTimeOffset LastActivity(IssueState state, IReadOnlyCollection<VoteFact> votes)
+    {
+        var last = state.CreatedAt;
+        foreach (var vote in votes)
+        {
+            if (vote.RegisteredAt > last)
+            {
+                last = vote.RegisteredAt;
+            }
+        }
+
+        return last;
     }
 
     private static double ResolvedRatio(double stillThere, double resolved)
