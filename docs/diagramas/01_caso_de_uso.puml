@@ -25,8 +25,13 @@ rectangle "Sistema de ocorrências urbanas" {
   usecase "Consultar histórico" as UC14
   usecase "Solicitar verificação" as UC15
   usecase "Atualizar ciclo de vida\ne confiança" as UC17
+  usecase "Gerenciar categorias\ne grupos" as UC18
+  usecase "Gerenciar usuários" as UC19
+  usecase "Editar perfil" as UC20
 }
 A --> UC16
+A --> UC18
+A --> UC19
 V --> UC1
 V --> UC3
 V --> UC4
@@ -39,6 +44,7 @@ C --> UC10
 C --> UC11
 C --> UC14
 C --> UC15
+C --> UC20
 T --> UC17
 V <|-- C
 C <|-- CV
