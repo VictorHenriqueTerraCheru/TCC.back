@@ -3680,7 +3680,7 @@ for chave in ("paths", "components", "tags"):
     igual = json.dumps(a.get(chave), sort_keys=True) == json.dumps(b.get(chave), sort_keys=True)
     print(chave, "igual" if igual else "DIFERENTE")
 ```
-Run: `python3 $SCRATCH/compara_openapi.py tests/Ocorrencias.Api.Tests/Esqueleto/openapi.snapshot.json ../TCC.front/docs/openapi.json`
+Run: `python3 $SCRATCH/compara_openapi.py tests/Ocorrencias.Api.Tests/Esqueleto/openapi.snapshot.json ../TCC-front/docs/openapi.json`
 Expected: as três linhas `igual`. Se `paths`/`components` derem `DIFERENTE`, o snapshot do front é anterior à etapa-7 e não é causa desta refatoração (o snapshot da Task 1 foi gerado antes de qualquer mudança). Registre isso no PR e não altere o front sem perguntar.
 
 - [ ] **Step 5: Verificação final**
